@@ -19,7 +19,8 @@ export type PortalTab =
   | 'oportunidades-inmobiliarias'
   | 'metas'
   | 'facturas'
-  | 'solicitudes';
+  | 'solicitudes'
+  | 'feedback';
 
 // ───── Client type ─────
 

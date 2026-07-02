@@ -13,6 +13,7 @@ import {
   X,
   ArrowLeft,
   Lock,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -616,6 +617,18 @@ export default function LoginEcosistema() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* ── Admin access link ── */}
+        <div className="mt-8 flex items-center justify-center">
+          <Link
+            to="/admin"
+            className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-card/40 px-5 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-slate-500/40 hover:bg-card/60 transition-all duration-200"
+          >
+            <Crown className="h-4 w-4 text-slate-400" />
+            <span className="font-semibold">Acceso Administrativo Master</span>
+            <span className="text-[10px] text-muted-foreground/50">— Admin Neggo</span>
+          </Link>
         </div>
 
         {/* ── Security footer ── */}

@@ -47,6 +47,9 @@ export default function RejectionMetricsPanel({ entityType, entityName }: Reject
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSector, setSelectedSector] = useState<OfferSector | 'all'>(entityType ?? 'all');
 
+  /** When an entityType is provided, lock the sector to that specific value */
+  const isSectorLocked = entityType !== undefined;
+
   const loadMetrics = useCallback(async () => {
     setIsLoading(true);
     const { data, error } = await fetchMetricasRechazo();
@@ -67,16 +70,18 @@ export default function RejectionMetricsPanel({ entityType, entityName }: Reject
     void loadMetrics();
   }, [loadMetrics]);
 
+  const effectiveSector = isSectorLocked ? entityType : selectedSector;
+
   const filtered = useMemo(() => {
     let result = metrics;
-    if (selectedSector !== 'all') {
-      result = result.filter((m) => m.sector === selectedSector);
+    if (effectiveSector !== 'all') {
+      result = result.filter((m) => m.sector === effectiveSector);
     }
     if (entityName) {
       result = result.filter((m) => m.entityName === entityName);
     }
     return result;
-  }, [metrics, selectedSector, entityName]);
+  }, [metrics, effectiveSector, entityName]);
 
   const aggregates: RejectionAggregate = useMemo(
     () => computeRejectionAggregates(filtered),
@@ -118,27 +123,37 @@ export default function RejectionMetricsPanel({ entityType, entityName }: Reject
         </Button>
       </div>
 
-      {/* Sector filter */}
-      <div className="flex flex-wrap gap-2">
-        {sectorOptions.map((sector) => {
-          const cfg = SECTOR_CONFIG[sector];
-          return (
-            <button
-              key={sector}
-              onClick={() => setSelectedSector(sector)}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
-                selectedSector === sector
-                  ? 'border-red-500/30 bg-red-500/10 text-red-400'
-                  : 'border-border/40 bg-card/40 text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <Filter className="h-3 w-3" />
-              {sector === 'all' ? 'Todos los sectores' : cfg?.label ?? sector}
-            </button>
-          );
-        })}
-      </div>
+      {/* Sector filter — hidden when locked to a single entity type */}
+      {!isSectorLocked && (
+        <div className="flex flex-wrap gap-2">
+          {sectorOptions.map((sector) => {
+            const cfg = SECTOR_CONFIG[sector];
+            return (
+              <button
+                key={sector}
+                onClick={() => setSelectedSector(sector)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
+                  selectedSector === sector
+                    ? 'border-red-500/30 bg-red-500/10 text-red-400'
+                    : 'border-border/40 bg-card/40 text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Filter className="h-3 w-3" />
+                {sector === 'all' ? 'Todos los sectores' : cfg?.label ?? sector}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Locked sector indicator */}
+      {isSectorLocked && entityType && (
+        <div className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-1.5 text-xs font-medium text-red-400">
+          <Filter className="h-3 w-3" />
+          Mostrando solo: {SECTOR_CONFIG[entityType]?.label ?? entityType}
+        </div>
+      )}
 
       {isLoading && filtered.length === 0 ? (
         <div className="flex items-center justify-center py-16">

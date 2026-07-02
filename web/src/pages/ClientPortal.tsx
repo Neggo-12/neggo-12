@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Sparkles, Loader2, LayoutDashboard, TrendingUp, BarChart3, Gift, Home, Target, Receipt, Landmark } from 'lucide-react';
+import { Sparkles, Loader2, LayoutDashboard, TrendingUp, BarChart3, Gift, Home, Target, Receipt, Landmark, MessageSquareText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
@@ -17,6 +17,7 @@ const OportunidadesInmobiliariasView = lazy(() => import('@/features/portal/comp
 const MetasView = lazy(() => import('@/features/portal/components/MetasView'));
 const FacturasView = lazy(() => import('@/features/portal/components/FacturasView'));
 const BancaPrivadaView = lazy(() => import('@/features/portal/components/BancaPrivadaView'));
+const FeedbackView = lazy(() => import('@/features/portal/components/FeedbackView'));
 
 // ───── Tab labels ─────
 
@@ -28,6 +29,7 @@ const TAB_LABELS: Record<PortalTab, string> = {
   metas: 'Metas',
   facturas: 'Facturas',
   solicitudes: 'Banca Privada',
+  feedback: 'Soporte y Feedback',
 };
 
 // ───── Sidebar nav items ─────
@@ -41,6 +43,7 @@ const PORTAL_SECTIONS: SidebarNavItem[] = [
   { key: 'metas', label: 'Metas', icon: Target, badge: 5 },
   { key: 'facturas', label: 'Facturas', icon: Receipt, badge: 12 },
   { key: 'solicitudes', label: 'Banca Privada', icon: Landmark },
+  { key: 'feedback', label: 'Soporte y Feedback', icon: MessageSquareText },
 ];
 
 // ───── Loading fallback ─────
@@ -71,6 +74,8 @@ function ActiveTabContent({ tab }: { tab: PortalTab }) {
       return <FacturasView />;
     case 'solicitudes':
       return <BancaPrivadaView />;
+    case 'feedback':
+      return <FeedbackView />;
     default:
       return <FinanzasView />;
   }

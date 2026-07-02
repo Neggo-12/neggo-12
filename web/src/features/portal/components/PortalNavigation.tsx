@@ -12,6 +12,7 @@ const TABS: { id: PortalTab; label: string }[] = [
   { id: 'metas', label: 'Metas' },
   { id: 'facturas', label: 'Facturas' },
   { id: 'solicitudes', label: 'Banca Privada' },
+  { id: 'feedback', label: 'Soporte y Feedback' },
 ];
 
 // ───── Main PortalNavigation ─────
