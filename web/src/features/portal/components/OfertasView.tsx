@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import {
   Gift, Percent, MapPin, TrendingUp, CreditCard,
   Loader2, CheckCircle2, Sparkles, Building2,
-  Clock, Users, Target, Star,
+  Clock, Users, Target, Star, Home, Store,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -414,11 +414,22 @@ function CrearMetaDialog({
   );
 }
 
+// ───── Sector tab type ─────
+
+type OfferSector = 'bancarios' | 'inmobiliarios' | 'comercio';
+
+const OFFER_SECTORS: { id: OfferSector; label: string; emoji: string }[] = [
+  { id: 'bancarios', label: 'Créditos Bancarios', emoji: '🏦' },
+  { id: 'inmobiliarios', label: 'Proyectos Inmobiliarios', emoji: '🏗️' },
+  { id: 'comercio', label: 'Ofertas de Comercio', emoji: '🏬' },
+];
+
 // ───── Main OfertasView ─────
 
 export default function OfertasView() {
   const { currentClient } = usePortalStore();
   const [isCrearMetaOpen, setCrearMetaOpen] = useState(false);
+  const [activeSector, setActiveSector] = useState<OfferSector>('bancarios');
 
   const matchingCampaigns = useMemo(() => {
     return campaigns.filter((c) => {
@@ -506,14 +517,89 @@ export default function OfertasView() {
         </div>
       </div>
 
-      {/* Grid of matching offers */}
-      {matchingCampaigns.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {matchingCampaigns.map((campaign) => (
-            <OfferCard key={campaign.id} campaign={campaign} />
-          ))}
+      {/* ── Sector sub-tabs ── */}
+      <div className="flex items-center gap-1 rounded-xl border border-border/40 bg-card/40 p-1">
+        {OFFER_SECTORS.map((sector) => {
+          const isActive = activeSector === sector.id;
+          return (
+            <button
+              key={sector.id}
+              onClick={() => setActiveSector(sector.id)}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200',
+                isActive
+                  ? 'bg-card text-foreground border border-border/60 shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card/60 border border-transparent',
+              )}
+            >
+              <span className="text-sm">{sector.emoji}</span>
+              <span className="hidden sm:inline">{sector.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Sector: Créditos Bancarios ── */}
+      {activeSector === 'bancarios' && (
+        <>
+          {/* Grid of matching offers */}
+          {matchingCampaigns.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {matchingCampaigns.map((campaign) => (
+                <OfferCard key={campaign.id} campaign={campaign} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-card/60 border border-border/40 mb-4">
+                <Gift className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground mb-1">
+                Sin ofertas bancarias disponibles
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                No encontramos campañas activas que coincidan con tu perfil en {currentClient.city}.
+                Revisa más tarde o actualiza tus preferencias.
+              </p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Sector: Proyectos Inmobiliarios ── */}
+      {activeSector === 'inmobiliarios' && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/20 mb-4">
+            <Home className="h-7 w-7 text-blue-400" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground mb-1">
+            Proyectos Inmobiliarios
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            Explora proyectos de vivienda que coinciden con tu capacidad financiera en la pestaña de{' '}
+            <span className="font-semibold text-cyan-400">Oportunidades Inmobiliarias</span>.
+          </p>
         </div>
-      ) : (
+      )}
+
+      {/* ── Sector: Ofertas de Comercio ── */}
+      {activeSector === 'comercio' && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 mb-4">
+            <Store className="h-7 w-7 text-amber-400" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground mb-1">
+            Ofertas de Comercios Aliados
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            Cuando actives tus metas con el Sello IFC, los comercios aliados enviarán
+            propuestas personalizadas directamente a esta sección.
+          </p>
+        </div>
+      )}
+
+      {/* ── Legacy empty state (keeps old reference) ── */}
+      {false && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-card/60 border border-border/40 mb-4">
             <Gift className="h-7 w-7 text-muted-foreground" />

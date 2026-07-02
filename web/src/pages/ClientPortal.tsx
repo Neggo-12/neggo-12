@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react';
 import { Sparkles, Loader2, LayoutDashboard, TrendingUp, BarChart3, Gift, Home, Target, Receipt, Landmark } from 'lucide-react';
-import FeedbackFloatingButton from '@/components/feedback/FeedbackFloatingButton';
 import { Badge } from '@/components/ui/badge';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
@@ -145,9 +144,6 @@ export default function ClientPortal() {
             </Suspense>
           </div>
         </div>
-
-        {/* ── Floating Feedback Button ── */}
-        <FeedbackFloatingButton />
 
         {/* ── Footer ── */}
         <footer className="border-t border-border/40 mt-8">

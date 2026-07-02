@@ -2,6 +2,7 @@ import { useAdminStore } from '@/features/admin/store/useAdminStore';
 import AuthorizationCenter from '@/features/admin/components/AuthorizationCenter';
 import AlgorithmMonitor from '@/features/admin/components/AlgorithmMonitor';
 import KPICard from '@/components/KPICard';
+import ProfileSwitcher from '@/components/ProfileSwitcher';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -21,6 +22,7 @@ import {
   DollarSign,
   CheckCircle2,
   XCircle,
+  FlaskConical,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useCallback, useEffect } from 'react';
@@ -229,6 +231,22 @@ export default function AdminDashboard() {
           {activeSection === 'facturacion' && <FacturacionLedger />}
 
           {activeSection === 'analitica' && <AlgorithmMonitor />}
+
+          {/* ─── Módulo de Pruebas y Simulación — Modo Demo ─── */}
+          {activeSection === 'resumen' && (
+            <section className="mt-10 pt-8 border-t border-border/30">
+              <div className="flex items-center gap-2 mb-4">
+                <FlaskConical className="h-4 w-4 text-amber-400" />
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                  Módulo de Pruebas y Simulación — Modo Demo
+                </h2>
+                <div className="h-px flex-1 bg-gradient-to-r from-border/50 to-transparent" />
+              </div>
+              <div className="max-w-md">
+                <ProfileSwitcher />
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>

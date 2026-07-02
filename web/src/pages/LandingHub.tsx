@@ -12,18 +12,14 @@ import {
   BarChart3,
   ArrowRight,
   CheckCircle2,
-  ChevronRight,
   Activity,
   Users,
-  MessageSquare,
-  LayoutGrid,
-  ShoppingBag,
   ShieldCheck,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { leads, campaigns, proyectos, leadsInmobiliarios } from "@/data/mock";
 import { useState, useEffect } from "react";
-import ProfileSwitcher from "@/components/ProfileSwitcher";
 
 // ── Animated counter hook ─────────────────────────────────────
 function useAnimatedValue(value: number, duration = 900) {
@@ -151,64 +147,14 @@ export default function LandingHub() {
     [...leads, ...leadsInmobiliarios].reduce((s, l) => s + l.score, 0) / (totalLeads || 1)
   );
 
-// ── Operational Module Card ───────────────────────────────────
-
-interface OpModuleCardProps {
-  to: string;
-  icon: React.ElementType;
-  title: string;
-  subtitle: string;
-  accent: "emerald" | "blue" | "cyan" | "amber" | "red";
-  stats: string[];
-}
-
-function OpModuleCard({ to, icon: Icon, title, subtitle, accent, stats }: OpModuleCardProps) {
-  const config = {
-    emerald: { border: "border-emerald-500/20 hover:border-emerald-500/40", iconBg: "bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20", dot: "bg-emerald-400", line: "from-transparent via-emerald-500/50 to-transparent" },
-    blue: { border: "border-blue-500/20 hover:border-blue-500/40", iconBg: "bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20", dot: "bg-blue-400", line: "from-transparent via-blue-500/50 to-transparent" },
-    cyan: { border: "border-cyan-500/20 hover:border-cyan-500/40", iconBg: "bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500/20", dot: "bg-cyan-400", line: "from-transparent via-cyan-500/50 to-transparent" },
-    amber: { border: "border-amber-500/20 hover:border-amber-500/40", iconBg: "bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20", dot: "bg-amber-400", line: "from-transparent via-amber-500/50 to-transparent" },
-    red: { border: "border-red-500/20 hover:border-red-500/40", iconBg: "bg-red-500/10 text-red-400 group-hover:bg-red-500/20", dot: "bg-red-400", line: "from-transparent via-red-500/50 to-transparent" },
-  }[accent];
-
-  return (
-    <Link
-      to={to}
-      className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl border bg-card/60 backdrop-blur-sm p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg",
-        config.border,
-      )}
-    >
-      <div className={cn("absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r opacity-0 transition-opacity group-hover:opacity-100", config.line)} />
-      <div className="flex items-center gap-3 mb-3">
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl transition-colors", config.iconBg)}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <h3 className="text-sm font-bold text-foreground tracking-tight">{title}</h3>
-          <p className="text-[11px] text-muted-foreground leading-tight">{subtitle}</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-3 mt-auto">
-        {stats.map((stat, i) => (
-          <span key={i} className="inline-flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
-            <span className={cn("h-1.5 w-1.5 rounded-full", config.dot)} />
-            {stat}
-          </span>
-        ))}
-      </div>
-      <ArrowRight className="absolute bottom-4 right-4 h-3.5 w-3.5 text-muted-foreground/40 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5" />
-    </Link>
-  );
-}
-
   return (
     <div className="min-h-screen bg-background">
       {/* ═════════════════════════════════════════════════════════
-          NAVBAR
+          NAVBAR — Clean, public-facing
          ═════════════════════════════════════════════════════════ */}
       <header className="sticky top-0 z-50 border-b border-border/30 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+          {/* ── Logo ── */}
           <Link to="/" className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 glow-green">
               <Sparkles className="h-5 w-5 text-emerald-400" />
@@ -219,23 +165,33 @@ function OpModuleCard({ to, icon: Icon, title, subtitle, accent, stats }: OpModu
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
-            <Link to="/landing/bancos" className="hidden sm:inline-flex text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5">
-              Bancos
-            </Link>
-            <Link to="/landing/constructoras" className="hidden sm:inline-flex text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5">
-              Constructoras
-            </Link>
-            <Link to="/landing/clientes" className="hidden sm:inline-flex text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5">
-              Clientes
-            </Link>
-            <div className="h-4 w-px bg-border/50 hidden sm:block" />
+          {/* ── Nav Links ── */}
+          <div className="flex items-center gap-1">
             <Link
-              to="/banca"
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+              to="/landing/clientes"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-lg"
             >
-              <Zap className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Acceso Operadores</span>
+              <UserCircle className="h-3.5 w-3.5" />
+              B2C Personas
+            </Link>
+            <Link
+              to="/landing/bancos"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-lg"
+            >
+              <Building2 className="h-3.5 w-3.5" />
+              B2B Negocios
+            </Link>
+
+            {/* Separator */}
+            <div className="h-6 w-px bg-border/50 mx-1 hidden sm:block" />
+
+            {/* Acceso Seguro button */}
+            <Link
+              to="/login-ecosistema"
+              className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all duration-200 shadow-sm"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Acceso Seguro</span>
               <span className="sm:hidden">Acceder</span>
             </Link>
           </div>
@@ -343,72 +299,6 @@ function OpModuleCard({ to, icon: Icon, title, subtitle, accent, stats }: OpModu
       </section>
 
       {/* ═════════════════════════════════════════════════════════
-          MÓDULOS OPERATIVOS
-         ═════════════════════════════════════════════════════════ */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="text-center mb-8">
-          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground font-semibold mb-3">
-            Acceso directo a dashboards
-          </p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-            Módulos Operativos
-          </h2>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <OpModuleCard
-            to="/banca"
-            icon={Building2}
-            title="Banca"
-            subtitle="Pipeline de leads y campañas"
-            accent="emerald"
-            stats={["1,247 leads", "6 campañas"]}
-          />
-          <OpModuleCard
-            to="/constructoras"
-            icon={HomeIcon}
-            title="Constructoras"
-            subtitle="Captación inmobiliaria"
-            accent="blue"
-            stats={["5 proyectos", "89 leads"]}
-          />
-          <OpModuleCard
-            to="/portal"
-            icon={LayoutGrid}
-            title="Portal Clientes"
-            subtitle="Ofertas y finanzas B2C"
-            accent="cyan"
-            stats={["1,847 clientes", "6 módulos"]}
-          />
-          <OpModuleCard
-            to="/comercios"
-            icon={ShoppingBag}
-            title="Comercios"
-            subtitle="Oportunidades IFC B2B"
-            accent="amber"
-            stats={["14 suscritos", "5 IFC activas"]}
-          />
-          <OpModuleCard
-            to="/admin"
-            icon={ShieldCheck}
-            title="Admin Neggo"
-            subtitle="Centro de control maestro"
-            accent="red"
-            stats={["4 pendientes", "78% match"]}
-          />
-        </div>
-      </section>
-
-      {/* ═════════════════════════════════════════════════════════
-          QUICK PROFILE SWITCHER
-         ═════════════════════════════════════════════════════════ */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="max-w-md mx-auto">
-          <ProfileSwitcher />
-        </div>
-      </section>
-
-      {/* ═════════════════════════════════════════════════════════
           TRUST BAR
          ═════════════════════════════════════════════════════════ */}
       <section className="border-y border-border/30 bg-card/20">
@@ -434,6 +324,31 @@ function OpModuleCard({ to, icon: Icon, title, subtitle, accent, stats }: OpModu
       </section>
 
       {/* ═════════════════════════════════════════════════════════
+          SAFE ACCESS CTA — replaces old Profile Switcher
+         ═════════════════════════════════════════════════════════ */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+        <div className="max-w-lg mx-auto rounded-2xl border border-emerald-500/20 bg-card/40 backdrop-blur-sm p-8 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mx-auto mb-4">
+            <ShieldCheck className="h-7 w-7 text-emerald-400" />
+          </div>
+          <h3 className="text-lg font-bold text-foreground mb-2">
+            Acceso al Ecosistema
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+            Ingresa a tu portal seguro. Bancos, constructoras, comercios y clientes
+            en un entorno regulado con cifrado de extremo a extremo.
+          </p>
+          <Link
+            to="/login-ecosistema"
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 text-sm font-semibold shadow-lg shadow-emerald-600/20 transition-all duration-200 hover:shadow-emerald-600/30 hover:scale-[1.02]"
+          >
+            <Lock className="h-4 w-4" />
+            Acceso Seguro al Ecosistema
+          </Link>
+        </div>
+      </section>
+
+      {/* ═════════════════════════════════════════════════════════
           FOOTER
          ═════════════════════════════════════════════════════════ */}
       <footer className="border-t border-border/30">
@@ -448,7 +363,7 @@ function OpModuleCard({ to, icon: Icon, title, subtitle, accent, stats }: OpModu
               <Link to="/landing/bancos" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Bancos</Link>
               <Link to="/landing/constructoras" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Constructoras</Link>
               <Link to="/landing/clientes" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Clientes</Link>
-              <Link to="/banca" className="text-xs text-muted-foreground hover:text-emerald-400 transition-colors">Operadores</Link>
+              <Link to="/login-ecosistema" className="text-xs text-muted-foreground hover:text-emerald-400 transition-colors">Acceso Seguro</Link>
             </div>
           </div>
           <div className="mt-4 text-center">

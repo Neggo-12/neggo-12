@@ -14,6 +14,7 @@ import ClientPortal from "./pages/ClientPortal";
 import ComerciosDashboard from "./pages/ComerciosDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import RegisterCliente from "./pages/RegisterCliente";
+import LoginEcosistema from "./pages/LoginEcosistema";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,8 +40,9 @@ const App = () => (
           <Route path="/comercios" element={<ComerciosDashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
 
-          {/* Auth */}
+          {/* Auth / Login */}
           <Route path="/auth/register" element={<RegisterCliente />} />
+          <Route path="/login-ecosistema" element={<LoginEcosistema />} />
 
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
