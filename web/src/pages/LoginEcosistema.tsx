@@ -35,12 +35,12 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  supabase,
   isSupabaseConfigured,
   validatePassword,
   checkDuplicates,
 } from "@/core/db/supabaseClient";
 import { useAdminStore } from "@/features/admin/store/useAdminStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import type { OnboardingRequest, AdminEntityType, AuthorizationStatus } from "@/types";
 
 // ───── Bank options for B2C registration ─────
@@ -216,6 +216,7 @@ function PasswordRequirements({ password }: { password: string }) {
 // ───── B2B: Login Form ─────
 
 function B2BLogin() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -233,75 +234,45 @@ function B2BLogin() {
       setLoading(true);
 
       try {
-        if (supabase && isSupabaseConfigured) {
-          // Check if user exists in the users table
-          const { data: existingUser, error: lookupError } = await supabase
-            .from("users")
-            .select("id, email, rol, status")
-            .eq("email", email.trim().toLowerCase())
-            .maybeSingle();
-
-          if (lookupError) {
-            toast.error("Error de conexión", {
-              description: "No se pudo verificar el usuario. Intenta de nuevo.",
-            });
-            setLoading(false);
-            return;
-          }
-
-          if (!existingUser) {
-            toast.error("Usuario no registrado", {
-              description:
-                "El correo ingresado no está registrado. Por favor, crea una cuenta primero.",
-            });
-            setLoading(false);
-            return;
-          }
-
-          if (existingUser.status === "pending_approval") {
-            toast.error("Cuenta pendiente de aprobación", {
-              description:
-                "Tu registro está siendo revisado por el equipo de Neggo. Recibirás un correo cuando sea aprobado.",
-            });
-            setLoading(false);
-            return;
-          }
-
-          if (existingUser.status === "rejected") {
-            toast.error("Cuenta rechazada", {
-              description:
-                "Tu solicitud de registro fue rechazada. Contacta a soporte para más información.",
-            });
-            setLoading(false);
-            return;
-          }
-
-          // Also try Supabase Auth sign-in
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: email.trim().toLowerCase(),
-            password,
-          });
-
-          if (signInError && signInError.message.includes("Invalid login")) {
-            toast.error("Contraseña incorrecta", {
-              description: "La contraseña ingresada no es válida. Intenta de nuevo.",
-            });
-            setLoading(false);
-            return;
-          }
-
-          toast.success("¡Acceso exitoso!", {
-            description: `Bienvenido al ecosistema Neggo como ${existingUser.rol}.`,
+        if (!isSupabaseConfigured) {
+          toast.error("Base de datos no configurada", {
+            description:
+              "Las credenciales de Supabase no están configuradas. Contacta al administrador.",
           });
           setLoading(false);
           return;
         }
 
-        // Fallback when Supabase is not configured
-        toast.error("Base de datos no configurada", {
-          description:
-            "Las credenciales de Supabase no están configuradas. Contacta al administrador.",
+        const result = await useAuthStore.getState().loginWithCredentials({
+          email: email.trim().toLowerCase(),
+          password,
         });
+
+        if (!result.success) {
+          if (result.pendingApproval) {
+            toast.error("Cuenta pendiente de aprobación", {
+              description:
+                "Tu registro está siendo revisado por el equipo de Neggo. Recibirás un correo cuando sea aprobado.",
+            });
+          } else if (result.rejected) {
+            toast.error("Cuenta rechazada", {
+              description:
+                "Tu solicitud de registro fue rechazada. Contacta a soporte para más información.",
+            });
+          } else {
+            toast.error("Error de acceso", {
+              description: result.error ?? "No se pudo iniciar sesión.",
+            });
+          }
+          setLoading(false);
+          return;
+        }
+
+        toast.success("¡Acceso exitoso!", {
+          description: `Bienvenido al ecosistema Neggo como ${result.role}.`,
+        });
+        // Backend decides the dashboard route
+        setTimeout(() => navigate(result.dashboardRoute ?? "/"), 600);
       } catch {
         toast.error("Error inesperado", {
           description: "Ocurrió un error al intentar iniciar sesión.",
@@ -309,7 +280,7 @@ function B2BLogin() {
       }
       setLoading(false);
     },
-    [canLogin, email, password]
+    [canLogin, email, password, navigate]
   );
 
   const handleRecovery = useCallback(
@@ -319,35 +290,23 @@ function B2BLogin() {
       setRecoveryLoading(true);
 
       try {
-        if (supabase) {
-          const { error } = await supabase.auth.resetPasswordForEmail(
-            recoveryEmail.trim().toLowerCase(),
-            { redirectTo: `${window.location.origin}/login-ecosistema` }
-          );
+        if (!isSupabaseConfigured) {
+          toast.error("Base de datos no configurada", {
+            description: "Contacta al administrador.",
+          });
+          setRecoveryLoading(false);
+          return;
+        }
 
-          if (error) {
-            // Check if user exists even if Supabase Auth doesn't have them
-            const { data } = await supabase
-              .from("users")
-              .select("id")
-              .eq("email", recoveryEmail.trim().toLowerCase())
-              .maybeSingle();
+        const { requestPasswordReset } = await import("@/core/domain/auth/authService");
+        const result = await requestPasswordReset(recoveryEmail.trim().toLowerCase());
 
-            if (!data) {
-              toast.error("Usuario no registrado", {
-                description:
-                  "El correo ingresado no está registrado. Por favor, crea una cuenta primero.",
-              });
-              setRecoveryLoading(false);
-              return;
-            }
-
-            toast.error("Error al enviar recuperación", {
-              description: error.message,
-            });
-            setRecoveryLoading(false);
-            return;
-          }
+        if (!result.success) {
+          toast.error("Error al enviar recuperación", {
+            description: result.error,
+          });
+          setRecoveryLoading(false);
+          return;
         }
 
         setRecoverySent(true);
@@ -559,59 +518,49 @@ function B2BRegister() {
       setSubmitState("loading");
 
       try {
-        // Check duplicates against Supabase
-        if (supabase && isSupabaseConfigured) {
-          const duplicateField = await checkDuplicates({
-            email: form.correo.trim().toLowerCase(),
-            telefono: form.telefono.trim(),
+        if (!isSupabaseConfigured) {
+          toast.error("Base de datos no configurada", {
+            description: "Contacta al administrador.",
           });
-
-          if (duplicateField) {
-            const fieldLabels: Record<string, string> = {
-              correo: "correo",
-              celular: "celular",
-            };
-            toast.error("Error: Datos duplicados", {
-              description: `El ${fieldLabels[duplicateField] || duplicateField} ya se encuentra registrado en el ecosistema.`,
-            });
-            setSubmitState("idle");
-            return;
-          }
+          setSubmitState("idle");
+          return;
         }
 
-        const userId = `USR-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+        // Duplicate check
+        const duplicateField = await checkDuplicates({
+          email: form.correo.trim().toLowerCase(),
+          telefono: form.telefono.trim(),
+        });
 
-        // Insert into Supabase users table
-        if (supabase && isSupabaseConfigured) {
-          const { error: insertError } = await supabase.from("users").insert({
-            id: userId,
-            nombre: `${form.razonSocial.trim()} | NIT: ${form.nit.trim()} | Rep: ${form.representante.trim()}`,
-            email: form.correo.trim().toLowerCase(),
-            telefono: form.telefono.trim(),
-            rol: activeSector.roleValue,
-            status: "pending_approval",
-          } as never);
-
-          if (insertError) {
-            toast.error("Error al registrar", {
-              description: insertError.message,
-            });
-            setSubmitState("idle");
-            return;
-          }
-
-          // Also create Supabase Auth account so they can log in later
-          await supabase.auth.signUp({
-            email: form.correo.trim().toLowerCase(),
-            password: form.password,
-            options: {
-              data: {
-                nombre: form.razonSocial.trim(),
-                rol: activeSector.roleValue,
-                user_id: userId,
-              },
-            },
+        if (duplicateField) {
+          const fieldLabels: Record<string, string> = {
+            correo: "correo",
+            celular: "celular",
+          };
+          toast.error("Error: Datos duplicados", {
+            description: `El ${fieldLabels[duplicateField] || duplicateField} ya se encuentra registrado en el ecosistema.`,
           });
+          setSubmitState("idle");
+          return;
+        }
+
+        // Delegate to the auth domain service (creates user + org + membership transactionally)
+        const result = await useAuthStore.getState().registerB2BOrganization({
+          razonSocial: form.razonSocial.trim(),
+          nit: form.nit.trim(),
+          email: form.correo.trim().toLowerCase(),
+          representante: form.representante.trim(),
+          telefono: form.telefono.trim(),
+          password: form.password,
+          sector,
+        });
+
+        if (!result.success) {
+          toast.error("Error al registrar", {
+            description: result.error,
+          });
+          setSubmitState("idle");
+          return;
         }
 
         // Fallback garantizado: añadir al store de Zustand para que el Admin
@@ -623,7 +572,7 @@ function B2BRegister() {
           comercio: "comercio",
         };
         const pendingRequest: OnboardingRequest = {
-          id: userId,
+          id: result.userId ?? `USR-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
           entityType: entityTypeMap[sector],
           name: form.razonSocial.trim(),
           detail: `${activeSector.roleValue} — ${form.correo.trim().toLowerCase()}`,
@@ -928,55 +877,37 @@ function B2CLogin() {
       setLoading(true);
 
       try {
-        if (supabase && isSupabaseConfigured) {
-          const { data: existingUser, error: lookupError } = await supabase
-            .from("users")
-            .select("id, email, rol, status")
-            .eq("email", email.trim().toLowerCase())
-            .maybeSingle();
-
-          if (lookupError) {
-            toast.error("Error de conexión", {
-              description: "No se pudo verificar el usuario. Intenta de nuevo.",
-            });
-            setLoading(false);
-            return;
-          }
-
-          if (!existingUser) {
-            toast.error("Usuario no registrado", {
-              description:
-                "El correo ingresado no está registrado. Por favor, crea una cuenta primero.",
-            });
-            setLoading(false);
-            return;
-          }
-
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: email.trim().toLowerCase(),
-            password,
+        if (!isSupabaseConfigured) {
+          toast.error("Base de datos no configurada", {
+            description: "Contacta al administrador.",
           });
-
-          if (signInError && signInError.message.includes("Invalid login")) {
-            toast.error("Contraseña incorrecta", {
-              description: "La contraseña ingresada no es válida. Intenta de nuevo.",
-            });
-            setLoading(false);
-            return;
-          }
-
-          toast.success("¡Bienvenido a Neggo!", {
-            description: "Accediendo a tu portal financiero personal...",
-          });
-          setTimeout(() => navigate("/portal"), 800);
           setLoading(false);
           return;
         }
 
-        toast.error("Base de datos no configurada", {
-          description:
-            "Las credenciales de Supabase no están configuradas. Contacta al administrador.",
+        const result = await useAuthStore.getState().loginWithCredentials({
+          email: email.trim().toLowerCase(),
+          password,
         });
+
+        if (!result.success) {
+          if (result.pendingApproval) {
+            toast.error("Cuenta pendiente de aprobación", {
+              description: "Tu cuenta está siendo revisada por el equipo de Neggo.",
+            });
+          } else {
+            toast.error("Error de acceso", {
+              description: result.error ?? "No se pudo iniciar sesión.",
+            });
+          }
+          setLoading(false);
+          return;
+        }
+
+        toast.success("¡Bienvenido a Neggo!", {
+          description: "Accediendo a tu portal financiero personal...",
+        });
+        setTimeout(() => navigate(result.dashboardRoute ?? "/portal"), 800);
       } catch {
         toast.error("Error inesperado", {
           description: "Ocurrió un error al intentar iniciar sesión.",
@@ -994,28 +925,23 @@ function B2CLogin() {
       setRecoveryLoading(true);
 
       try {
-        if (supabase) {
-          const { error } = await supabase.auth.resetPasswordForEmail(
-            recoveryEmail.trim().toLowerCase(),
-            { redirectTo: `${window.location.origin}/login-ecosistema` }
-          );
+        if (!isSupabaseConfigured) {
+          toast.error("Base de datos no configurada", {
+            description: "Contacta al administrador.",
+          });
+          setRecoveryLoading(false);
+          return;
+        }
 
-          if (error) {
-            const { data } = await supabase
-              .from("users")
-              .select("id")
-              .eq("email", recoveryEmail.trim().toLowerCase())
-              .maybeSingle();
+        const { requestPasswordReset } = await import("@/core/domain/auth/authService");
+        const result = await requestPasswordReset(recoveryEmail.trim().toLowerCase());
 
-            if (!data) {
-              toast.error("Usuario no registrado", {
-                description:
-                  "El correo ingresado no está registrado. Por favor, crea una cuenta primero.",
-              });
-              setRecoveryLoading(false);
-              return;
-            }
-          }
+        if (!result.success) {
+          toast.error("Error al enviar recuperación", {
+            description: result.error,
+          });
+          setRecoveryLoading(false);
+          return;
         }
 
         setRecoverySent(true);
@@ -1232,58 +1158,50 @@ function B2CRegister() {
       setSubmitState("loading");
 
       try {
-        // Check duplicates against Supabase
-        if (supabase && isSupabaseConfigured) {
-          const duplicateField = await checkDuplicates({
-            email: form.correo.trim().toLowerCase(),
-            telefono: form.celular.trim(),
+        if (!isSupabaseConfigured) {
+          toast.error("Base de datos no configurada", {
+            description: "Contacta al administrador.",
           });
-
-          if (duplicateField) {
-            const fieldLabels: Record<string, string> = {
-              correo: "correo",
-              celular: "celular",
-            };
-            toast.error("Error: Datos duplicados", {
-              description: `El ${fieldLabels[duplicateField] || duplicateField} ya se encuentra registrado en el ecosistema.`,
-            });
-            setSubmitState("idle");
-            return;
-          }
+          setSubmitState("idle");
+          return;
         }
 
-        const userId = `USR-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-        const fullName = `${form.nombres.trim()} ${form.apellidos.trim()}`;
+        // Duplicate check
+        const duplicateField = await checkDuplicates({
+          email: form.correo.trim().toLowerCase(),
+          telefono: form.celular.trim(),
+        });
 
-        if (supabase && isSupabaseConfigured) {
-          const { error: insertError } = await supabase.from("users").insert({
-            id: userId,
-            nombre: `${fullName} | ${form.tipoId}: ${form.numeroId.trim()} | Bancos: ${selectedBanks.join(", ") || "Ninguno"}`,
-            email: form.correo.trim().toLowerCase(),
-            telefono: form.celular.trim(),
-            rol: "Cliente",
-            status: "approved",
-          } as never);
-
-          if (insertError) {
-            toast.error("Error al registrar", {
-              description: insertError.message,
-            });
-            setSubmitState("idle");
-            return;
-          }
-
-          await supabase.auth.signUp({
-            email: form.correo.trim().toLowerCase(),
-            password: form.password,
-            options: {
-              data: {
-                nombre: fullName,
-                rol: "Cliente",
-                user_id: userId,
-              },
-            },
+        if (duplicateField) {
+          const fieldLabels: Record<string, string> = {
+            correo: "correo",
+            celular: "celular",
+          };
+          toast.error("Error: Datos duplicados", {
+            description: `El ${fieldLabels[duplicateField] || duplicateField} ya se encuentra registrado en el ecosistema.`,
           });
+          setSubmitState("idle");
+          return;
+        }
+
+        // Delegate to the auth domain service (auto-approves + auto-logs-in B2C clients)
+        const result = await useAuthStore.getState().registerB2CClient({
+          nombres: form.nombres.trim(),
+          apellidos: form.apellidos.trim(),
+          tipoId: form.tipoId,
+          numeroId: form.numeroId.trim(),
+          email: form.correo.trim().toLowerCase(),
+          celular: form.celular.trim(),
+          password: form.password,
+          selectedBanks,
+        });
+
+        if (!result.success) {
+          toast.error("Error al registrar", {
+            description: result.error,
+          });
+          setSubmitState("idle");
+          return;
         }
 
         setSubmitState("done");
@@ -1291,6 +1209,7 @@ function B2CRegister() {
           description:
             "Bienvenido al portal de Neggo. Redirigiendo a tu panel financiero...",
         });
+        // Backend decides the route — B2C clients go to /portal
         setTimeout(() => navigate("/portal"), 2000);
       } catch {
         toast.error("Error inesperado", {

@@ -18,6 +18,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          created_at: string
+          email: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          organization_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          event_type: string
+          id: string
+          metadata?: Json | null
+          organization_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       facturas_ledger: {
         Row: {
           cantidad: number
@@ -125,6 +155,51 @@ export type Database = {
             columns: ["proyecto_id"]
             isOneToOne: false
             referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memberships: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          organization_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          is_active?: boolean
+          organization_id: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -281,6 +356,51 @@ export type Database = {
           },
         ]
       }
+      organizations: {
+        Row: {
+          ciudad: string | null
+          created_at: string
+          email: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          nit: string | null
+          representante_legal: string | null
+          status: string
+          telefono: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          ciudad?: string | null
+          created_at?: string
+          email?: string | null
+          id: string
+          metadata?: Json | null
+          name: string
+          nit?: string | null
+          representante_legal?: string | null
+          status?: string
+          telefono?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          ciudad?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          nit?: string | null
+          representante_legal?: string | null
+          status?: string
+          telefono?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       proyectos: {
         Row: {
           bono_comercial: string | null
@@ -389,40 +509,73 @@ export type Database = {
       }
       users: {
         Row: {
+          avatar_url: string | null
           ciudad: string | null
           created_at: string
           email: string
+          first_name: string | null
           id: string
+          last_login_at: string | null
+          last_name: string | null
+          nit: string | null
           nombre: string
+          numero_documento: string | null
+          preferences: Json | null
           rango_ingresos: string | null
+          representante_legal: string | null
           rol: string
           score_estimado: number | null
           status: string | null
           telefono: string | null
+          tipo_documento: string | null
+          tipo_entidad: string | null
+          updated_at: string | null
         }
         Insert: {
+          avatar_url?: string | null
           ciudad?: string | null
           created_at?: string
           email: string
+          first_name?: string | null
           id: string
+          last_login_at?: string | null
+          last_name?: string | null
+          nit?: string | null
           nombre: string
+          numero_documento?: string | null
+          preferences?: Json | null
           rango_ingresos?: string | null
+          representante_legal?: string | null
           rol: string
           score_estimado?: number | null
           status?: string | null
           telefono?: string | null
+          tipo_documento?: string | null
+          tipo_entidad?: string | null
+          updated_at?: string | null
         }
         Update: {
+          avatar_url?: string | null
           ciudad?: string | null
           created_at?: string
           email?: string
+          first_name?: string | null
           id?: string
+          last_login_at?: string | null
+          last_name?: string | null
+          nit?: string | null
           nombre?: string
+          numero_documento?: string | null
+          preferences?: Json | null
           rango_ingresos?: string | null
+          representante_legal?: string | null
           rol?: string
           score_estimado?: number | null
           status?: string | null
           telefono?: string | null
+          tipo_documento?: string | null
+          tipo_entidad?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }

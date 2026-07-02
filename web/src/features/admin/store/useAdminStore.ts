@@ -254,7 +254,19 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set({ isFacturasHydrated: true });
     const { data } = await fetchFacturasLedger();
     if (data && data.length > 0) {
-      set({ facturas: data });
+      // Map snake_case DB rows to camelCase FacturaLedger type
+      const mapped: FacturaLedger[] = data.map((row) => ({
+        id: row.id,
+        constructoraId: row.constructora_id ?? '',
+        constructoraName: row.constructora_nombre,
+        concepto: row.concepto as FacturaLedger['concepto'],
+        montoUnitario: Number(row.monto_unitario),
+        cantidad: row.cantidad,
+        totalAcumulado: Number(row.total_acumulado),
+        estado: row.estado_pago as FacturaLedger['estado'],
+        periodo: row.periodo ?? '',
+      }));
+      set({ facturas: mapped });
     } else {
       // Sin datos en la BD: ledger vacío
       set({ facturas: [] });
