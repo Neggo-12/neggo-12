@@ -15,7 +15,6 @@ import ConstructorasDashboard from "./pages/ConstructorasDashboard";
 import ClientPortal from "./pages/ClientPortal";
 import ComerciosDashboard from "./pages/ComerciosDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import RegisterCliente from "./pages/RegisterCliente";
 import LoginEcosistema from "./pages/LoginEcosistema";
 import NotFound from "./pages/NotFound";
 
@@ -55,7 +54,6 @@ const App = () => (
             <Route path="/admin" element={<AdminDashboard />} />
 
             {/* Auth / Login */}
-            <Route path="/auth/register" element={<RegisterCliente />} />
             <Route path="/login-ecosistema" element={<LoginEcosistema />} />
 
             {/* 404 */}

@@ -4,7 +4,6 @@ import type { UsuarioDB } from '@/types';
 // Demo-only: used exclusively by ProfileSwitcher on the /admin page
 // Production users authenticate via /login-ecosistema → Supabase Auth
 import { USUARIOS_DEMO, type DemoProfileKey } from '@/core/db/mockDb';
-import { upsertUsuario } from '@/core/db/repositories';
 import {
   login as authServiceLogin,
   logout as authServiceLogout,
@@ -89,8 +88,7 @@ export const useAuthStore = create<AuthState>()(
           session: null,
           sessionMode: 'demo',
         });
-        // Self-healing seed: garantiza que el usuario demo exista en la BD real
-        void upsertUsuario(user);
+
       },
 
       loginWithCredentials: async (input: LoginInput) => {
