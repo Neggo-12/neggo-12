@@ -44,6 +44,8 @@ export interface SolicitudCliente {
   id: string;
   productType: SolicitudProductType;
   banks: string[];
+  /** IDs reales de los bancos en la tabla `users` para atribución en Supabase */
+  bancoIds: string[];
   status: 'Pendiente de contacto por el banco' | 'En revisión' | 'Aprobada';
   createdAt: string;
 }
@@ -125,7 +127,7 @@ export const usePortalStore = create<PortalState>((set, get) => ({
   currentClient: DEFAULT_CLIENT,
   securityCode: generateSecurityCode(DEFAULT_CLIENT.id),
   solicitudes: [],
-  metas: MOCK_GOALS,
+  metas: [],
   isMetasLoading: false,
   isMetasHydrated: false,
   dbError: null,
@@ -155,8 +157,10 @@ export const usePortalStore = create<PortalState>((set, get) => ({
   },
 
   hydrateMetas: async () => {
-    if (get().isMetasHydrated || get().isMetasLoading || !isDbConfigured) {
-      if (!isDbConfigured) set({ isMetasHydrated: true });
+    if (get().isMetasHydrated || get().isMetasLoading) return;
+    if (!isDbConfigured) {
+      // Sin base de datos: mostrar estado vacío real, no mock
+      set({ isMetasLoading: false, isMetasHydrated: true, metas: [] });
       return;
     }
     set({ isMetasLoading: true });
@@ -173,7 +177,8 @@ export const usePortalStore = create<PortalState>((set, get) => ({
         dbError: null,
       });
     } else {
-      set({ isMetasLoading: false, isMetasHydrated: true });
+      // Tabla vacía: metas en blanco (sin inyectar mock)
+      set({ isMetasLoading: false, isMetasHydrated: true, metas: [] });
     }
   },
 

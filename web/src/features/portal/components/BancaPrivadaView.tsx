@@ -39,14 +39,17 @@ const PRODUCT_LABELS: Record<SolicitudProductType, string> = {
   'libre-inversion': 'Libre Inversión',
 };
 
-const AVAILABLE_BANKS = [
-  'Bancolombia',
-  'Davivienda',
-  'BBVA',
-  'Banco de Bogotá',
-  'Scotiabank',
-  'Itaú',
-];
+/** Mapeo nombre de banco → ID real en la tabla `users` */
+const BANK_ID_MAP: Record<string, string> = {
+  'Bancolombia': 'USR-BANCO-01',
+  'Davivienda': 'USR-BANCO-01',
+  'BBVA': 'USR-BANCO-02',
+  'Banco de Bogotá': 'USR-BANCO-03',
+  'Scotiabank': 'USR-BANCO-04',
+  'Itaú': 'USR-BANCO-05',
+};
+
+const AVAILABLE_BANKS = Object.keys(BANK_ID_MAP);
 
 // ───── Solicitud Dialog ─────
 
@@ -75,10 +78,16 @@ function SolicitudDialog({
     setSubmitState('loading');
 
     setTimeout(() => {
+      // Resolver IDs reales de los bancos seleccionados
+      const bancoIds = selectedBanks
+        .map((name) => BANK_ID_MAP[name])
+        .filter((id): id is string => !!id);
+
       addSolicitud({
         id: `SOL-${Date.now().toString(36).toUpperCase()}`,
         productType,
         banks: selectedBanks,
+        bancoIds,
         status: 'Pendiente de contacto por el banco',
         createdAt: new Date().toISOString(),
       });

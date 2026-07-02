@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import HeaderOperativo from '@/components/HeaderOperativo';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
@@ -9,40 +9,71 @@ import AnalyticsTab from '@/components/bank/AnalyticsTab';
 import FeedbackTab from '@/components/bank/FeedbackTab';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
+import { useAuthStore } from '@/store/useAuthStore';
 import { Building2, BarChart3, Megaphone, MessageSquareText, FileText, TrendingDown } from 'lucide-react';
 
 type BankTab = 'solicitudes' | 'campanas' | 'analytics' | 'feedback' | 'metricas-rechazo';
 
-const BANK_SECTIONS: SidebarNavItem[] = [
-  { key: 'solicitudes', label: 'Solicitudes', icon: FileText, badge: 1247 },
-  { key: 'campanas', label: 'Campañas', icon: Megaphone, badge: 6 },
-  { key: 'analytics', label: 'Analítica', icon: BarChart3 },
-  { key: 'feedback', label: 'Feedback', icon: MessageSquareText, badge: 6 },
-  { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: TrendingDown },
-];
+/** Extrae el nombre de entidad bancaria real desde el nombre compuesto del usuario demo */
+function extractBankIdentity(userName: string): { displayName: string; primaryBankName: string } {
+  // El nombre del usuario banco viene como "Mesa de Alianzas Bancolombia / Davivienda"
+  // Extraemos el primer banco como nombre principal para filtrar solicitudes
+  const parts = userName.split(' / ');
+  const displayName = parts.length > 1 ? parts.slice(1).join(' / ') : userName;
+  // Tomamos el primer nombre de banco real (después de "Mesa de Alianzas ")
+  const afterPrefix = userName.replace(/^Mesa de Alianzas /, '').replace(/^Mesa de /, '');
+  const primaryBankName = afterPrefix.split(' / ')[0].trim();
+  return { displayName: displayName || userName, primaryBankName };
+}
 
 export default function BankDashboard() {
   const [activeTab, setActiveTab] = useState<BankTab>('solicitudes');
+  const currentUser = useAuthStore((s) => s.currentUser);
+
+  const bankIdentity = useMemo(() => {
+    if (!currentUser) return { displayName: 'Neggo Banca', primaryBankName: '' };
+    return extractBankIdentity(currentUser.nombre);
+  }, [currentUser]);
+
+  const sidebarBrand = useMemo(() => {
+    if (!currentUser) return { initials: 'NB', name: 'Neggo Banca', subtitle: 'Pipeline Bancario', icon: Building2 };
+    return {
+      initials: currentUser.nombre.slice(0, 2).toUpperCase(),
+      name: bankIdentity.displayName,
+      subtitle: 'Pipeline Bancario',
+      icon: Building2,
+    };
+  }, [currentUser, bankIdentity]);
+
+  const sidebarFooter = useMemo(() => {
+    if (!currentUser) return { initials: 'OE', name: 'Operador Banca', role: 'Ejecutivo Senior' };
+    return {
+      initials: currentUser.nombre.slice(0, 2).toUpperCase(),
+      name: currentUser.nombre.length > 25 ? currentUser.nombre.slice(0, 25) + '...' : currentUser.nombre,
+      role: currentUser.rol,
+    };
+  }, [currentUser]);
+
+  const BANK_SECTIONS: SidebarNavItem[] = [
+    { key: 'solicitudes', label: 'Solicitudes', icon: FileText },
+    { key: 'campanas', label: 'Campañas', icon: Megaphone },
+    { key: 'analytics', label: 'Analítica', icon: BarChart3 },
+    { key: 'feedback', label: 'Feedback', icon: MessageSquareText },
+    { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: TrendingDown },
+  ];
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* ─── Isolated Bank Sidebar ─── */}
       <WorkspaceSidebar
-        brand={{
-          initials: 'NB',
-          name: 'Neggo Banca',
-          subtitle: 'Pipeline Bancario',
-          icon: Building2,
-        }}
+        brand={sidebarBrand}
         navItems={BANK_SECTIONS}
         activeKey={activeTab}
         onNavigate={(key) => setActiveTab(key as BankTab)}
-        footer={{ initials: 'OE', name: 'Operador Banca', role: 'Ejecutivo Senior' }}
+        footer={sidebarFooter}
         accent="emerald"
         backToHubLabel="Cambiar Entorno"
       />
 
-      {/* ─── Main Content ─── */}
       <div className="flex-1 min-w-0 overflow-y-auto lg:pl-64">
         <div className="mx-auto max-w-[1440px] space-y-6 p-4 lg:p-6">
           <HeaderOperativo />
@@ -50,10 +81,10 @@ export default function BankDashboard() {
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as BankTab)} className="space-y-6">
             <TabsList className="h-12 w-full justify-start gap-1 bg-transparent p-0">
               {[
-                { id: 'solicitudes', label: 'Solicitudes', icon: FileText, count: 1247 },
-                { id: 'campanas', label: 'Campañas', icon: Megaphone, count: 6 },
+                { id: 'solicitudes', label: 'Solicitudes', icon: FileText },
+                { id: 'campanas', label: 'Campañas', icon: Megaphone },
                 { id: 'analytics', label: 'Analítica', icon: BarChart3 },
-                { id: 'feedback', label: 'Feedback', icon: MessageSquareText, count: 6 },
+                { id: 'feedback', label: 'Feedback', icon: MessageSquareText },
               ].map((tab) => (
                 <TabsTrigger
                   key={tab.id}
@@ -62,23 +93,18 @@ export default function BankDashboard() {
                 >
                   <tab.icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
-                  {tab.count !== undefined && (
-                    <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
-                      {tab.count}
-                    </span>
-                  )}
                 </TabsTrigger>
               ))}
             </TabsList>
 
             <TabsContent value="solicitudes" className="mt-0 animate-slide-up">
-              <SolicitudesTab />
+              <SolicitudesTab bankName={bankIdentity.primaryBankName} bankUser={currentUser} />
             </TabsContent>
             <TabsContent value="campanas" className="mt-0 animate-slide-up">
-              <CampanasTab />
+              <CampanasTab bankName={bankIdentity.primaryBankName} />
             </TabsContent>
             <TabsContent value="analytics" className="mt-0 animate-slide-up">
-              <AnalyticsTab />
+              <AnalyticsTab bankName={bankIdentity.primaryBankName} />
             </TabsContent>
             <TabsContent value="feedback" className="mt-0 animate-slide-up">
               <div className="space-y-6">
