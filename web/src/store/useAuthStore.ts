@@ -126,13 +126,17 @@ export const useAuthStore = create<AuthState>()(
       },
 
       registerB2BOrganization: async (input: RegisterB2BInput) => {
-        return authServiceRegisterB2B(input);
+        const result = await authServiceRegisterB2B(input);
+        // B2B organizations always need admin approval — never auto-login.
+        // If email confirmation is required, the result includes the flag.
+        return result;
       },
 
       registerB2CClient: async (input: RegisterB2CInput) => {
         const result = await authServiceRegisterB2C(input);
         // B2C clients are auto-approved — auto-login after registration
-        if (result.success && !result.pendingApproval) {
+        // UNLESS email confirmation is required (Supabase Auth config)
+        if (result.success && !result.pendingApproval && !result.requiresEmailConfirmation) {
           // Auto-login so the client goes straight to the portal
           const loginResult = await authServiceLogin({
             email: input.email,

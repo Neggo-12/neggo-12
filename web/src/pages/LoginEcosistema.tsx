@@ -487,6 +487,7 @@ function B2BRegister() {
     confirmPassword: "",
   });
 
+  const [resultRequiresEmailConfirmation, setResultRequiresEmailConfirmation] = useState(false);
   const activeSector = B2B_SECTORS.find((s) => s.id === sector)!;
   const pwValidation = validatePassword(form.password);
   const passwordsMatch =
@@ -590,11 +591,19 @@ function B2BRegister() {
         };
         useAdminStore.getState().addPendingRequest(pendingRequest);
 
+        setResultRequiresEmailConfirmation(!!result.requiresEmailConfirmation);
         setSubmitState("done");
-        toast.success("Registro enviado a revisión", {
-          description:
-            "Tu solicitud como " + activeSector.label + " está en revisión. El equipo de Neggo la aprobará en las próximas 24-48 horas hábiles.",
-        });
+        if (result.requiresEmailConfirmation) {
+          toast.success("Registro enviado — confirma tu correo", {
+            description:
+              "Tu solicitud como " + activeSector.label + " fue recibida. Hemos enviado un correo de confirmación a " + form.correo.trim().toLowerCase() + ". Revisa tu bandeja y confirma para completar el registro.",
+          });
+        } else {
+          toast.success("Registro enviado a revisión", {
+            description:
+              "Tu solicitud como " + activeSector.label + " está en revisión. El equipo de Neggo la aprobará en las próximas 24-48 horas hábiles.",
+          });
+        }
       } catch {
         toast.error("Error inesperado", {
           description: "Ocurrió un error al procesar tu registro.",
@@ -606,19 +615,32 @@ function B2BRegister() {
   );
 
   if (submitState === "done") {
+    const emailConfirmation = resultRequiresEmailConfirmation;
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
           <CheckCircle2 className="h-8 w-8 text-emerald-400" />
         </div>
         <h3 className="text-lg font-bold text-foreground mb-2">
-          Solicitud enviada exitosamente
+          {emailConfirmation ? "Solicitud enviada" : "Solicitud enviada exitosamente"}
         </h3>
         <p className="text-sm text-muted-foreground max-w-sm">
-          Tu registro como{" "}
-          <span className="font-medium text-foreground">{activeSector.label}</span>{" "}
-          está siendo revisado por el equipo de Neggo. Recibirás un correo de
-          confirmación cuando tu cuenta sea aprobada.
+          {emailConfirmation ? (
+            <>
+              Tu registro como{" "}
+              <span className="font-medium text-foreground">{activeSector.label}</span>{" "}
+              fue recibido. Hemos enviado un correo de confirmación a{" "}
+              <span className="font-medium text-foreground">{form.correo.trim().toLowerCase()}</span>.{" "}
+              Revisa tu bandeja y confirma el enlace para completar el proceso.
+            </>
+          ) : (
+            <>
+              Tu registro como{" "}
+              <span className="font-medium text-foreground">{activeSector.label}</span>{" "}
+              está siendo revisado por el equipo de Neggo. Recibirás un correo de
+              confirmación cuando tu cuenta sea aprobada.
+            </>
+          )}
         </p>
       </div>
     );
@@ -1122,6 +1144,7 @@ function B2CRegister() {
     confirmPassword: "",
   });
   const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
+  const [resultRequiresEmailConfirmation, setResultRequiresEmailConfirmation] = useState(false);
 
   const pwValidation = validatePassword(form.password);
   const passwordsMatch =
@@ -1204,13 +1227,21 @@ function B2CRegister() {
           return;
         }
 
+        setResultRequiresEmailConfirmation(!!result.requiresEmailConfirmation);
         setSubmitState("done");
-        toast.success("¡Registro exitoso!", {
-          description:
-            "Bienvenido al portal de Neggo. Redirigiendo a tu panel financiero...",
-        });
-        // Backend decides the route — B2C clients go to /portal
-        setTimeout(() => navigate("/portal"), 2000);
+        if (result.requiresEmailConfirmation) {
+          toast.success("Registro exitoso — confirma tu correo", {
+            description:
+              "Hemos enviado un correo de confirmación a " + form.correo.trim().toLowerCase() + ". Revisa tu bandeja, confirma el enlace y luego inicia sesión para acceder a tu portal.",
+          });
+        } else {
+          toast.success("¡Registro exitoso!", {
+            description:
+              "Bienvenido al portal de Neggo. Redirigiendo a tu panel financiero...",
+          });
+          // Backend decides the route — B2C clients go to /portal
+          setTimeout(() => navigate("/portal"), 2000);
+        }
       } catch {
         toast.error("Error inesperado", {
           description: "Ocurrió un error al procesar tu registro.",
@@ -1228,12 +1259,24 @@ function B2CRegister() {
           <CheckCircle2 className="h-8 w-8 text-cyan-400" />
         </div>
         <h3 className="text-lg font-bold text-foreground mb-2">
-          ¡Registro completado!
+          {resultRequiresEmailConfirmation ? "¡Registro completado!" : "¡Registro completado!"}
         </h3>
         <p className="text-sm text-muted-foreground max-w-sm">
-          Bienvenido a Neggo. Serás redirigido a tu portal financiero personal
-          donde podrás explorar ofertas, crear metas de ahorro y conectar con
-          bancos y constructoras.
+          {resultRequiresEmailConfirmation ? (
+            <>
+              Hemos enviado un correo de confirmación a{" "}
+              <span className="font-medium text-foreground">{form.correo.trim().toLowerCase()}</span>.{" "}
+              Revisa tu bandeja, confirma el enlace y luego{" "}
+              <span className="font-medium text-foreground">inicia sesión</span>{" "}
+              para acceder a tu portal financiero.
+            </>
+          ) : (
+            <>
+              Bienvenido a Neggo. Serás redirigido a tu portal financiero personal
+              donde podrás explorar ofertas, crear metas de ahorro y conectar con
+              bancos y constructoras.
+            </>
+          )}
         </p>
       </div>
     );
