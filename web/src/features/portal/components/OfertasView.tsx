@@ -25,6 +25,7 @@ import {
 import { campaigns } from '@/data/mock';
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import { cn } from '@/lib/utils';
+import { useRejectionTracking } from '@/hooks/useRejectionTracking';
 import type { Campaign } from '@/types';
 import type { GoalCategory } from '@/types';
 
@@ -54,6 +55,8 @@ const TYPE_LABELS: Record<string, string> = {
 
 function OfferCard({ campaign }: { campaign: Campaign }) {
   const [requestState, setRequestState] = useState<'idle' | 'loading' | 'done'>('idle');
+  const [isRejected, setIsRejected] = useState(campaign.offerStatus === 'rejected');
+  const { trackRejection } = useRejectionTracking();
 
   const spentPercent = Math.min(100, Math.round((campaign.spent / campaign.budget) * 100));
   const remaining = campaign.budget - campaign.spent;
@@ -63,6 +66,24 @@ function OfferCard({ campaign }: { campaign: Campaign }) {
     setRequestState('loading');
     setTimeout(() => setRequestState('done'), 1200);
   }, []);
+
+  const handleReject = useCallback(() => {
+    void trackRejection({
+      offerId: campaign.id,
+      sector: 'banca',
+      productType: TYPE_LABELS[campaign.type] ?? campaign.type,
+      entityName: campaign.bank,
+      onRejected: () => setIsRejected(true),
+    });
+  }, [campaign.id, campaign.bank, campaign.type, trackRejection]);
+
+  if (isRejected) {
+    return (
+      <div className="rounded-2xl border border-border/20 bg-secondary/10 p-5 opacity-40 pointer-events-none">
+        <p className="text-[11px] text-muted-foreground italic text-center">Oferta descartada</p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -167,6 +188,14 @@ function OfferCard({ campaign }: { campaign: Campaign }) {
         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1">
           {campaign.name} — {campaign.leadsGenerated} leads generados
         </p>
+
+        {/* ── Reject button ── */}
+        <button
+          onClick={(e) => { e.stopPropagation(); handleReject(); }}
+          className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-border/20 bg-transparent px-3 py-1.5 text-[10px] text-muted-foreground/50 hover:text-red-400/70 hover:border-red-500/20 hover:bg-red-500/5 transition-all cursor-pointer"
+        >
+          No me interesa
+        </button>
 
         {/* ── CTA ── */}
         <Button

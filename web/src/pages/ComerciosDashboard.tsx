@@ -3,18 +3,20 @@ import ComercioOnboarding from '@/features/comercios/components/ComercioOnboardi
 import OportunidadesFeed from '@/features/comercios/components/OportunidadesFeed';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
+import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import KPICard from '@/components/KPICard';
-import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText } from 'lucide-react';
+import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type ComercioSection = 'dashboard' | 'oportunidades' | 'suscripcion' | 'feedback';
+type ComercioSection = 'dashboard' | 'oportunidades' | 'suscripcion' | 'feedback' | 'metricas-rechazo';
 
 const COMERCIO_SECTIONS: SidebarNavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: Store },
   { key: 'oportunidades', label: 'Oportunidades IFC', icon: Radio, badge: 3 },
   { key: 'suscripcion', label: 'Suscripción', icon: CreditCard },
   { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText, badge: 5 },
+  { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: TrendingDown },
 ];
 
 export default function ComerciosDashboard() {
@@ -182,6 +184,11 @@ export default function ComerciosDashboard() {
               </div>
             </div>
             <CrossSectorFeedbackPanel entityType="comercio" />
+          </div>
+
+          {/* Métricas de Rechazo */}
+          <div className="space-y-4 pt-4 border-t border-border/40">
+            <RejectionMetricsPanel entityType="establecimientos" />
           </div>
         </div>
       </div>

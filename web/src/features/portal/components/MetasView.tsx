@@ -30,6 +30,7 @@ import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import { SUBCATEGORIAS } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useRejectionTracking } from '@/hooks/useRejectionTracking';
 import type { GoalMeta, PartnerOffer, GoalCategory } from '@/types';
 
 // ───── Category config ─────
@@ -240,6 +241,27 @@ function AgentOrchestrator({ goal }: { goal: GoalMeta }) {
 function OfferCard({ offer, rank }: { offer: PartnerOffer; rank: number }) {
   const medalColor =
     rank === 0 ? 'text-amber-400' : rank === 1 ? 'text-slate-300' : 'text-amber-700';
+  const [isRejected, setIsRejected] = useState(offer.status === 'rejected');
+  const { trackRejection } = useRejectionTracking();
+
+  const handleReject = useCallback(() => {
+    void trackRejection({
+      offerId: offer.id,
+      sector: 'establecimientos',
+      productType: offer.commerceName.includes('Constructora') || offer.commerceName.includes('Inmobiliaria')
+        ? 'Apartamento' : 'Producto de consumo',
+      entityName: offer.commerceName,
+      onRejected: () => setIsRejected(true),
+    });
+  }, [offer.id, offer.commerceName, trackRejection]);
+
+  if (isRejected) {
+    return (
+      <div className="rounded-xl border border-border/20 bg-secondary/10 p-4 opacity-40 pointer-events-none">
+        <p className="text-[11px] text-muted-foreground italic text-center">Oferta descartada</p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -291,6 +313,14 @@ function OfferCard({ offer, rank }: { offer: PartnerOffer; rank: number }) {
           <p className="text-xs font-bold text-purple-400 font-mono">{offer.confidenceLevel}%</p>
         </div>
       </div>
+
+      {/* Reject button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); handleReject(); }}
+        className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg border border-border/20 bg-transparent px-3 py-1.5 text-[10px] text-muted-foreground/50 hover:text-red-400/70 hover:border-red-500/20 hover:bg-red-500/5 transition-all cursor-pointer"
+      >
+        No me interesa
+      </button>
     </div>
   );
 }

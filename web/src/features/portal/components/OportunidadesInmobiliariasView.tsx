@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { proyectos } from '@/data/mock';
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import { cn } from '@/lib/utils';
+import { useRejectionTracking } from '@/hooks/useRejectionTracking';
 import type { ProyectoConstructora } from '@/types';
 
 // ───── Helpers ─────
@@ -36,6 +37,26 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
   const [requestState, setRequestState] = useState<'idle' | 'loading' | 'done'>('idle');
   const [showReservaForm, setShowReservaForm] = useState(false);
   const [reservaAmount, setReservaAmount] = useState('2000000');
+  const [isRejected, setIsRejected] = useState(proyecto.offerStatus === 'rejected');
+  const { trackRejection } = useRejectionTracking();
+
+  const handleReject = useCallback(() => {
+    void trackRejection({
+      offerId: proyecto.id,
+      sector: 'constructoras',
+      productType: TIPO_LABELS[proyecto.tipoVivienda] ?? proyecto.tipoVivienda,
+      entityName: proyecto.constructora,
+      onRejected: () => setIsRejected(true),
+    });
+  }, [proyecto.id, proyecto.tipoVivienda, proyecto.constructora, trackRejection]);
+
+  if (isRejected) {
+    return (
+      <div className="rounded-2xl border border-border/20 bg-secondary/10 p-5 opacity-40 pointer-events-none">
+        <p className="text-[11px] text-muted-foreground italic text-center">Proyecto descartado</p>
+      </div>
+    );
+  }
 
   const handleSolicitar = useCallback(() => {
     setRequestState('loading');
@@ -256,6 +277,14 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
         )}
 
         {/* ── CTA ── */}
+        {/* ── Reject button ── */}
+        <button
+          onClick={(e) => { e.stopPropagation(); handleReject(); }}
+          className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-border/20 bg-transparent px-3 py-1.5 text-[10px] text-muted-foreground/50 hover:text-red-400/70 hover:border-red-500/20 hover:bg-red-500/5 transition-all cursor-pointer"
+        >
+          No me interesa
+        </button>
+
         {isLanzamiento ? (
           <>
             {!showReservaForm ? (

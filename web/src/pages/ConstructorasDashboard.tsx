@@ -29,15 +29,16 @@ import LeadStatusBadge from '@/components/LeadStatusBadge';
 import CrearProyectoDialog from '@/components/CrearProyectoDialog';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
+import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import { proyectos, leadsInmobiliarios } from '@/data/mock';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { upsertLeadEstado } from '@/core/db/repositories';
 import type { LeadInmobiliario, ProyectoConstructora, LeadStatus } from '@/types';
-import { MessageSquareText } from 'lucide-react';
+import { MessageSquareText, TrendingDown } from 'lucide-react';
 
-type ConstTab = 'proyectos' | 'leads' | 'matching' | 'analitica' | 'feedback';
+type ConstTab = 'proyectos' | 'leads' | 'matching' | 'analitica' | 'feedback' | 'metricas-rechazo';
 
 const CONST_SECTIONS: SidebarNavItem[] = [
   { key: 'proyectos', label: 'Proyectos', icon: Building2, badge: 5 },
@@ -45,6 +46,7 @@ const CONST_SECTIONS: SidebarNavItem[] = [
   { key: 'matching', label: 'Matching', icon: Target },
   { key: 'analitica', label: 'Analítica', icon: TrendingUp },
   { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText, badge: 5 },
+  { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: BarChart3 },
 ];
 
 export default function ConstructorasDashboard() {
@@ -374,15 +376,9 @@ export default function ConstructorasDashboard() {
             </div>
           )}
 
-          {/* Section: Analítica placeholder */}
-          {activeSection === 'analitica' && (
-            <div className="rounded-xl border border-border/40 bg-card/50 p-8 text-center">
-              <TrendingUp className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-              <h3 className="text-sm font-semibold text-foreground mb-2">Analítica Inmobiliaria</h3>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                Dashboard analítico con tasas de conversión por proyecto, heatmaps de interés por ciudad y predicción de cierre en desarrollo.
-              </p>
-            </div>
+          {/* Section: Métricas de Rechazo */}
+          {activeSection === 'metricas-rechazo' && (
+            <RejectionMetricsPanel entityType="constructoras" />
           )}
         </div>
       </div>

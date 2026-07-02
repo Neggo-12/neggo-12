@@ -8,15 +8,17 @@ import CampanasTab from '@/components/bank/CampanasTab';
 import AnalyticsTab from '@/components/bank/AnalyticsTab';
 import FeedbackTab from '@/components/bank/FeedbackTab';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
-import { Building2, BarChart3, Megaphone, MessageSquareText, FileText } from 'lucide-react';
+import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
+import { Building2, BarChart3, Megaphone, MessageSquareText, FileText, TrendingDown } from 'lucide-react';
 
-type BankTab = 'solicitudes' | 'campanas' | 'analytics' | 'feedback';
+type BankTab = 'solicitudes' | 'campanas' | 'analytics' | 'feedback' | 'metricas-rechazo';
 
 const BANK_SECTIONS: SidebarNavItem[] = [
   { key: 'solicitudes', label: 'Solicitudes', icon: FileText, badge: 1247 },
   { key: 'campanas', label: 'Campañas', icon: Megaphone, badge: 6 },
   { key: 'analytics', label: 'Analítica', icon: BarChart3 },
   { key: 'feedback', label: 'Feedback', icon: MessageSquareText, badge: 6 },
+  { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: TrendingDown },
 ];
 
 export default function BankDashboard() {
@@ -88,6 +90,9 @@ export default function BankDashboard() {
                 </div>
                 <CrossSectorFeedbackPanel entityType="banco" />
               </div>
+            </TabsContent>
+            <TabsContent value="metricas-rechazo" className="mt-0 animate-slide-up">
+              <RejectionMetricsPanel entityType="banca" />
             </TabsContent>
           </Tabs>
         </div>

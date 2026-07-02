@@ -176,6 +176,51 @@ export type Database = {
           },
         ]
       }
+      metricas_rechazo: {
+        Row: {
+          entity_name: string
+          id: string
+          offer_id: string
+          product_type: string
+          rejected_at: string
+          sector: string
+          user_age: number
+          user_city: string
+          user_gender: string
+          user_id: string | null
+          user_income_range: string
+          user_profile_type: string
+        }
+        Insert: {
+          entity_name: string
+          id: string
+          offer_id: string
+          product_type: string
+          rejected_at?: string
+          sector: string
+          user_age?: number
+          user_city?: string
+          user_gender?: string
+          user_id?: string | null
+          user_income_range?: string
+          user_profile_type?: string
+        }
+        Update: {
+          entity_name?: string
+          id?: string
+          offer_id?: string
+          product_type?: string
+          rejected_at?: string
+          sector?: string
+          user_age?: number
+          user_city?: string
+          user_gender?: string
+          user_id?: string | null
+          user_income_range?: string
+          user_profile_type?: string
+        }
+        Relationships: []
+      }
       ofertas_comercios: {
         Row: {
           beneficio: string | null

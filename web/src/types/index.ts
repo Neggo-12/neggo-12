@@ -79,11 +79,14 @@ export interface KPIData {
   deltaPrioridad: number;
 }
 
+export type CampaignOfferStatus = 'active' | 'rejected';
+
 export interface Campaign {
   id: string;
   name: string;
   type: CampaignType;
   bank: string;
+  offerStatus?: CampaignOfferStatus;
   impressions: number;
   ctr: number;
   leadsGenerated: number;
@@ -124,10 +127,13 @@ export interface Feedback {
 
 export type ProjectVisibility = 'publico-general' | 'perfilado-core';
 
+export type ProjectOfferStatus = 'active' | 'rejected';
+
 export interface ProyectoConstructora {
   id: string;
   name: string;
   city: string;
+  offerStatus?: ProjectOfferStatus;
   units: number;
   priceRangeMin: number;
   priceRangeMax: number;
@@ -234,6 +240,8 @@ export type GoalCategory =
   | 'Computador'
   | 'Remodelación';
 
+export type OfferStatus = 'active' | 'rejected';
+
 export interface PartnerOffer {
   id: string;
   commerceName: string;
@@ -242,6 +250,7 @@ export interface PartnerOffer {
   savingsEstimate: number;
   completionMonths: number;
   confidenceLevel: number;
+  status?: OfferStatus;
 }
 
 export type GoalStatus = 'active' | 'deleted' | 'completed';
@@ -446,6 +455,66 @@ export interface ComercioAdmin {
 }
 
 // ───── Subcategories ─────
+
+// ───── Rejection Telemetry types ─────
+
+export type OfferSector = 'constructoras' | 'banca' | 'establecimientos' | 'inversiones';
+
+export interface RejectionMetric {
+  id: string;
+  /** ID de la oferta rechazada (proyecto, campaña, o propuesta) */
+  offerId: string;
+  /** Sector al que pertenece la oferta */
+  sector: OfferSector;
+  /** Tipo de producto rechazado (ej: 'CDT', 'Apartamento', 'iPhone') */
+  productType: string;
+  /** Nombre de la entidad que hizo la oferta */
+  entityName: string;
+  /** ID del usuario que rechazó */
+  userId: string;
+  /** Edad del usuario al momento del rechazo */
+  userAge: number;
+  /** Género del usuario */
+  userGender: 'Hombre' | 'Mujer' | 'No especificado';
+  /** Rango de ingresos del usuario */
+  userIncomeRange: string;
+  /** Tipo de perfil financiero del usuario */
+  userProfileType: string;
+  /** Ciudad del usuario */
+  userCity: string;
+  /** Fecha del rechazo */
+  rejectedAt: string;
+}
+
+export interface RejectionAggregate {
+  /** Producto más rechazado */
+  topRejectedProduct: string;
+  topRejectedProductCount: number;
+  /** Segmento demográfico que más descarta */
+  topDemographicSegment: string;
+  topDemographicCount: number;
+  /** Total de rechazos en el período */
+  totalRejections: number;
+  /** Distribución por sector */
+  bySector: Record<string, number>;
+  /** Distribución por género */
+  byGender: Record<string, number>;
+  /** Distribución por rango de ingresos */
+  byIncome: Record<string, number>;
+}
+
+// ───── Feedback Wizard types ─────
+
+export type FeedbackWizardStep = 'sector' | 'company' | 'message';
+
+export type FeedbackSector = 'inmobiliario' | 'financiero' | 'comercial';
+
+export interface SectorCompany {
+  id: string;
+  name: string;
+  type: FeedbackDestinatario;
+  sector: FeedbackSector;
+}
 
 export const SUBCATEGORIAS: Record<GoalCategory, SubcategoryOption[]> = {
   Carro: [
