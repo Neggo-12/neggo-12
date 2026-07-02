@@ -34,9 +34,11 @@ interface CrossSectorFeedbackPanelProps {
   entityType: FeedbackDestinatario;
   /** Optional: further filter by specific entity name */
   entityName?: string;
+  /** Organization ID for multi-tenant isolation — reserved for future DB-backed feedback */
+  organizationId?: string | null;
 }
 
-export default function CrossSectorFeedbackPanel({ entityType, entityName }: CrossSectorFeedbackPanelProps) {
+export default function CrossSectorFeedbackPanel({ entityType, entityName, organizationId: _organizationId }: CrossSectorFeedbackPanelProps) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<FeedbackType | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | 'all'>('all');

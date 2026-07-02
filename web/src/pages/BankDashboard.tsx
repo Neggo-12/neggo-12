@@ -29,6 +29,8 @@ function extractBankIdentity(userName: string): { displayName: string; primaryBa
 export default function BankDashboard() {
   const [activeTab, setActiveTab] = useState<BankTab>('solicitudes');
   const currentUser = useAuthStore((s) => s.currentUser);
+  const getOrganizationId = useAuthStore((s) => s.getOrganizationId);
+  const organizationId = getOrganizationId();
 
   const bankIdentity = useMemo(() => {
     if (!currentUser) return { displayName: 'Neggo Banca', primaryBankName: '' };
@@ -98,7 +100,7 @@ export default function BankDashboard() {
             </TabsList>
 
             <TabsContent value="solicitudes" className="mt-0 animate-slide-up">
-              <SolicitudesTab bankName={bankIdentity.primaryBankName} bankUser={currentUser} />
+              <SolicitudesTab bankName={bankIdentity.primaryBankName} bankUser={currentUser} organizationId={organizationId} />
             </TabsContent>
             <TabsContent value="campanas" className="mt-0 animate-slide-up">
               <CampanasTab bankName={bankIdentity.primaryBankName} />
@@ -114,11 +116,11 @@ export default function BankDashboard() {
                     <p className="text-xs text-muted-foreground mt-0.5">Mensajes de clientes, respuesta y seguimiento en tiempo real</p>
                   </div>
                 </div>
-                <CrossSectorFeedbackPanel entityType="banco" />
+                <CrossSectorFeedbackPanel entityType="banco" organizationId={organizationId} />
               </div>
             </TabsContent>
             <TabsContent value="metricas-rechazo" className="mt-0 animate-slide-up">
-              <RejectionMetricsPanel entityType="banca" />
+              <RejectionMetricsPanel entityType="banca" organizationId={organizationId} />
             </TabsContent>
           </Tabs>
         </div>

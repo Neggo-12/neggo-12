@@ -56,6 +56,8 @@ export interface AuthState {
   getRedirectPath: () => string;
   /** True when a real production session is active */
   isAuthenticated: () => boolean;
+  /** Returns the active organization ID from the production session, or null */
+  getOrganizationId: () => string | null;
 }
 
 // ───── Role → route mapping ─────
@@ -224,6 +226,10 @@ export const useAuthStore = create<AuthState>()(
 
       isAuthenticated: () => {
         return get().session !== null;
+      },
+
+      getOrganizationId: () => {
+        return get().session?.organizationId ?? null;
       },
     }),
     {

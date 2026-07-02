@@ -41,6 +41,7 @@ import {
   type LeadRow,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { LeadInmobiliario, ProyectoConstructora, LeadStatus } from '@/types';
 import { MessageSquareText, TrendingDown } from 'lucide-react';
 
@@ -133,6 +134,10 @@ export default function ConstructorasDashboard() {
   const [callDialogLead, setCallDialogLead] = useState<LeadInmobiliario | null>(null);
   const [messageDialogLead, setMessageDialogLead] = useState<LeadInmobiliario | null>(null);
 
+  // Resolve org ID from session for multi-tenant isolation
+  const getOrganizationId = useAuthStore((s) => s.getOrganizationId);
+  const organizationId = getOrganizationId();
+
   // Real data from Supabase
   const [proyectos, setProyectos] = useState<ProyectoConstructora[]>([]);
   const [leadsInmobiliarios, setLeadsInmobiliarios] = useState<LeadInmobiliario[]>([]);
@@ -148,8 +153,8 @@ export default function ConstructorasDashboard() {
     setLoadError(null);
     try {
       const [proyRes, leadRes] = await Promise.all([
-        fetchProyectos(),
-        fetchLeads(),
+        fetchProyectos(organizationId),
+        fetchLeads(organizationId),
       ]);
       if (proyRes.error) setLoadError(proyRes.error);
       if (leadRes.error && !proyRes.error) setLoadError(leadRes.error);
@@ -163,7 +168,7 @@ export default function ConstructorasDashboard() {
       setLoadError(err instanceof Error ? err.message : 'Error desconocido');
     }
     setIsLoading(false);
-  }, []);
+  }, [organizationId]);
 
   useEffect(() => {
     loadData();
@@ -559,7 +564,7 @@ export default function ConstructorasDashboard() {
 
           {/* Section: Métricas de Rechazo */}
           {activeSection === 'metricas-rechazo' && (
-            <RejectionMetricsPanel entityType="constructoras" />
+            <RejectionMetricsPanel entityType="constructoras" organizationId={organizationId} />
           )}
         </div>
       </div>

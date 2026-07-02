@@ -11,6 +11,7 @@ import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSq
 import { cn } from '@/lib/utils';
 import { fetchOfertasComercios, type OfertaComercioRow } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
+import { useAuthStore } from '@/store/useAuthStore';
 
 type ComercioSection = 'dashboard' | 'oportunidades' | 'suscripcion' | 'feedback' | 'metricas-rechazo';
 
@@ -30,13 +31,17 @@ export default function ComerciosDashboard() {
     propuestas,
   } = useComercioStore();
 
+  // Resolve org ID from session for multi-tenant isolation
+  const getOrganizationId = useAuthStore((s) => s.getOrganizationId);
+  const organizationId = getOrganizationId();
+
   const [ofertasReales, setOfertasReales] = useState<OfertaComercioRow[]>([]);
 
   const loadOfertas = useCallback(async () => {
     if (!isDbConfigured) return;
-    const { data } = await fetchOfertasComercios();
+    const { data } = await fetchOfertasComercios(organizationId);
     setOfertasReales(data ?? []);
-  }, []);
+  }, [organizationId]);
 
   useEffect(() => {
     if (isOnboardingComplete) { void loadOfertas(); }
@@ -191,12 +196,12 @@ export default function ComerciosDashboard() {
                 </p>
               </div>
             </div>
-            <CrossSectorFeedbackPanel entityType="comercio" />
+            <CrossSectorFeedbackPanel entityType="comercio" organizationId={organizationId} />
           </div>
 
           {/* Métricas de Rechazo */}
           <div className="space-y-4 pt-4 border-t border-border/40">
-            <RejectionMetricsPanel entityType="establecimientos" />
+            <RejectionMetricsPanel entityType="establecimientos" organizationId={organizationId} />
           </div>
         </div>
       </div>

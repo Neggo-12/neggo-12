@@ -37,7 +37,7 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; border: string }
   },
 };
 
-export default function SolicitudesTab({ bankName, bankUser }: { bankName: string; bankUser: UsuarioDB | null }) {
+export default function SolicitudesTab({ bankName, bankUser, organizationId }: { bankName: string; bankUser: UsuarioDB | null; organizationId?: string | null }) {
   const [solicitudes, setSolicitudes] = useState<SolicitudBancaRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export default function SolicitudesTab({ bankName, bankUser }: { bankName: strin
     }
     setIsLoading(true);
     setError(null);
-    const { data, error: fetchError } = await fetchSolicitudesByBankName(bankName);
+    const { data, error: fetchError } = await fetchSolicitudesByBankName(bankName, organizationId);
     if (fetchError) {
       setError(fetchError);
       setSolicitudes([]);
@@ -58,7 +58,7 @@ export default function SolicitudesTab({ bankName, bankUser }: { bankName: strin
       setSolicitudes(data ?? []);
     }
     setIsLoading(false);
-  }, [bankName]);
+  }, [bankName, organizationId]);
 
   useEffect(() => {
     loadSolicitudes();

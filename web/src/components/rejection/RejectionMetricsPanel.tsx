@@ -40,9 +40,12 @@ interface RejectionMetricsPanelProps {
   entityType?: OfferSector;
   /** Optional: further filter by entity name */
   entityName?: string;
+  /** Organization ID for multi-tenant isolation — when provided, only metrics
+   *  belonging to users in this organization are fetched from the DB */
+  organizationId?: string | null;
 }
 
-export default function RejectionMetricsPanel({ entityType, entityName }: RejectionMetricsPanelProps) {
+export default function RejectionMetricsPanel({ entityType, entityName, organizationId }: RejectionMetricsPanelProps) {
   const [metrics, setMetrics] = useState<RejectionMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSector, setSelectedSector] = useState<OfferSector | 'all'>(entityType ?? 'all');
@@ -52,7 +55,7 @@ export default function RejectionMetricsPanel({ entityType, entityName }: Reject
 
   const loadMetrics = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await fetchMetricasRechazo();
+    const { data, error } = await fetchMetricasRechazo(organizationId);
     if (data && data.length > 0) {
       setMetrics(data);
     } else if (error) {
@@ -64,7 +67,7 @@ export default function RejectionMetricsPanel({ entityType, entityName }: Reject
       setMetrics(MOCK_METRICS);
     }
     setIsLoading(false);
-  }, []);
+  }, [organizationId]);
 
   useEffect(() => {
     void loadMetrics();
