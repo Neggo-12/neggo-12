@@ -1,4 +1,4 @@
-import { useComercioStore, filterOportunidades, MOCK_OPORTUNIDADES } from '../store/useComercioStore';
+import { useComercioStore, filterOportunidades } from '../store/useComercioStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ export default function OportunidadesFeed() {
   } = useComercioStore();
 
   const oportunidades = filterOportunidades(
-    MOCK_OPORTUNIDADES,
+    [],
     currentComercio.categoria,
     currentComercio.ciudad
   );

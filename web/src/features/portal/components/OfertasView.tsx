@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { campaigns } from '@/data/mock';
+// Production: no mock data — campaigns are fetched from Supabase when available
+const campaigns: Campaign[] = [];
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import { cn } from '@/lib/utils';
 import { useRejectionTracking } from '@/hooks/useRejectionTracking';

@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { proyectos } from '@/data/mock';
+// Production: proyectos are fetched from Supabase, not mock data
+const proyectos: ProyectoConstructora[] = [];
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import { cn } from '@/lib/utils';
 import { useRejectionTracking } from '@/hooks/useRejectionTracking';

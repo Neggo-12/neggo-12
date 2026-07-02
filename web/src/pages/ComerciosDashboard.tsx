@@ -1,4 +1,5 @@
-import { useComercioStore, filterOportunidades, MOCK_OPORTUNIDADES } from '@/features/comercios/store/useComercioStore';
+import { useState, useEffect, useCallback } from 'react';
+import { useComercioStore } from '@/features/comercios/store/useComercioStore';
 import ComercioOnboarding from '@/features/comercios/components/ComercioOnboarding';
 import OportunidadesFeed from '@/features/comercios/components/OportunidadesFeed';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
@@ -8,6 +9,8 @@ import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import KPICard from '@/components/KPICard';
 import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { fetchOfertasComercios, type OfertaComercioRow } from '@/core/db/repositories';
+import { isDbConfigured } from '@/core/db/dbClient';
 
 type ComercioSection = 'dashboard' | 'oportunidades' | 'suscripcion' | 'feedback' | 'metricas-rechazo';
 
@@ -24,21 +27,26 @@ export default function ComerciosDashboard() {
     isOnboardingComplete,
     hasTrustSeal,
     currentComercio,
-    oportunidades,
     propuestas,
   } = useComercioStore();
+
+  const [ofertasReales, setOfertasReales] = useState<OfertaComercioRow[]>([]);
+
+  const loadOfertas = useCallback(async () => {
+    if (!isDbConfigured) return;
+    const { data } = await fetchOfertasComercios();
+    setOfertasReales(data ?? []);
+  }, []);
+
+  useEffect(() => {
+    if (isOnboardingComplete) { void loadOfertas(); }
+  }, [isOnboardingComplete, loadOfertas]);
 
   if (!isOnboardingComplete) {
     return <ComercioOnboarding />;
   }
 
-  const filteredOps = filterOportunidades(
-    MOCK_OPORTUNIDADES,
-    currentComercio.categoria,
-    currentComercio.ciudad
-  );
-
-  const opsRecibidas = filteredOps.length;
+  const opsRecibidas = ofertasReales.length;
   const propsEnviadas = propuestas.length;
   const tasaConversion =
     opsRecibidas > 0 ? Math.round((propsEnviadas / opsRecibidas) * 100) : 0;
@@ -162,9 +170,9 @@ export default function ComerciosDashboard() {
                   Oportunidades que hacen match con tu categoría y ciudad
                 </p>
               </div>
-              {filteredOps.length > 0 && (
+              {ofertasReales.length > 0 && (
                 <span className="text-xs font-mono text-muted-foreground">
-                  {filteredOps.filter((o) => !o.propuestaEnviada).length} pendientes
+                  {ofertasReales.length} ofertas registradas
                 </span>
               )}
             </div>

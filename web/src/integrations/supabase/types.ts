@@ -397,6 +397,7 @@ export type Database = {
           rango_ingresos: string | null
           rol: string
           score_estimado: number | null
+          status: string | null
           telefono: string | null
         }
         Insert: {
@@ -408,6 +409,7 @@ export type Database = {
           rango_ingresos?: string | null
           rol: string
           score_estimado?: number | null
+          status?: string | null
           telefono?: string | null
         }
         Update: {
@@ -419,6 +421,7 @@ export type Database = {
           rango_ingresos?: string | null
           rol?: string
           score_estimado?: number | null
+          status?: string | null
           telefono?: string | null
         }
         Relationships: []

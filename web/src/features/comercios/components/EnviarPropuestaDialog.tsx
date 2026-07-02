@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { useComercioStore, filterOportunidades, MOCK_OPORTUNIDADES } from '../store/useComercioStore';
+import { useComercioStore, filterOportunidades } from '../store/useComercioStore';
 import { Gift, FileText, Zap, Send, Check, ShieldAlert, Star } from 'lucide-react';
 
 interface EnviarPropuestaDialogProps {
@@ -37,7 +37,7 @@ export default function EnviarPropuestaDialog({ open, onOpenChange }: EnviarProp
   const [sent, setSent] = useState(false);
 
   const oport = filterOportunidades(
-    MOCK_OPORTUNIDADES,
+    [],
     currentComercio.categoria,
     currentComercio.ciudad
   ).find((o) => o.id === selectedOpportunityId);

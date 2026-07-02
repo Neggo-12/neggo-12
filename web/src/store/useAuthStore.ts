@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { UsuarioDB } from '@/types';
+// Demo-only: used exclusively by ProfileSwitcher on the /admin page
+// Production users authenticate via /login-ecosistema → Supabase
 import { USUARIOS_DEMO, type DemoProfileKey } from '@/core/db/mockDb';
 import { upsertUsuario } from '@/core/db/repositories';
 

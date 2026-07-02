@@ -30,7 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { COMERCIOS_ADMIN } from '@/core/db/mockDb';
+import { isDbConfigured } from '@/core/db/dbClient';
 import type { OnboardingRequest, EcosistemaMetrics, ComercioAdmin } from '@/types';
 
 // ───── Sidebar sections ─────
@@ -59,7 +59,13 @@ export default function AdminDashboard() {
     setActiveSection,
     ecosistemaMetrics,
     onboardingRequests,
+    isOnboardingLoading,
+    hydrateOnboarding,
   } = useAdminStore();
+
+  useEffect(() => {
+    void hydrateOnboarding();
+  }, [hydrateOnboarding]);
 
   const pendingAuths = onboardingRequests.filter(
     (r: OnboardingRequest) => r.status === 'pendiente' || r.status === 'en-revision'
@@ -534,22 +540,42 @@ function EntityView({
 // ───── Comercios Admin Panel ─────
 
 function ComerciosAdminPanel() {
-  const [comercios, setComercios] = useState<ComercioAdmin[]>(COMERCIOS_ADMIN);
+  const { onboardingRequests } = useAdminStore();
+  const comercios: ComercioAdmin[] = onboardingRequests
+    .filter((r) => r.entityType === 'comercio')
+    .map((r) => ({
+      id: r.id,
+      nombre: r.name,
+      nit: r.nit ?? '',
+      ciudad: r.city,
+      categoria: 'General' as ComercioAdmin['categoria'],
+      plan: 'basico' as const,
+      hasTrustSeal: r.status === 'autorizado',
+      tasaComisionB2B: 2.0,
+      estado: r.status === 'autorizado' ? 'autorizado' as const : r.status === 'rechazado' ? 'rechazado' as const : 'pendiente' as const,
+      fechaRegistro: r.submittedAt,
+      leadsRecibidos: 0,
+      propuestasEnviadas: 0,
+    }));
   const [editingRate, setEditingRate] = useState<string | null>(null);
   const [rateValue, setRateValue] = useState('');
 
-  const handleEmitirSello = useCallback((id: string) => {
-    setComercios((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, hasTrustSeal: true, estado: 'autorizado' as const } : c))
-    );
+  const handleEmitirSello = useCallback(async (id: string) => {
+    const { updateUserStatus } = await import('@/core/db/repositories');
+    const { error } = await updateUserStatus(id, 'approved');
+    if (error) {
+      toast.error('Error al emitir sello', { description: error });
+    } else {
+      toast.success('Sello de Confianza emitido', { description: 'Comercio autorizado en el ecosistema.' });
+    }
   }, []);
 
   const handleSaveRate = useCallback((id: string) => {
     const rate = Number(rateValue);
     if (isNaN(rate) || rate < 0 || rate > 100) return;
-    setComercios((prev) => prev.map((c) => (c.id === id ? { ...c, tasaComisionB2B: rate } : c)));
     setEditingRate(null);
     setRateValue('');
+    toast.success(`Tasa de comisión actualizada a ${rate}%`, { description: 'El cambio se reflejará en la próxima facturación.' });
   }, [rateValue]);
 
   const totalComercios = comercios.length;

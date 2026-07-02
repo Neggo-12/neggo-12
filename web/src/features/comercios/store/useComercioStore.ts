@@ -192,4 +192,7 @@ export function filterOportunidades(
   );
 }
 
-export { MOCK_OPORTUNIDADES };
+// ───── Empty opportunities for production (no mock data injected) ─────
+const EMPTY_OPORTUNIDADES: OportunidadIFC[] = [];
+
+export { EMPTY_OPORTUNIDADES as MOCK_OPORTUNIDADES };
