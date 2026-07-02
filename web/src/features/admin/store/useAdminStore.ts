@@ -25,6 +25,13 @@ const MOCK_ONBOARDING: OnboardingRequest[] = [
     submittedAt: '2026-05-10T08:00:00Z',
     reviewedAt: '2026-05-11T14:30:00Z',
     reviewedBy: 'Admin Principal',
+    contacto: {
+      nombre: 'María Fernanda Gómez',
+      cargo: 'Directora de Alianzas Financieras',
+      correo: 'm.gomez@bancolombia.com.co',
+      telefono: '+57 310 555 1234',
+      estadoDocumentos: 'verificado',
+    },
   },
   {
     id: 'ONB-002',
@@ -37,6 +44,13 @@ const MOCK_ONBOARDING: OnboardingRequest[] = [
     submittedAt: '2026-05-15T09:20:00Z',
     reviewedAt: '2026-05-16T10:00:00Z',
     reviewedBy: 'Admin Principal',
+    contacto: {
+      nombre: 'Carlos Andrés Mejía',
+      cargo: 'Gerente de Producto Hipotecario',
+      correo: 'c.mejia@davivienda.com',
+      telefono: '+57 315 777 8901',
+      estadoDocumentos: 'verificado',
+    },
   },
   {
     id: 'ONB-003',
@@ -49,6 +63,13 @@ const MOCK_ONBOARDING: OnboardingRequest[] = [
     submittedAt: '2026-06-01T11:00:00Z',
     reviewedAt: '2026-06-02T09:15:00Z',
     reviewedBy: 'Admin Principal',
+    contacto: {
+      nombre: 'Laura Patricia Ríos',
+      cargo: 'VP de Transformación Digital',
+      correo: 'l.rios@bbva.com.co',
+      telefono: '+57 320 444 5678',
+      estadoDocumentos: 'verificado',
+    },
   },
   {
     id: 'ONB-004',
@@ -59,6 +80,13 @@ const MOCK_ONBOARDING: OnboardingRequest[] = [
     nit: '890.300.279-4',
     status: 'pendiente',
     submittedAt: '2026-06-28T16:45:00Z',
+    contacto: {
+      nombre: 'Jorge Enrique Díaz',
+      cargo: 'Jefe de Alianzas Digitales',
+      correo: 'j.diaz@bancodeoccidente.com.co',
+      telefono: '+57 318 222 3456',
+      estadoDocumentos: 'pendiente',
+    },
   },
   {
     id: 'ONB-005',
@@ -69,6 +97,13 @@ const MOCK_ONBOARDING: OnboardingRequest[] = [
     nit: '900.456.789-2',
     status: 'pendiente',
     submittedAt: '2026-06-25T10:30:00Z',
+    contacto: {
+      nombre: 'Andrés Felipe Duarte',
+      cargo: 'Gerente Comercial',
+      correo: 'a.duarte@constructoracapital.com',
+      telefono: '+57 311 888 9012',
+      estadoDocumentos: 'pendiente',
+    },
   },
   {
     id: 'ONB-006',
@@ -81,6 +116,13 @@ const MOCK_ONBOARDING: OnboardingRequest[] = [
     submittedAt: '2026-06-10T08:00:00Z',
     reviewedAt: '2026-06-12T11:00:00Z',
     reviewedBy: 'Admin Principal',
+    contacto: {
+      nombre: 'Diana Carolina Ospina',
+      cargo: 'Directora de Ventas',
+      correo: 'd.ospina@proyectosdelvalle.com',
+      telefono: '+57 314 666 7890',
+      estadoDocumentos: 'verificado',
+    },
   },
   {
     id: 'ONB-007',
@@ -91,6 +133,13 @@ const MOCK_ONBOARDING: OnboardingRequest[] = [
     nit: '802.019.345-8',
     status: 'en-revision',
     submittedAt: '2026-06-20T14:00:00Z',
+    contacto: {
+      nombre: 'Roberto José Martínez',
+      cargo: 'Representante Legal',
+      correo: 'r.martinez@inmobiliariacaribe.com',
+      telefono: '+57 300 111 2233',
+      estadoDocumentos: 'pendiente',
+    },
   },
   {
     id: 'ONB-008',
@@ -101,6 +150,13 @@ const MOCK_ONBOARDING: OnboardingRequest[] = [
     nit: '901.234.567-3',
     status: 'en-revision',
     submittedAt: '2026-06-29T09:00:00Z',
+    contacto: {
+      nombre: 'Sandra Milena Ruiz',
+      cargo: 'Gerente de Tienda',
+      correo: 's.ruiz@celularesmde.com',
+      telefono: '+57 313 444 5566',
+      estadoDocumentos: 'pendiente',
+    },
   },
   {
     id: 'ONB-009',
@@ -111,6 +167,13 @@ const MOCK_ONBOARDING: OnboardingRequest[] = [
     nit: '900.876.543-0',
     status: 'pendiente',
     submittedAt: '2026-06-30T11:15:00Z',
+    contacto: {
+      nombre: 'Paola Andrea Vargas',
+      cargo: 'Directora de Operaciones',
+      correo: 'p.vargas@viajespremium.co',
+      telefono: '+57 316 777 8899',
+      estadoDocumentos: 'pendiente',
+    },
   },
   {
     id: 'ONB-010',
@@ -123,6 +186,13 @@ const MOCK_ONBOARDING: OnboardingRequest[] = [
     submittedAt: '2026-06-05T08:00:00Z',
     reviewedAt: '2026-06-07T09:30:00Z',
     reviewedBy: 'Admin Principal',
+    contacto: {
+      nombre: 'Hernán Darío López',
+      cargo: 'Gerente General',
+      correo: 'h.lopez@autosdelvalle.com',
+      telefono: '+57 312 333 4455',
+      estadoDocumentos: 'verificado',
+    },
   },
 ];
 

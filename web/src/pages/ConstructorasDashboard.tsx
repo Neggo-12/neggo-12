@@ -28,20 +28,23 @@ import PriorityBadge from '@/components/PriorityBadge';
 import LeadStatusBadge from '@/components/LeadStatusBadge';
 import CrearProyectoDialog from '@/components/CrearProyectoDialog';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
+import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import { proyectos, leadsInmobiliarios } from '@/data/mock';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { upsertLeadEstado } from '@/core/db/repositories';
 import type { LeadInmobiliario, ProyectoConstructora, LeadStatus } from '@/types';
+import { MessageSquareText } from 'lucide-react';
 
-type ConstTab = 'proyectos' | 'leads' | 'matching' | 'analitica';
+type ConstTab = 'proyectos' | 'leads' | 'matching' | 'analitica' | 'feedback';
 
 const CONST_SECTIONS: SidebarNavItem[] = [
   { key: 'proyectos', label: 'Proyectos', icon: Building2, badge: 5 },
   { key: 'leads', label: 'Leads Inmobiliarios', icon: Users, badge: 89 },
   { key: 'matching', label: 'Matching', icon: Target },
   { key: 'analitica', label: 'Analítica', icon: TrendingUp },
+  { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText, badge: 5 },
 ];
 
 export default function ConstructorasDashboard() {
@@ -355,6 +358,19 @@ export default function ConstructorasDashboard() {
               <p className="text-xs text-muted-foreground max-w-md mx-auto">
                 El motor de matching entre clientes con capacidad de compra y proyectos inmobiliarios estará disponible en la siguiente fase.
               </p>
+            </div>
+          )}
+
+          {/* Section: Feedback Clientes */}
+          {activeSection === 'feedback' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold tracking-tight text-foreground">Feedback de Clientes</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Mensajes de clientes sobre tus proyectos y servicios</p>
+                </div>
+              </div>
+              <CrossSectorFeedbackPanel entityType="constructora" />
             </div>
           )}
 

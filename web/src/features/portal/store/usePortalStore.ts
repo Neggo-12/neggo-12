@@ -93,6 +93,10 @@ interface PortalState {
   addMeta: (meta: GoalMeta) => Promise<boolean>;
   /** Activa/desactiva el Sello IFC de una meta y persiste el cambio */
   toggleMetaIFC: (metaId: string) => Promise<void>;
+  /** Soft-delete de una meta (marca status como deleted) */
+  deleteMeta: (metaId: string) => Promise<void>;
+  /** Marca una meta como completada con animación */
+  completeMeta: (metaId: string) => Promise<void>;
 }
 
 const DEFAULT_CLIENT: PortalClient = {
@@ -207,5 +211,32 @@ export const usePortalStore = create<PortalState>((set, get) => ({
       }));
       toast.error('No se pudo sincronizar el Sello IFC', { description: error });
     }
+  },
+
+  deleteMeta: async (metaId) => {
+    // Optimista: marcamos deleted
+    set((state) => ({
+      metas: state.metas.map((m) =>
+        m.id === metaId ? { ...m, status: 'deleted' as const } : m,
+      ),
+    }));
+    toast.success('Meta eliminada', {
+      description: 'La meta fue removida de tu lista activa.',
+    });
+  },
+
+  completeMeta: async (metaId) => {
+    const now = new Date().toISOString();
+    // Optimista: marcamos completed
+    set((state) => ({
+      metas: state.metas.map((m) =>
+        m.id === metaId
+          ? { ...m, status: 'completed' as const, completedAt: now, savedAmount: m.targetAmount }
+          : m,
+      ),
+    }));
+    toast.success('¡Meta Lograda! 🎉', {
+      description: 'Felicidades, tu meta ha sido marcada como cumplida.',
+    });
   },
 }));

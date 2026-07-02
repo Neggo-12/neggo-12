@@ -27,6 +27,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import { COMERCIOS_ADMIN } from '@/core/db/mockDb';
 import type { OnboardingRequest, EcosistemaMetrics, ComercioAdmin } from '@/types';
 
@@ -425,6 +426,9 @@ function EntityView({
   icon: typeof Building2;
   statusLabel: string;
 }) {
+  const { authorizeEntity, rejectEntity } = useAdminStore();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   return (
     <div className="space-y-4 animate-fade-in">
       <div>
@@ -432,38 +436,73 @@ function EntityView({
         <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {entities.map((e) => (
-          <div
-            key={e.id}
-            className="rounded-xl border border-border/40 bg-card/50 p-4 hover:border-border/60 transition-colors"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-card border border-border/40">
-                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{e.name}</p>
-                <p className="text-[11px] text-muted-foreground truncate">{e.city}</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground">{statusLabel}</span>
-              <span
+        {entities.map((e) => {
+          const isExpanded = expandedId === e.id;
+          return (
+            <div key={e.id}>
+              <button
+                onClick={() => setExpandedId(isExpanded ? null : e.id)}
                 className={cn(
-                  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border',
-                  e.status === 'autorizado'
-                    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-                    : e.status === 'rechazado'
-                    ? 'text-red-400 bg-red-500/10 border-red-500/20'
-                    : 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                  'w-full rounded-xl border bg-card/50 p-4 hover:border-border/60 transition-all text-left',
+                  isExpanded ? 'border-border/60 ring-1 ring-border/40' : 'border-border/40',
                 )}
               >
-                {e.status === 'autorizado' ? 'Autorizado' : e.status === 'rechazado' ? 'Rechazado' : e.status === 'en-revision' ? 'En Revisión' : 'Pendiente'}
-              </span>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-card border border-border/40">
+                    <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{e.name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{e.city}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">{statusLabel}</span>
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border',
+                      e.status === 'autorizado'
+                        ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                        : e.status === 'rechazado'
+                        ? 'text-red-400 bg-red-500/10 border-red-500/20'
+                        : 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                    )}
+                  >
+                    {e.status === 'autorizado' ? 'Autorizado' : e.status === 'rechazado' ? 'Rechazado' : e.status === 'en-revision' ? 'En Revisión' : 'Pendiente'}
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2 truncate">{e.detail}</p>
+              </button>
+
+              {/* Contact detail card + validation actions */}
+              {isExpanded && e.contacto && (
+                <div className="mt-2 rounded-xl border border-border/40 bg-card/60 p-4 animate-slide-up">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Users className="h-3.5 w-3.5 text-cyan-400" />
+                    <h4 className="text-xs font-semibold text-foreground">Ficha de Contacto Institucional</h4>
+                  </div>
+                  <div className="space-y-2.5 text-xs">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Representante</span><span className="font-medium text-foreground">{e.contacto.nombre}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Cargo</span><span className="text-foreground">{e.contacto.cargo}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Correo</span><span className="font-mono text-blue-400">{e.contacto.correo}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Teléfono</span><span className="font-mono text-blue-400">{e.contacto.telefono}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Documentos</span>
+                      <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border', e.contacto.estadoDocumentos === 'verificado' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20')}>
+                        {e.contacto.estadoDocumentos === 'verificado' ? 'Verificado' : 'Pendiente'}
+                      </span>
+                    </div>
+                  </div>
+                  {e.status !== 'autorizado' && e.status !== 'rechazado' && (
+                    <div className="flex gap-2 mt-4 pt-3 border-t border-border/30">
+                      <Button size="sm" onClick={(ev) => { ev.stopPropagation(); authorizeEntity(e.id); toast.success(`${e.name} autorizado`, { description: 'La entidad ya puede operar en el ecosistema.' }); }} className="flex-1 h-8 text-[10px] font-semibold gap-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg"><CheckCircle2 className="h-3 w-3" />Autorizar</Button>
+                      <Button size="sm" variant="outline" onClick={(ev) => { ev.stopPropagation(); rejectEntity(e.id); toast.error(`${e.name} rechazado`); }} className="flex-1 h-8 text-[10px] font-semibold gap-1 border-red-500/20 text-red-400 hover:bg-red-500/10 rounded-lg"><XCircle className="h-3 w-3" />Rechazar</Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2 truncate">{e.detail}</p>
-          </div>
-        ))}
+          );
+        })}
         {entities.length === 0 && (
           <div className="col-span-full rounded-xl border border-dashed border-border/40 p-8 text-center">
             <p className="text-sm text-muted-foreground">Sin entidades registradas en esta categoría</p>

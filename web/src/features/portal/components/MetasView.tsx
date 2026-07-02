@@ -3,13 +3,15 @@ import {
   Target, Shield, Sparkles, Gift, TrendingUp,
   ChevronDown, Clock, BadgeCheck, Store,
   Zap, Plus, Star, Loader2, CheckCircle2,
-  Bot, Cpu, Users,
+  Bot, Cpu, Users, Trash2, Trophy, Home,
+  Building2, Landmark,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -27,6 +29,7 @@ import {
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import { SUBCATEGORIAS } from '@/types';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import type { GoalMeta, PartnerOffer, GoalCategory } from '@/types';
 
 // ───── Category config ─────
@@ -51,6 +54,43 @@ function formatSubcatLabel(category: GoalCategory, subcatValue: string): string 
   if (!opts) return subcatValue;
   const found = opts.find((o) => o.value === subcatValue);
   return found ? found.label : subcatValue;
+}
+
+// ───── Aggregated offer types ─────
+
+type OfferSector = 'constructoras' | 'banca' | 'establecimientos' | 'inversiones';
+
+interface SectorOfferGroup {
+  sector: OfferSector;
+  label: string;
+  icon: typeof Home;
+  color: string;
+  offers: PartnerOffer[];
+}
+
+function groupOffersBySector(offers: PartnerOffer[]): SectorOfferGroup[] {
+  // Distribute mock offers across sectors based on commerce name patterns
+  const sectors: SectorOfferGroup[] = [
+    { sector: 'constructoras', label: 'Constructoras', icon: Home, color: 'text-purple-400', offers: [] },
+    { sector: 'banca', label: 'Banca', icon: Building2, color: 'text-blue-400', offers: [] },
+    { sector: 'establecimientos', label: 'Establecimientos', icon: Store, color: 'text-emerald-400', offers: [] },
+    { sector: 'inversiones', label: 'Inversiones', icon: TrendingUp, color: 'text-amber-400', offers: [] },
+  ];
+
+  for (let i = 0; i < offers.length; i++) {
+    const name = offers[i].commerceName.toLowerCase();
+    if (name.includes('constructora') || name.includes('inmobiliaria') || name.includes('vivienda')) {
+      sectors[0].offers.push(offers[i]);
+    } else if (name.includes('banco') || name.includes('financiera')) {
+      sectors[1].offers.push(offers[i]);
+    } else if (name.includes('viaje') || name.includes('electro') || name.includes('tech') || name.includes('motor') || name.includes('auto') || name.includes('ferre')) {
+      sectors[2].offers.push(offers[i]);
+    } else {
+      sectors[3].offers.push(offers[i]);
+    }
+  }
+
+  return sectors.filter((s) => s.offers.length > 0);
 }
 
 // ───── Agent log lines (simulated orchestrator) ─────
@@ -255,29 +295,84 @@ function OfferCard({ offer, rank }: { offer: PartnerOffer; rank: number }) {
   );
 }
 
-// ───── Goal Card (with per-goal IFC Switch) ─────
+// ───── Confetti Animation ─────
+
+function ConfettiOverlay({ active }: { active: boolean }) {
+  if (!active) return null;
+  const particles = Array.from({ length: 40 }, (_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    delay: Math.random() * 0.8,
+    duration: 1.5 + Math.random() * 2,
+    color: ['#34d399', '#60a5fa', '#facc15', '#f472b6', '#a78bfa', '#f97316'][i % 6],
+  }));
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="absolute w-2 h-2 rounded-sm"
+          style={{
+            left: `${p.left}%`,
+            top: '-4%',
+            backgroundColor: p.color,
+            animation: `confetti-fall ${p.duration}s ease-in ${p.delay}s forwards`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ───── Goal Card (with per-goal IFC Switch, delete/complete buttons) ─────
 
 function GoalCard({
   goal,
   isIFCActive,
   onToggleIFC,
+  onDelete,
+  onComplete,
 }: {
   goal: GoalMeta;
   isIFCActive: boolean;
   onToggleIFC: (goalId: string) => void;
+  onDelete: (goalId: string) => void;
+  onComplete: (goalId: string) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [offerSector, setOfferSector] = useState<OfferSector>('establecimientos');
   const config = CATEGORY_CONFIG[goal.category] ?? CATEGORY_CONFIG.Celular;
   const progressPercent = Math.min(100, Math.round((goal.savedAmount / goal.targetAmount) * 100));
   const remaining = goal.targetAmount - goal.savedAmount;
-  const topOffers = goal.offers.slice(0, 3);
+  const sectorGroups = useMemo(() => groupOffersBySector(goal.offers), [goal.offers]);
+  const defaultSector = sectorGroups.length > 0 ? sectorGroups[0].sector : 'establecimientos';
+  const activeSector = sectorGroups.some((s) => s.sector === offerSector) ? offerSector : defaultSector;
+  const activeOffers = sectorGroups.find((s) => s.sector === activeSector)?.offers ?? [];
+  const hasOffers = goal.offers.length > 0;
 
   const toggleExpand = useCallback(() => setIsExpanded((prev) => !prev), []);
+
+  const handleComplete = useCallback(() => {
+    setShowConfetti(true);
+    setTimeout(() => {
+      onComplete(goal.id);
+      setShowConfetti(false);
+    }, 2500);
+  }, [goal.id, onComplete]);
+
+  const handleDelete = useCallback(() => {
+    onDelete(goal.id);
+    toast.success('Meta eliminada', {
+      description: `"${goal.category}" ha sido removida de tu lista activa.`,
+    });
+  }, [goal.id, goal.category, onDelete]);
 
   return (
     <div
       className={cn(
-        'rounded-2xl border bg-card/60 overflow-hidden',
+        'relative rounded-2xl border bg-card/60 overflow-hidden',
         'transition-all duration-300',
         isIFCActive
           ? 'border-cyan-500/40 shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/20'
@@ -286,8 +381,10 @@ function GoalCard({
             : 'hover:border-border/50 hover:shadow-md hover:shadow-black/5',
       )}
     >
+      <ConfettiOverlay active={showConfetti} />
+
       <div className="p-5 space-y-4">
-        {/* ── Header: Category + IFC Toggle ── */}
+        {/* ── Header: Category + IFC Toggle + Actions ── */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div
@@ -385,7 +482,7 @@ function GoalCard({
             </span>
           </div>
 
-          {goal.offers.length > 0 && isIFCActive && !isExpanded && (
+          {hasOffers && isIFCActive && !isExpanded && (
             <button
               onClick={toggleExpand}
               className="flex items-center gap-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 transition-all duration-200 hover:bg-cyan-500/15 cursor-pointer"
@@ -398,7 +495,7 @@ function GoalCard({
             </button>
           )}
 
-          {goal.offers.length === 0 && isIFCActive && (
+          {!hasOffers && isIFCActive && (
             <p className="text-[10px] text-muted-foreground italic">
               Esperando ofertas de aliados...
             </p>
@@ -410,10 +507,31 @@ function GoalCard({
             </p>
           )}
         </div>
+
+        {/* ── Action Buttons: Delete + Complete ── */}
+        <div className="flex items-center gap-2 pt-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); handleDelete(); }}
+            className="flex-1 h-8 gap-1.5 text-xs border-border/40 bg-card/40 text-muted-foreground hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 rounded-lg transition-all"
+          >
+            <Trash2 className="h-3 w-3" />
+            Eliminar
+          </Button>
+          <Button
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); handleComplete(); }}
+            className="flex-1 h-8 gap-1.5 text-xs bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-semibold rounded-lg shadow-sm shadow-amber-500/20 transition-all hover:scale-[1.02]"
+          >
+            <Trophy className="h-3 w-3" />
+            ¡Meta Lograda! 🎉
+          </Button>
+        </div>
       </div>
 
-      {/* ── Expandable Offers Panel ── */}
-      {isExpanded && topOffers.length > 0 && isIFCActive && (
+      {/* ── Expandable Offers Panel with Sector Tabs ── */}
+      {isExpanded && hasOffers && isIFCActive && (
         <div className="border-t border-border/40 bg-gradient-to-b from-card/50 to-background/50 px-5 py-4 animate-slide-up">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -421,7 +539,7 @@ function GoalCard({
                 <Zap className="h-3 w-3 text-cyan-400" />
               </div>
               <h4 className="text-xs font-semibold text-foreground">
-                Top {topOffers.length} Propuestas Neggo
+                Propuestas Neggo por Sector
               </h4>
             </div>
             <span className="text-[10px] text-muted-foreground">
@@ -429,8 +547,36 @@ function GoalCard({
             </span>
           </div>
 
+          {/* Sector Tabs */}
+          {sectorGroups.length > 1 && (
+            <Tabs
+              value={activeSector}
+              onValueChange={(v) => setOfferSector(v as OfferSector)}
+              className="mb-3"
+            >
+              <TabsList className="h-9 w-full justify-start gap-0 bg-transparent p-0 border-b border-border/30 rounded-none">
+                {sectorGroups.map((sg) => (
+                  <TabsTrigger
+                    key={sg.sector}
+                    value={sg.sector}
+                    className={cn(
+                      'relative flex items-center gap-1.5 rounded-none border-b-2 border-transparent px-3 py-2 text-[10px] font-medium text-muted-foreground transition-all',
+                      'data-[state=active]:border-cyan-500 data-[state=active]:text-cyan-400 data-[state=active]:bg-transparent',
+                      'hover:text-foreground',
+                    )}
+                  >
+                    <sg.icon className="h-3 w-3" />
+                    {sg.label}
+                    <span className="ml-0.5 text-[9px] opacity-60">({sg.offers.length})</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
+
+          {/* Active sector offers */}
           <div className="space-y-3 mb-4">
-            {topOffers.map((offer, idx) => (
+            {activeOffers.map((offer, idx) => (
               <OfferCard key={offer.id} offer={offer} rank={idx} />
             ))}
           </div>
@@ -506,9 +652,9 @@ function CrearMetaDialog({
       savedAmount: 0,
       monthlyGoal: Number(monthlyGoal),
       ifcCertified: false,
+      status: 'active',
       offers: [],
     };
-    // Persistencia real en la tabla `metas` de la base de datos
     void addMeta(nuevaMeta).then(() => {
       setSubmitState('done');
       setTimeout(() => {
@@ -699,10 +845,43 @@ function CrearMetaDialog({
   );
 }
 
+// ───── Completed Goals View ─────
+
+function CompletedGoalCard({ goal }: { goal: GoalMeta }) {
+  const config = CATEGORY_CONFIG[goal.category] ?? CATEGORY_CONFIG.Celular;
+  return (
+    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 opacity-80 hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-3 mb-2">
+        <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg border text-base', config.bgColor)}>
+          {config.icon}
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-foreground">{goal.category}</p>
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Meta completada: {formatCOP(goal.targetAmount)}
+            {goal.completedAt && (
+              <span className="ml-1 text-emerald-400/60">
+                — {new Date(goal.completedAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5">
+        <Trophy className="h-3.5 w-3.5 text-emerald-400" />
+        <p className="text-[11px] text-emerald-400 font-medium">Meta lograda con éxito</p>
+      </div>
+    </div>
+  );
+}
+
 // ───── Main Metas View ─────
 
 export default function MetasView() {
-  const { metas, hydrateMetas, isMetasLoading, toggleMetaIFC } = usePortalStore();
+  const { metas, hydrateMetas, isMetasLoading, toggleMetaIFC, deleteMeta, completeMeta } = usePortalStore();
   const [isCrearMetaOpen, setIsCrearMetaOpen] = useState(false);
 
   // Hidrata las metas desde la base de datos real al montar la vista
@@ -712,16 +891,31 @@ export default function MetasView() {
 
   const toggleIFC = useCallback(
     (goalId: string) => {
-      // Persiste la activación del Sello IFC en la base de datos (optimista)
       void toggleMetaIFC(goalId);
     },
     [toggleMetaIFC],
   );
 
-  const totalGoals = metas.length;
-  const activeIFCCount = metas.filter((g) => g.ifcCertified).length;
-  const totalSaved = metas.reduce((sum, g) => sum + g.savedAmount, 0);
-  const totalTarget = metas.reduce((sum, g) => sum + g.targetAmount, 0);
+  const handleDelete = useCallback(
+    (goalId: string) => {
+      void deleteMeta(goalId);
+    },
+    [deleteMeta],
+  );
+
+  const handleComplete = useCallback(
+    (goalId: string) => {
+      void completeMeta(goalId);
+    },
+    [completeMeta],
+  );
+
+  const activeMetas = metas.filter((g) => g.status !== 'deleted' && g.status !== 'completed');
+  const completedMetas = metas.filter((g) => g.status === 'completed');
+  const totalGoals = activeMetas.length;
+  const activeIFCCount = activeMetas.filter((g) => g.ifcCertified).length;
+  const totalSaved = activeMetas.reduce((sum, g) => sum + g.savedAmount, 0);
+  const totalTarget = activeMetas.reduce((sum, g) => sum + g.targetAmount, 0);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -782,18 +976,38 @@ export default function MetasView() {
 
       {/* Goals Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {metas.map((goal) => (
+        {activeMetas.map((goal) => (
           <GoalCard
             key={goal.id}
             goal={goal}
             isIFCActive={goal.ifcCertified}
             onToggleIFC={toggleIFC}
+            onDelete={handleDelete}
+            onComplete={handleComplete}
           />
         ))}
       </div>
 
+      {/* Completed goals section */}
+      {completedMetas.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-emerald-400" />
+            <h3 className="text-sm font-semibold text-foreground">Metas Completadas</h3>
+            <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]">
+              {completedMetas.length}
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {completedMetas.map((goal) => (
+              <CompletedGoalCard key={goal.id} goal={goal} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Bottom hint for goals without IFC */}
-      {activeIFCCount < totalGoals && (
+      {activeIFCCount < totalGoals && totalGoals > 0 && (
         <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
           <Shield className="h-4 w-4 shrink-0 text-amber-400" />
           <p className="text-xs text-amber-400/80">

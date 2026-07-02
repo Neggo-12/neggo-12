@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
-import { DEMO_PROFILES, type DemoProfileKey } from '@/core/db/mockDb';
+import { USUARIOS_DEMO, type DemoProfileKey } from '@/core/db/mockDb';
 import { cn } from '@/lib/utils';
 import {
   UserCircle, Building2, Landmark, ShoppingBag,
@@ -10,6 +10,23 @@ import {
 import type { LucideIcon } from 'lucide-react';
 
 // ───── Icon mapping per profile ─────
+
+// ───── Profile metadata ─────
+
+interface ProfileMeta {
+  key: DemoProfileKey;
+  label: string;
+  subtitle: string;
+  redirectTo: string;
+}
+
+const PROFILE_METAS: ProfileMeta[] = [
+  { key: 'cliente', label: 'Modo Cliente', subtitle: 'Portal B2C — Jhon Edison Flórez', redirectTo: '/portal' },
+  { key: 'constructora', label: 'Modo Constructora', subtitle: 'Captación Inmobiliaria — Marval', redirectTo: '/constructoras' },
+  { key: 'banco', label: 'Modo Banco', subtitle: 'Pipeline Bancario — Bancolombia', redirectTo: '/banca' },
+  { key: 'comercio', label: 'Modo Comercio', subtitle: 'Portal B2B — AutoMercado', redirectTo: '/comercios' },
+  { key: 'admin', label: 'Modo Admin Neggo', subtitle: 'Super Admin — Control Global', redirectTo: '/admin' },
+];
 
 const profileIcons: Record<DemoProfileKey, LucideIcon> = {
   cliente: UserCircle,
@@ -34,11 +51,11 @@ export default function ProfileSwitcher() {
   const { currentUser, activeProfile, switchProfile, logout } = useAuthStore();
 
   const handleSwitch = (profile: DemoProfileKey) => {
-    const meta = DEMO_PROFILES.find((p) => p.key === profile);
+    const meta = PROFILE_METAS.find((p) => p.key === profile);
     if (!meta) return;
 
     switchProfile(profile);
-    toast.success(`Entorno Conmutado: Operando como ${meta.label.split(' ').slice(1).join(' ')}`, {
+    toast.success(`Entorno Conmutado: Operando como ${USUARIOS_DEMO[profile].rol}`, {
       description: meta.subtitle,
       duration: 3000,
     });
@@ -100,7 +117,7 @@ export default function ProfileSwitcher() {
 
             {/* Quick switch pills when already logged in */}
             <div className="flex flex-wrap gap-1.5">
-              {DEMO_PROFILES.filter((p) => p.key !== activeProfile).map((profile) => (
+              {PROFILE_METAS.filter((p) => p.key !== activeProfile).map((profile) => (
                 <button
                   key={profile.key}
                   onClick={() => handleSwitch(profile.key)}
@@ -122,7 +139,7 @@ export default function ProfileSwitcher() {
               Selecciona un perfil de demo para acceder instantáneamente a cada entorno operativo del ecosistema Neggo.
             </p>
             <div className="grid gap-2">
-              {DEMO_PROFILES.map((profile) => {
+              {PROFILE_METAS.map((profile) => {
                 const Icon = profileIcons[profile.key];
                 return (
                   <button

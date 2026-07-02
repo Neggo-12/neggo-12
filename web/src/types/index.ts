@@ -100,6 +100,8 @@ export interface Campaign {
   maxScore: number;
 }
 
+export type FeedbackDestinatario = 'banco' | 'constructora' | 'comercio';
+
 export interface Feedback {
   id: string;
   clientName: string;
@@ -108,11 +110,19 @@ export interface Feedback {
   rating: number;
   comment: string;
   bank: string;
+  /** Entidad destinataria del feedback */
+  destinatario: FeedbackDestinatario;
+  /** Nombre de la entidad destinataria específica */
+  destinatarioName: string;
+  /** ID de la entidad destinataria */
+  destinatarioId: string;
   createdAt: string;
   respondedAt?: string;
   response?: string;
   satisfactionScore?: number;
 }
+
+export type ProjectVisibility = 'publico-general' | 'perfilado-core';
 
 export interface ProyectoConstructora {
   id: string;
@@ -158,6 +168,12 @@ export interface ProyectoConstructora {
   unidadesLanzamiento: number;
   /** ID de la constructora matriz para atribución de ventas cruzadas */
   constructoraId: string;
+  /** Visibilidad: público general o perfilado por score/ingresos */
+  visibilidad: ProjectVisibility;
+  /** Ingreso mínimo mensual requerido (solo si visibilidad es perfilado-core) */
+  ingresoMinimo?: number;
+  /** Score FIS mínimo requerido (solo si visibilidad es perfilado-core) */
+  scoreFisMinimo?: number;
 }
 
 export interface LeadInmobiliario {
@@ -228,6 +244,8 @@ export interface PartnerOffer {
   confidenceLevel: number;
 }
 
+export type GoalStatus = 'active' | 'deleted' | 'completed';
+
 export interface GoalMeta {
   id: string;
   category: GoalCategory;
@@ -236,6 +254,8 @@ export interface GoalMeta {
   monthlyGoal: number;
   offers: PartnerOffer[];
   ifcCertified: boolean;
+  status: GoalStatus;
+  completedAt?: string;
   /** Subcategoría dinámica (ej: 'Eléctrico' para Carro, 'iPhone' para Celular) */
   subcategoria?: string;
   /** Metadata adicional (ej: { personas: 3 } para Viaje) */
@@ -323,6 +343,14 @@ export type AdminEntityType = 'banco' | 'constructora' | 'comercio';
 
 export type AuthorizationStatus = 'autorizado' | 'pendiente' | 'rechazado' | 'en-revision';
 
+export interface ContactPerson {
+  nombre: string;
+  cargo: string;
+  correo: string;
+  telefono: string;
+  estadoDocumentos: 'pendiente' | 'verificado' | 'rechazado';
+}
+
 export interface OnboardingRequest {
   id: string;
   entityType: AdminEntityType;
@@ -334,6 +362,8 @@ export interface OnboardingRequest {
   submittedAt: string;
   reviewedAt?: string;
   reviewedBy?: string;
+  /** Contacto institucional autorizado */
+  contacto?: ContactPerson;
 }
 
 export interface IFCTransaction {

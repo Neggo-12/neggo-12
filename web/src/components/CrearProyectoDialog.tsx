@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import {
   Building2, MapPin, Home, DollarSign, Layers,
-  Calendar, Briefcase, Plus, Check, Sparkles,
+  Calendar, Plus, Check, Sparkles,
   PiggyBank, Percent, Clock, Gift, Ruler,
-  BedDouble, Bath, Car,
+  BedDouble, Bath, Car, Eye, Lock, TrendingUp,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -19,6 +19,7 @@ import {
   SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/useAuthStore';
 
 const citiesList = [
   'Bogotá', 'Medellín', 'Cali',
@@ -41,7 +42,6 @@ const statusOptions: { value: string; label: string }[] = [
 interface ProyectoForm {
   name: string;
   city: string;
-  constructora: string;
   units: string;
   priceMin: string;
   priceMax: string;
@@ -61,12 +61,15 @@ interface ProyectoForm {
   alcobas: string;
   banos: string;
   parqueadero: boolean;
+  // Visibility segmentation
+  visibilidad: 'publico-general' | 'perfilado-core';
+  ingresoMinimo: string;
+  scoreFisMinimo: string;
 }
 
 const initialForm: ProyectoForm = {
   name: '',
   city: '',
-  constructora: '',
   units: '',
   priceMin: '',
   priceMax: '',
@@ -83,6 +86,9 @@ const initialForm: ProyectoForm = {
   alcobas: '',
   banos: '',
   parqueadero: false,
+  visibilidad: 'publico-general',
+  ingresoMinimo: '',
+  scoreFisMinimo: '',
 };
 
 // ───── Helpers ─────
@@ -119,10 +125,13 @@ export default function CrearProyectoDialog() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const constructoraName = currentUser?.nombre ?? 'Mi Constructora';
+  const constructoraId = currentUser?.id ?? 'CONS-AUTO';
+
   const isValid =
     form.name.trim() &&
     form.city &&
-    form.constructora.trim() &&
     form.units &&
     form.priceMin &&
     form.priceMax &&
@@ -200,34 +209,31 @@ export default function CrearProyectoDialog() {
               />
             </div>
 
-            {/* Ciudad + Constructora */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <MapPin className="h-3 w-3" /> Ciudad
-                </Label>
-                <Select value={form.city} onValueChange={(v) => updateField('city', v)}>
-                  <SelectTrigger className="h-9 text-sm bg-secondary/40 border-border/40">
-                    <SelectValue placeholder="Seleccionar ciudad" />
-                  </SelectTrigger>
-                  <SelectContent className="border-border/60 bg-card">
-                    {citiesList.map((c) => (
-                      <SelectItem key={c} value={c} className="text-sm">{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Ciudad */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <MapPin className="h-3 w-3" /> Ciudad
+              </Label>
+              <Select value={form.city} onValueChange={(v) => updateField('city', v)}>
+                <SelectTrigger className="h-9 text-sm bg-secondary/40 border-border/40">
+                  <SelectValue placeholder="Seleccionar ciudad" />
+                </SelectTrigger>
+                <SelectContent className="border-border/60 bg-card">
+                  {citiesList.map((c) => (
+                    <SelectItem key={c} value={c} className="text-sm">{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Constructora auto-capturada */}
+            <div className="rounded-lg border border-blue-500/10 bg-blue-500/5 px-3 py-2 flex items-center gap-2">
+              <Building2 className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+              <div className="flex-1">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Constructora</p>
+                <p className="text-xs font-semibold text-blue-400">{constructoraName}</p>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Briefcase className="h-3 w-3" /> Constructora
-                </Label>
-                <Input
-                  placeholder="ej. Constructora Andina"
-                  value={form.constructora}
-                  onChange={(e) => updateField('constructora', e.target.value)}
-                  className="h-9 text-sm bg-secondary/40 border-border/40 focus:border-blue-500/40"
-                />
-              </div>
+              <span className="text-[9px] text-blue-400/60 font-mono">{constructoraId}</span>
             </div>
 
             {/* Unidades + Tipo Vivienda + Estado + Fecha */}
@@ -437,7 +443,84 @@ export default function CrearProyectoDialog() {
           {/* Separator */}
           <div className="border-t border-border/30" />
 
-          {/* ═══════ SECCIÓN 4: Ficha Técnica Residencial ═══════ */}
+          {/* ═══════ SECCIÓN 4: Visibilidad y Segmentación ═══════ */}
+          <div className="space-y-3">
+            <SectionHeader icon={Eye} label="Segmentación de Oportunidades" />
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => updateField('visibilidad', 'publico-general')}
+                className={cn(
+                  'rounded-xl border p-3 text-left transition-all',
+                  form.visibilidad === 'publico-general'
+                    ? 'border-blue-500/40 bg-blue-500/10 ring-1 ring-blue-500/20'
+                    : 'border-border/40 bg-card/40 hover:border-border/60',
+                )}
+              >
+                <Eye className="h-4 w-4 text-blue-400 mb-1.5" />
+                <p className="text-xs font-semibold text-foreground">Público General</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Visible para todo usuario en oportunidades
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => updateField('visibilidad', 'perfilado-core')}
+                className={cn(
+                  'rounded-xl border p-3 text-left transition-all',
+                  form.visibilidad === 'perfilado-core'
+                    ? 'border-purple-500/40 bg-purple-500/10 ring-1 ring-purple-500/20'
+                    : 'border-border/40 bg-card/40 hover:border-border/60',
+                )}
+              >
+                <Lock className="h-4 w-4 text-purple-400 mb-1.5" />
+                <p className="text-xs font-semibold text-foreground">Perfilado Core</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Solo visible para perfiles que cumplan los criterios
+                </p>
+              </button>
+            </div>
+
+            {form.visibilidad === 'perfilado-core' && (
+              <div className="space-y-3 animate-fade-in">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <DollarSign className="h-3 w-3" /> Ingreso Mínimo Mensual
+                    </Label>
+                    <Input
+                      type="number"
+                      placeholder="ej. 5000000"
+                      value={form.ingresoMinimo}
+                      onChange={(e) => updateField('ingresoMinimo', e.target.value)}
+                      className="h-9 text-sm bg-secondary/40 border-border/40 font-mono focus:border-purple-500/40"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <TrendingUp className="h-3 w-3" /> Score FIS Mínimo
+                    </Label>
+                    <Input
+                      type="number"
+                      placeholder="ej. 650"
+                      value={form.scoreFisMinimo}
+                      onChange={(e) => updateField('scoreFisMinimo', e.target.value)}
+                      className="h-9 text-sm bg-secondary/40 border-border/40 font-mono focus:border-purple-500/40"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-purple-400/70">
+                  Solo los clientes que cumplan ambos criterios verán este proyecto en su feed de oportunidades.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Separator */}
+          <div className="border-t border-border/30" />
+
+          {/* ═══════ SECCIÓN 5: Ficha Técnica Residencial ═══════ */}
           <div className="space-y-3">
             <SectionHeader icon={Ruler} label="Ficha Técnica Residencial" />
 

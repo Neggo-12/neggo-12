@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/useAuthStore';
 
 const campaignTypes: { value: string; label: string }[] = [
   { value: 'cdt', label: 'CDT' },
@@ -43,7 +44,6 @@ const citiesList = [
 interface CampanaForm {
   name: string;
   type: string;
-  bank: string;
   budget: string;
   tasa: string;
   minScore: string;
@@ -58,7 +58,6 @@ interface CampanaForm {
 const initialForm: CampanaForm = {
   name: '',
   type: '',
-  bank: '',
   budget: '',
   tasa: '',
   minScore: '',
@@ -74,6 +73,9 @@ export default function CrearCampanaDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<CampanaForm>(initialForm);
   const [submitted, setSubmitted] = useState(false);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const bankName = currentUser?.nombre ?? 'Mi Banco';
+  const bankId = currentUser?.id ?? 'BANK-AUTO';
 
   const updateField = <K extends keyof CampanaForm>(key: K, value: CampanaForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -91,7 +93,6 @@ export default function CrearCampanaDialog() {
   const isValid =
     form.name.trim() !== '' &&
     form.type !== '' &&
-    form.bank !== '' &&
     form.budget !== '' &&
     form.tasa !== '' &&
     form.minScore !== '' &&
@@ -165,42 +166,32 @@ export default function CrearCampanaDialog() {
             />
           </div>
 
-          {/* Tipo + Banco */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Target className="h-3 w-3" /> Tipo de Producto
-              </Label>
-              <Select value={form.type} onValueChange={(v) => updateField('type', v)}>
-                <SelectTrigger className="h-9 text-sm bg-secondary/40 border-border/40">
-                  <SelectValue placeholder="Seleccionar tipo" />
-                </SelectTrigger>
-                <SelectContent className="border-border/60 bg-card">
-                  {campaignTypes.map((t) => (
-                    <SelectItem key={t.value} value={t.value} className="text-sm">
-                      {t.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Banco auto-capturado + Tipo */}
+          <div className="rounded-lg border border-emerald-500/10 bg-emerald-500/5 px-3 py-2 flex items-center gap-2 mb-3">
+            <Building2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+            <div className="flex-1">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Banco Emisor</p>
+              <p className="text-xs font-semibold text-emerald-400">{bankName}</p>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Building2 className="h-3 w-3" /> Banco
-              </Label>
-              <Select value={form.bank} onValueChange={(v) => updateField('bank', v)}>
-                <SelectTrigger className="h-9 text-sm bg-secondary/40 border-border/40">
-                  <SelectValue placeholder="Seleccionar banco" />
-                </SelectTrigger>
-                <SelectContent className="border-border/60 bg-card">
-                  {banksList.map((b) => (
-                    <SelectItem key={b} value={b} className="text-sm">
-                      {b}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <span className="text-[9px] text-emerald-400/60 font-mono">{bankId}</span>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Target className="h-3 w-3" /> Tipo de Producto
+            </Label>
+            <Select value={form.type} onValueChange={(v) => updateField('type', v)}>
+              <SelectTrigger className="h-9 text-sm bg-secondary/40 border-border/40">
+                <SelectValue placeholder="Seleccionar tipo" />
+              </SelectTrigger>
+              <SelectContent className="border-border/60 bg-card">
+                {campaignTypes.map((t) => (
+                  <SelectItem key={t.value} value={t.value} className="text-sm">
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Presupuesto + Tasa */}
@@ -367,7 +358,7 @@ export default function CrearCampanaDialog() {
                   {campaignTypes.find((t) => t.value === form.type)?.label}
                 </span>
                 <span className="text-muted-foreground"> — </span>
-                <span className="text-muted-foreground">{form.bank || 'sin banco'}</span>
+                <span className="text-muted-foreground">{bankName}</span>
                 {form.cities.length > 0 && (
                   <>
                     <span className="text-muted-foreground"> — </span>

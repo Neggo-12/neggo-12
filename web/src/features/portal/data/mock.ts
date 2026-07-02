@@ -241,6 +241,7 @@ export const MOCK_GOALS: GoalMeta[] = [
     savedAmount: 14000000,
     monthlyGoal: 1200000,
     ifcCertified: true,
+    status: 'active',
     offers: [
       {
         id: 'po1',
@@ -280,6 +281,7 @@ export const MOCK_GOALS: GoalMeta[] = [
     savedAmount: 4500000,
     monthlyGoal: 600000,
     ifcCertified: true,
+    status: 'active',
     offers: [
       {
         id: 'po4',
@@ -318,6 +320,7 @@ export const MOCK_GOALS: GoalMeta[] = [
     savedAmount: 28500000,
     monthlyGoal: 1500000,
     ifcCertified: true,
+    status: 'active',
     offers: [
       {
         id: 'po7',
@@ -356,6 +359,7 @@ export const MOCK_GOALS: GoalMeta[] = [
     savedAmount: 3800000,
     monthlyGoal: 400000,
     ifcCertified: true,
+    status: 'active',
     offers: [
       {
         id: 'po10',
@@ -394,6 +398,7 @@ export const MOCK_GOALS: GoalMeta[] = [
     savedAmount: 5200000,
     monthlyGoal: 900000,
     ifcCertified: false,
+    status: 'active',
     offers: [],
   },
 ];

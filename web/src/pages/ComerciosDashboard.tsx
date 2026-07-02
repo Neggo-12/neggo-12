@@ -2,17 +2,19 @@ import { useComercioStore, filterOportunidades, MOCK_OPORTUNIDADES } from '@/fea
 import ComercioOnboarding from '@/features/comercios/components/ComercioOnboarding';
 import OportunidadesFeed from '@/features/comercios/components/OportunidadesFeed';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
+import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import KPICard from '@/components/KPICard';
-import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard } from 'lucide-react';
+import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type ComercioSection = 'dashboard' | 'oportunidades' | 'suscripcion';
+type ComercioSection = 'dashboard' | 'oportunidades' | 'suscripcion' | 'feedback';
 
 const COMERCIO_SECTIONS: SidebarNavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: Store },
   { key: 'oportunidades', label: 'Oportunidades IFC', icon: Radio, badge: 3 },
   { key: 'suscripcion', label: 'Suscripción', icon: CreditCard },
+  { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText, badge: 5 },
 ];
 
 export default function ComerciosDashboard() {
@@ -165,6 +167,21 @@ export default function ComerciosDashboard() {
               )}
             </div>
             <OportunidadesFeed />
+          </div>
+
+          {/* Feedback de Clientes */}
+          <div className="space-y-4 pt-4 border-t border-border/40">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">
+                  Feedback de Clientes
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Mensajes de clientes sobre tus productos y servicios
+                </p>
+              </div>
+            </div>
+            <CrossSectorFeedbackPanel entityType="comercio" />
           </div>
         </div>
       </div>

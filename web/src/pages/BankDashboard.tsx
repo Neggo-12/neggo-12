@@ -7,6 +7,7 @@ import SolicitudesTab from '@/components/bank/SolicitudesTab';
 import CampanasTab from '@/components/bank/CampanasTab';
 import AnalyticsTab from '@/components/bank/AnalyticsTab';
 import FeedbackTab from '@/components/bank/FeedbackTab';
+import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import { Building2, BarChart3, Megaphone, MessageSquareText, FileText } from 'lucide-react';
 
 type BankTab = 'solicitudes' | 'campanas' | 'analytics' | 'feedback';
@@ -78,7 +79,15 @@ export default function BankDashboard() {
               <AnalyticsTab />
             </TabsContent>
             <TabsContent value="feedback" className="mt-0 animate-slide-up">
-              <FeedbackTab />
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold tracking-tight text-foreground">Feedback de Clientes</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">Mensajes de clientes, respuesta y seguimiento en tiempo real</p>
+                  </div>
+                </div>
+                <CrossSectorFeedbackPanel entityType="banco" />
+              </div>
             </TabsContent>
           </Tabs>
         </div>
