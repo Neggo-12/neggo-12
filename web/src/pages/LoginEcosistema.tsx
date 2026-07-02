@@ -40,6 +40,8 @@ import {
   validatePassword,
   checkDuplicates,
 } from "@/core/db/supabaseClient";
+import { useAdminStore } from "@/features/admin/store/useAdminStore";
+import type { OnboardingRequest, AdminEntityType, AuthorizationStatus } from "@/types";
 
 // ───── Bank options for B2C registration ─────
 
@@ -612,10 +614,37 @@ function B2BRegister() {
           });
         }
 
+        // Fallback garantizado: añadir al store de Zustand para que el Admin
+        // lo vea de inmediato en memoria, incluso si Supabase falla o no está
+        // configurado. Esto asegura que el registro SIEMPRE aparezca en /admin.
+        const entityTypeMap: Record<B2BSector, AdminEntityType> = {
+          banca: "banco",
+          constructora: "constructora",
+          comercio: "comercio",
+        };
+        const pendingRequest: OnboardingRequest = {
+          id: userId,
+          entityType: entityTypeMap[sector],
+          name: form.razonSocial.trim(),
+          detail: `${activeSector.roleValue} — ${form.correo.trim().toLowerCase()}`,
+          city: "Sin ciudad",
+          nit: form.nit.trim(),
+          status: "pendiente" as AuthorizationStatus,
+          submittedAt: new Date().toISOString(),
+          contacto: {
+            nombre: form.representante.trim(),
+            cargo: activeSector.roleValue,
+            correo: form.correo.trim().toLowerCase(),
+            telefono: form.telefono.trim(),
+            estadoDocumentos: "pendiente",
+          },
+        };
+        useAdminStore.getState().addPendingRequest(pendingRequest);
+
         setSubmitState("done");
-        toast.success("Solicitud enviada", {
+        toast.success("Registro enviado a revisión", {
           description:
-            "Tu registro como empresa está en revisión. Recibirás un correo de confirmación en las próximas 24-48 horas hábiles.",
+            "Tu solicitud como " + activeSector.label + " está en revisión. El equipo de Neggo la aprobará en las próximas 24-48 horas hábiles.",
         });
       } catch {
         toast.error("Error inesperado", {
@@ -624,7 +653,7 @@ function B2BRegister() {
         setSubmitState("idle");
       }
     },
-    [canSubmit, form, activeSector]
+    [canSubmit, form, activeSector, sector]
   );
 
   if (submitState === "done") {

@@ -60,12 +60,13 @@ export default function AdminDashboard() {
     ecosistemaMetrics,
     onboardingRequests,
     isOnboardingLoading,
-    hydrateOnboarding,
+    refreshOnboarding,
   } = useAdminStore();
 
+  // Re-fetch en cada montaje para ver los nuevos registros en tiempo real
   useEffect(() => {
-    void hydrateOnboarding();
-  }, [hydrateOnboarding]);
+    void refreshOnboarding();
+  }, [refreshOnboarding]);
 
   const pendingAuths = onboardingRequests.filter(
     (r: OnboardingRequest) => r.status === 'pendiente' || r.status === 'en-revision'

@@ -18,6 +18,28 @@ import {
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
 
+// ───── Status mapping: DB values → UI AuthorizationStatus ─────
+
+/**
+ * The login flow inserts `status: "pending_approval"` into the `users` table.
+ * The admin UI uses Spanish labels: 'pendiente', 'autorizado', 'rechazado', 'en-revision'.
+ * This function bridges the two so the admin panel sees pending registrations.
+ */
+const DB_STATUS_TO_UI: Record<string, AuthorizationStatus> = {
+  pending_approval: 'pendiente',
+  approved: 'autorizado',
+  rejected: 'rechazado',
+  pendiente: 'pendiente',
+  autorizado: 'autorizado',
+  rechazado: 'rechazado',
+  'en-revision': 'en-revision',
+};
+
+function mapDbStatus(raw: string | null | undefined): AuthorizationStatus {
+  if (!raw) return 'pendiente';
+  return DB_STATUS_TO_UI[raw] ?? 'pendiente';
+}
+
 // ───── Helpers ─────
 
 /** Convierte un UserRow de Supabase en un OnboardingRequest para el panel admin */
@@ -31,20 +53,22 @@ function userToOnboardingRequest(user: UserRow): OnboardingRequest {
     Fiduciaria: 'banco',
   };
 
+  const uiStatus = mapDbStatus(user.status);
+
   return {
     id: user.id,
     entityType: roleToEntityType[user.rol] ?? 'banco',
     name: user.nombre,
     detail: `${user.rol} — ${user.email}`,
     city: user.ciudad ?? 'Sin ciudad',
-    status: (user.status as AuthorizationStatus) ?? 'pendiente',
+    status: uiStatus,
     submittedAt: user.created_at,
     contacto: {
       nombre: user.nombre,
       cargo: user.rol,
       correo: user.email,
       telefono: user.telefono ?? '',
-      estadoDocumentos: user.status === 'approved' ? 'verificado' : 'pendiente',
+      estadoDocumentos: uiStatus === 'autorizado' ? 'verificado' : 'pendiente',
     },
   };
 }
@@ -52,7 +76,7 @@ function userToOnboardingRequest(user: UserRow): OnboardingRequest {
 // ───── Store ─────
 
 interface AdminState {
-  /** All onboarding requests from real Supabase `users` table */
+  /** All onboarding requests from real Supabase `users` table + Zustand fallback */
   onboardingRequests: OnboardingRequest[];
   /** Whether the onboarding data is still loading */
   isOnboardingLoading: boolean;
@@ -72,8 +96,10 @@ interface AdminState {
   isFacturasHydrated: boolean;
 
   setActiveSection: (section: AdminState['activeSection']) => void;
-  /** Carga usuarios desde Supabase — solo los pendientes de aprobación + todos para vista general */
+  /** Carga usuarios desde Supabase — re-fetch en cada montaje para datos frescos */
   hydrateOnboarding: () => Promise<void>;
+  /** Forza un re-fetch completo (ignora el flag de hidratación) */
+  refreshOnboarding: () => Promise<void>;
   /** Aprueba un usuario: cambia status a 'approved' en Supabase */
   authorizeEntity: (requestId: string) => Promise<void>;
   /** Rechaza un usuario: cambia status a 'rejected' en Supabase */
@@ -81,6 +107,8 @@ interface AdminState {
   issueTrustSeal: (requestId: string) => void;
   /** Carga el ledger de facturación desde la tabla `facturas_ledger` */
   hydrateFacturas: () => Promise<void>;
+  /** Fallback: añade una solicitud pendiente al store en memoria (cuando Supabase no responde) */
+  addPendingRequest: (request: OnboardingRequest) => void;
 }
 
 const EMPTY_METRICS: EcosistemaMetrics = {
@@ -118,7 +146,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   setActiveSection: (section) => set({ activeSection: section }),
 
   hydrateOnboarding: async () => {
-    if (get().isOnboardingHydrated || get().isOnboardingLoading) return;
+    // Re-fetch en cada montaje para datos frescos (sin caché vieja)
+    if (get().isOnboardingLoading) return;
     if (!isDbConfigured) {
       set({ isOnboardingLoading: false, isOnboardingHydrated: true });
       return;
@@ -136,6 +165,13 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     const users = allUsers ?? [];
     const requests = users.map(userToOnboardingRequest);
 
+    // Merge with any pending requests added via fallback (addPendingRequest)
+    // that haven't been persisted to Supabase yet
+    const existingFallback = get().onboardingRequests.filter(
+      (r) => !users.some((u) => u.id === r.id)
+    );
+    const mergedRequests = [...requests, ...existingFallback];
+
     // Compute ecosystem metrics from real data
     const clientesActivos = users.filter((u) => u.rol === 'Cliente' && u.status === 'approved').length;
     const bancosConectados = users.filter((u) => u.rol === 'Banco' && u.status === 'approved').length;
@@ -143,7 +179,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     const comerciosSuscritos = users.filter((u) => u.rol === 'Comercio' && u.status === 'approved').length;
 
     set({
-      onboardingRequests: requests,
+      onboardingRequests: mergedRequests,
       isOnboardingLoading: false,
       isOnboardingHydrated: true,
       ecosistemaMetrics: {
@@ -154,6 +190,21 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         comerciosSuscritos,
       },
     });
+  },
+
+  refreshOnboarding: async () => {
+    // Forza re-fetch ignorando el flag de hidratación
+    set({ isOnboardingHydrated: false });
+    await get().hydrateOnboarding();
+  },
+
+  addPendingRequest: (request) => {
+    // Evita duplicados por ID
+    const exists = get().onboardingRequests.some((r) => r.id === request.id);
+    if (exists) return;
+    set((s) => ({
+      onboardingRequests: [request, ...s.onboardingRequests],
+    }));
   },
 
   authorizeEntity: async (requestId) => {
