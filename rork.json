@@ -4,7 +4,10 @@
     {
       "name": "Neggo",
       "path": "web",
-      "framework": "web"
+      "framework": "web",
+      "settings": {
+        "webSlug": "neggo12"
+      }
     },
     {
       "name": "Backend",
