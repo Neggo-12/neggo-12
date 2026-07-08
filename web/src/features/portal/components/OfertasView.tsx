@@ -599,22 +599,6 @@ export default function OfertasView() {
         </div>
       )}
 
-      {/* ── Legacy empty state (keeps old reference) ── */}
-      {false && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-card/60 border border-border/40 mb-4">
-            <Gift className="h-7 w-7 text-muted-foreground" />
-          </div>
-          <h3 className="text-base font-semibold text-foreground mb-1">
-            Sin ofertas disponibles
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-sm">
-            No encontramos campañas activas que coincidan con tu perfil en {currentClient.city}.
-            Revisa más tarde o actualiza tus preferencias.
-          </p>
-        </div>
-      )}
-
       {/* Crear Meta Dialog */}
       <CrearMetaDialog open={isCrearMetaOpen} onOpenChange={setCrearMetaOpen} />
     </div>
