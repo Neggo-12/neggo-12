@@ -51,14 +51,6 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
     });
   }, [proyecto.id, proyecto.tipoVivienda, proyecto.constructora, trackRejection]);
 
-  if (isRejected) {
-    return (
-      <div className="rounded-2xl border border-border/20 bg-secondary/10 p-5 opacity-40 pointer-events-none">
-        <p className="text-[11px] text-muted-foreground italic text-center">Proyecto descartado</p>
-      </div>
-    );
-  }
-
   const handleSolicitar = useCallback(() => {
     setRequestState('loading');
     setTimeout(() => setRequestState('done'), 1200);
@@ -68,6 +60,14 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
     setRequestState('loading');
     setTimeout(() => setRequestState('done'), 1800);
   }, []);
+
+  if (isRejected) {
+    return (
+      <div className="rounded-2xl border border-border/20 bg-secondary/10 p-5 opacity-40 pointer-events-none">
+        <p className="text-[11px] text-muted-foreground italic text-center">Proyecto descartado</p>
+      </div>
+    );
+  }
 
   const hasSubsidio = proyecto.subsidioCajaCompensacion || proyecto.subsidioMiCasaYa;
   const isLanzamiento = proyecto.modoLanzamiento && proyecto.unidadesLanzamiento > 0;
