@@ -7,6 +7,7 @@ import PortalNavigation from '@/features/portal/components/PortalNavigation';
 import AntiPhishingBanner from '@/features/portal/components/AntiPhishingBanner';
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import type { PortalTab } from '@/features/portal/store/usePortalStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 // ───── Lazy-loaded tab views ─────
 
@@ -16,7 +17,7 @@ const OfertasView = lazy(() => import('@/features/portal/components/OfertasView'
 const OportunidadesInmobiliariasView = lazy(() => import('@/features/portal/components/OportunidadesInmobiliariasView'));
 const MetasView = lazy(() => import('@/features/portal/components/MetasView'));
 const FacturasView = lazy(() => import('@/features/portal/components/FacturasView'));
-const BancaPrivadaView = lazy(() => import('@/features/portal/components/BancaPrivadaView'));
+const MeInteresaView = lazy(() => import('@/features/portal/components/MeInteresaView'));
 const FeedbackView = lazy(() => import('@/features/portal/components/FeedbackView'));
 
 // ───── Tab labels ─────
@@ -28,7 +29,7 @@ const TAB_LABELS: Record<PortalTab, string> = {
   'oportunidades-inmobiliarias': 'Oportunidades Inmobiliarias',
   metas: 'Metas',
   facturas: 'Facturas',
-  solicitudes: 'Banca Privada',
+  solicitudes: 'Me Interesa',
   feedback: 'Soporte y Feedback',
 };
 
@@ -42,7 +43,7 @@ const PORTAL_SECTIONS: SidebarNavItem[] = [
   { key: 'oportunidades-inmobiliarias', label: 'Oportunidades Inmobiliarias', icon: Home, badge: 2 },
   { key: 'metas', label: 'Metas', icon: Target, badge: 5 },
   { key: 'facturas', label: 'Facturas', icon: Receipt, badge: 12 },
-  { key: 'solicitudes', label: 'Banca Privada', icon: Landmark },
+  { key: 'solicitudes', label: 'Me Interesa', icon: Landmark },
   { key: 'feedback', label: 'Soporte y Feedback', icon: MessageSquareText },
 ];
 
@@ -73,7 +74,7 @@ function ActiveTabContent({ tab }: { tab: PortalTab }) {
     case 'facturas':
       return <FacturasView />;
     case 'solicitudes':
-      return <BancaPrivadaView />;
+      return <MeInteresaView />;
     case 'feedback':
       return <FeedbackView />;
     default:
@@ -85,6 +86,8 @@ function ActiveTabContent({ tab }: { tab: PortalTab }) {
 
 export default function ClientPortal() {
   const { currentClient, activeTab, setActiveTab } = usePortalStore();
+  const session = useAuthStore((s) => s.session);
+  const clientDisplayName = session?.email ?? null;
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -102,7 +105,11 @@ export default function ClientPortal() {
           // "resumen" defaults to finanzas
           setActiveTab(key === 'resumen' ? 'finanzas' : (key as PortalTab));
         }}
-        footer={{ initials: 'JF', name: 'Jhon Edison Florez', role: 'Alto Patrimonio' }}
+        footer={
+          clientDisplayName
+            ? { initials: clientDisplayName.slice(0, 2).toUpperCase(), name: clientDisplayName, role: currentClient.type }
+            : { initials: '··', name: 'Cargando sesión...', role: currentClient.type }
+        }
         accent="cyan"
         backToHubLabel="Cambiar Entorno"
       />
@@ -127,7 +134,7 @@ export default function ClientPortal() {
               </div>
               <h1 className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">
                 Bienvenido de vuelta,{' '}
-                <span className="text-cyan-400">{currentClient.name}</span>
+                <span className="text-cyan-400">{clientDisplayName ?? 'Cargando...'}</span>
               </h1>
               <p className="text-sm text-muted-foreground">
                 {currentClient.type} — Cliente {currentClient.id}

@@ -5,10 +5,16 @@ import { MOCK_GOALS } from '@/features/portal/data/mock';
 import {
   fetchMetas,
   insertMeta,
-  insertSolicitud,
   setMetaIFC,
+  insertMeInteresaSolicitud,
+  insertMeInteresaDestinatarios,
+  fetchMeInteresaSolicitudesByCliente,
+  fetchProyectosMatch,
+  fetchOrganizationIdsByUserIds,
+  fetchComerciosMatch,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
+import { useAuthStore } from '@/store/useAuthStore';
 
 // ───── Tab types ─────
 
@@ -40,14 +46,68 @@ export type SolicitudProductType =
   | 'cdt'
   | 'libre-inversion';
 
-export interface SolicitudCliente {
+type SolicitudStatus = 'Pendiente de contacto' | 'Sin destinatarios disponibles';
+
+export interface SolicitudBancoCliente {
+  id: string;
+  origen: 'banco';
+  productType: SolicitudProductType;
+  /** Nombres de los destinatarios, solo para mostrar en el historial */
+  destinatarios: string[];
+  status: SolicitudStatus;
+  createdAt: string;
+}
+
+export interface SolicitudConstructoraCliente {
+  id: string;
+  origen: 'constructora';
+  tipoVivienda: string;
+  ciudad: string;
+  destinatarios: string[];
+  status: SolicitudStatus;
+  createdAt: string;
+}
+
+export interface SolicitudComercioCliente {
+  id: string;
+  origen: 'comercio';
+  categoria: string;
+  subcategoria?: string;
+  destinatarios: string[];
+  status: SolicitudStatus;
+  createdAt: string;
+}
+
+/** Unión discriminada — un solo historial, tres formas de solicitud (Fase 5/6). */
+export type SolicitudCliente =
+  | SolicitudBancoCliente
+  | SolicitudConstructoraCliente
+  | SolicitudComercioCliente;
+
+/** Input para crear una solicitud a bancos — carga el organizationId real de cada banco. */
+export interface AddSolicitudBancoInput {
   id: string;
   productType: SolicitudProductType;
-  banks: string[];
-  /** IDs reales de los bancos en la tabla `users` para atribución en Supabase */
-  bancoIds: string[];
-  status: 'Pendiente de contacto por el banco' | 'En revisión' | 'Aprobada';
-  createdAt: string;
+  bancos: { organizationId: string; nombre: string }[];
+}
+
+/** Input para crear una solicitud a constructoras — el match se resuelve internamente. */
+export interface AddSolicitudConstructoraInput {
+  id: string;
+  tipoVivienda: string;
+  comuna?: string;
+  ciudad: string;
+  estrato?: number;
+  presupuestoMin?: number;
+  presupuestoMax?: number;
+}
+
+/** Input para crear una solicitud a comercios — el match a UN solo comercio se resuelve internamente. */
+export interface AddSolicitudComercioInput {
+  id: string;
+  categoria: string;
+  subcategoria?: string;
+  ciudad: string;
 }
 
 // ───── Deterministic 6-digit security code ─────
@@ -63,8 +123,10 @@ function generateSecurityCode(clientId: string): string {
 
 // ───── Store ─────
 
-/** ID del cliente demo en la tabla `users` de la base de datos real */
-const CLIENTE_DB_ID = 'USR-CLIENTE-01';
+/** Resuelve el id real del cliente autenticado desde la sesión — nunca un id demo hardcodeado. */
+function getClienteId(): string | null {
+  return useAuthStore.getState().session?.userId ?? null;
+}
 
 interface PortalState {
   /** Currently selected navigation tab */
@@ -77,6 +139,10 @@ interface PortalState {
   securityCode: string;
   /** Submitted solicitudes history */
   solicitudes: SolicitudCliente[];
+  /** true mientras se cargan las solicitudes desde la base de datos */
+  isSolicitudesLoading: boolean;
+  /** true después del primer intento de hidratación de solicitudes */
+  isSolicitudesHydrated: boolean;
   /** Metas de ahorro del cliente (hidratadas desde la base de datos real) */
   metas: GoalMeta[];
   /** true mientras se cargan las metas desde la base de datos */
@@ -88,8 +154,14 @@ interface PortalState {
 
   setActiveTab: (tab: PortalTab) => void;
   setNuevaSolicitudOpen: (open: boolean) => void;
-  /** Registra la solicitud localmente y la persiste en la base de datos real */
-  addSolicitud: (solicitud: SolicitudCliente) => void;
+  /** Registra una solicitud a bancos y la persiste en la base de datos real */
+  addSolicitudBanco: (input: AddSolicitudBancoInput) => Promise<boolean>;
+  /** Busca constructoras con match real y registra la solicitud */
+  addSolicitudConstructora: (input: AddSolicitudConstructoraInput) => Promise<boolean>;
+  /** Busca UN comercio con match real (categoría+ciudad, preferencia por especialidad/Sello) y registra la solicitud */
+  addSolicitudComercio: (input: AddSolicitudComercioInput) => Promise<boolean>;
+  /** Hidrata el historial de solicitudes del cliente desde la base de datos real */
+  hydrateSolicitudes: () => Promise<void>;
   /** Hidrata las metas del cliente desde la base de datos real */
   hydrateMetas: () => Promise<void>;
   /** Crea una meta (optimista) y la persiste en la base de datos real */
@@ -127,6 +199,8 @@ export const usePortalStore = create<PortalState>((set, get) => ({
   currentClient: DEFAULT_CLIENT,
   securityCode: generateSecurityCode(DEFAULT_CLIENT.id),
   solicitudes: [],
+  isSolicitudesLoading: false,
+  isSolicitudesHydrated: false,
   metas: [],
   isMetasLoading: false,
   isMetasHydrated: false,
@@ -135,36 +209,260 @@ export const usePortalStore = create<PortalState>((set, get) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   setNuevaSolicitudOpen: (open) => set({ isNuevaSolicitudOpen: open }),
 
-  addSolicitud: (solicitud) => {
+  addSolicitudBanco: async (input) => {
+    const clienteId = getClienteId();
+    if (!clienteId) {
+      toast.error('No se pudo identificar tu sesión', { description: 'Vuelve a iniciar sesión e intenta de nuevo.' });
+      return false;
+    }
+    const solicitud: SolicitudCliente = {
+      id: input.id,
+      origen: 'banco',
+      productType: input.productType,
+      destinatarios: input.bancos.map((b) => b.nombre),
+      status: 'Pendiente de contacto',
+      createdAt: new Date().toISOString(),
+    };
     set((state) => ({ solicitudes: [solicitud, ...state.solicitudes] }));
-    // Persistencia real (fire-and-forget con manejo de error)
-    void insertSolicitud(
-      {
-        id: solicitud.id,
-        productType: solicitud.productType,
-        banks: solicitud.banks,
-        status: solicitud.status,
-      },
-      CLIENTE_DB_ID,
-    ).then(({ error }) => {
-      if (error) {
-        set({ dbError: error });
-        toast.error('La solicitud se guardó localmente pero falló la sincronización', {
-          description: error,
-        });
+
+    const { error: solError } = await insertMeInteresaSolicitud({
+      id: input.id,
+      clienteId,
+      origen: 'banco',
+      productoBancario: input.productType,
+    });
+    if (solError) {
+      set({ dbError: solError });
+      toast.error('La solicitud se guardó localmente pero falló la sincronización', { description: solError });
+      return false;
+    }
+
+    const { error: destError } = await insertMeInteresaDestinatarios(
+      input.id,
+      input.bancos.map((b) => ({ organizationId: b.organizationId, type: 'banco' as const })),
+    );
+    if (destError) {
+      set({ dbError: destError });
+      toast.error('La solicitud se guardó pero no llegó a los bancos', { description: destError });
+      return false;
+    }
+    return true;
+  },
+
+  addSolicitudConstructora: async (input) => {
+    const clienteId = getClienteId();
+    if (!clienteId) {
+      toast.error('No se pudo identificar tu sesión', { description: 'Vuelve a iniciar sesión e intenta de nuevo.' });
+      return false;
+    }
+
+    const { data: proyectos, error: matchError } = await fetchProyectosMatch({
+      ciudad: input.ciudad,
+      estrato: input.estrato,
+      presupuestoMin: input.presupuestoMin,
+      presupuestoMax: input.presupuestoMax,
+    });
+    if (matchError) {
+      toast.error('No se pudo buscar constructoras', { description: matchError });
+      return false;
+    }
+
+    const nombreByUserId = new Map<string, string>();
+    const constructoraUserIds: string[] = [];
+    for (const p of proyectos ?? []) {
+      if (p.constructora_id && !nombreByUserId.has(p.constructora_id)) {
+        nombreByUserId.set(p.constructora_id, p.constructora_nombre ?? 'Constructora');
+        constructoraUserIds.push(p.constructora_id);
       }
+    }
+
+    let destinatarios: { organizationId: string; nombre: string }[] = [];
+    if (constructoraUserIds.length > 0) {
+      const { data: orgIdMap, error: orgMapError } = await fetchOrganizationIdsByUserIds(constructoraUserIds);
+      if (orgMapError) {
+        toast.error('No se pudo resolver las constructoras', { description: orgMapError });
+        return false;
+      }
+      destinatarios = Array.from((orgIdMap ?? new Map()).entries()).map(([userId, organizationId]) => ({
+        organizationId,
+        nombre: nombreByUserId.get(userId) ?? 'Constructora',
+      }));
+    }
+
+    const solicitud: SolicitudCliente = {
+      id: input.id,
+      origen: 'constructora',
+      tipoVivienda: input.tipoVivienda,
+      ciudad: input.ciudad,
+      destinatarios: destinatarios.map((d) => d.nombre),
+      status: destinatarios.length > 0 ? 'Pendiente de contacto' : 'Sin destinatarios disponibles',
+      createdAt: new Date().toISOString(),
+    };
+    set((state) => ({ solicitudes: [solicitud, ...state.solicitudes] }));
+
+    const { error: solError } = await insertMeInteresaSolicitud({
+      id: input.id,
+      clienteId,
+      origen: 'constructora',
+      tipoVivienda: input.tipoVivienda,
+      comuna: input.comuna,
+      ciudad: input.ciudad,
+      estratoMin: input.estrato,
+      estratoMax: input.estrato,
+      presupuestoMin: input.presupuestoMin,
+      presupuestoMax: input.presupuestoMax,
+    });
+    if (solError) {
+      set({ dbError: solError });
+      toast.error('La solicitud se guardó localmente pero falló la sincronización', { description: solError });
+      return false;
+    }
+
+    if (destinatarios.length > 0) {
+      const { error: destError } = await insertMeInteresaDestinatarios(
+        input.id,
+        destinatarios.map((d) => ({ organizationId: d.organizationId, type: 'constructora' as const })),
+      );
+      if (destError) {
+        set({ dbError: destError });
+        toast.error('La solicitud se guardó pero no llegó a las constructoras', { description: destError });
+        return false;
+      }
+    }
+
+    return true;
+  },
+
+  addSolicitudComercio: async (input) => {
+    const clienteId = getClienteId();
+    if (!clienteId) {
+      toast.error('No se pudo identificar tu sesión', { description: 'Vuelve a iniciar sesión e intenta de nuevo.' });
+      return false;
+    }
+
+    const { data: comercios, error: matchError } = await fetchComerciosMatch({
+      ciudad: input.ciudad,
+      categoria: input.categoria,
+    });
+    if (matchError) {
+      toast.error('No se pudo buscar comercios', { description: matchError });
+      return false;
+    }
+
+    // Preferencia suave por subcategoría, luego desempate por Sello de Confianza, luego sorteo.
+    let pool = comercios ?? [];
+    if (input.subcategoria) {
+      const conEspecialidad = pool.filter((c) => c.especialidades.includes(input.subcategoria!));
+      if (conEspecialidad.length > 0) pool = conEspecialidad;
+    }
+    const conSello = pool.filter((c) => c.hasTrustSeal);
+    if (conSello.length > 0) pool = conSello;
+    const elegido = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : null;
+    const destinatarios = elegido ? [{ organizationId: elegido.id, nombre: elegido.name }] : [];
+
+    const solicitud: SolicitudCliente = {
+      id: input.id,
+      origen: 'comercio',
+      categoria: input.categoria,
+      subcategoria: input.subcategoria,
+      destinatarios: destinatarios.map((d) => d.nombre),
+      status: destinatarios.length > 0 ? 'Pendiente de contacto' : 'Sin destinatarios disponibles',
+      createdAt: new Date().toISOString(),
+    };
+    set((state) => ({ solicitudes: [solicitud, ...state.solicitudes] }));
+
+    const { error: solError } = await insertMeInteresaSolicitud({
+      id: input.id,
+      clienteId,
+      origen: 'comercio',
+      categoria: input.categoria,
+      subcategoria: input.subcategoria,
+      ciudad: input.ciudad,
+    });
+    if (solError) {
+      set({ dbError: solError });
+      toast.error('La solicitud se guardó localmente pero falló la sincronización', { description: solError });
+      return false;
+    }
+
+    if (destinatarios.length > 0) {
+      const { error: destError } = await insertMeInteresaDestinatarios(
+        input.id,
+        destinatarios.map((d) => ({ organizationId: d.organizationId, type: 'comercio' as const })),
+      );
+      if (destError) {
+        set({ dbError: destError });
+        toast.error('La solicitud se guardó pero no llegó al comercio', { description: destError });
+        return false;
+      }
+    }
+
+    return true;
+  },
+
+  hydrateSolicitudes: async () => {
+    if (get().isSolicitudesHydrated || get().isSolicitudesLoading) return;
+    const clienteId = getClienteId();
+    if (!isDbConfigured || !clienteId) {
+      set({ isSolicitudesLoading: false, isSolicitudesHydrated: true });
+      return;
+    }
+    set({ isSolicitudesLoading: true });
+    const { data, error } = await fetchMeInteresaSolicitudesByCliente(clienteId);
+    if (error || !data) {
+      set({ isSolicitudesLoading: false, isSolicitudesHydrated: true });
+      return;
+    }
+    set({
+      solicitudes: data.map((s): SolicitudCliente => {
+        const status: SolicitudStatus =
+          s.destinatarios.length > 0 ? 'Pendiente de contacto' : 'Sin destinatarios disponibles';
+        if (s.origen === 'constructora') {
+          return {
+            id: s.id,
+            origen: 'constructora',
+            tipoVivienda: s.tipoVivienda ?? '',
+            ciudad: s.ciudad ?? '',
+            destinatarios: s.destinatarios,
+            status,
+            createdAt: s.createdAt,
+          };
+        }
+        if (s.origen === 'comercio') {
+          return {
+            id: s.id,
+            origen: 'comercio',
+            categoria: s.categoria ?? '',
+            subcategoria: s.subcategoria ?? undefined,
+            destinatarios: s.destinatarios,
+            status,
+            createdAt: s.createdAt,
+          };
+        }
+        return {
+          id: s.id,
+          origen: 'banco',
+          productType: (s.productoBancario ?? 'compra-cartera') as SolicitudProductType,
+          destinatarios: s.destinatarios,
+          status,
+          createdAt: s.createdAt,
+        };
+      }),
+      isSolicitudesLoading: false,
+      isSolicitudesHydrated: true,
     });
   },
 
   hydrateMetas: async () => {
     if (get().isMetasHydrated || get().isMetasLoading) return;
-    if (!isDbConfigured) {
-      // Sin base de datos: mostrar estado vacío real, no mock
+    const clienteId = getClienteId();
+    if (!isDbConfigured || !clienteId) {
+      // Sin base de datos o sin sesión: mostrar estado vacío real, no mock
       set({ isMetasLoading: false, isMetasHydrated: true, metas: [] });
       return;
     }
     set({ isMetasLoading: true });
-    const { data, error } = await fetchMetas(CLIENTE_DB_ID);
+    const { data, error } = await fetchMetas(clienteId);
     if (error) {
       set({ isMetasLoading: false, isMetasHydrated: true, dbError: error });
       return;
@@ -183,9 +481,14 @@ export const usePortalStore = create<PortalState>((set, get) => ({
   },
 
   addMeta: async (meta) => {
+    const clienteId = getClienteId();
+    if (!clienteId) {
+      toast.error('No se pudo identificar tu sesión', { description: 'Vuelve a iniciar sesión e intenta de nuevo.' });
+      return false;
+    }
     // Optimista: aparece de inmediato en la UI
     set((state) => ({ metas: [...state.metas, meta] }));
-    const { error } = await insertMeta(meta, CLIENTE_DB_ID);
+    const { error } = await insertMeta(meta, clienteId);
     if (error) {
       set({ dbError: error });
       toast.error('La meta se creó localmente pero falló la sincronización', {

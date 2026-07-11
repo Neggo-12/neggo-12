@@ -639,6 +639,14 @@ const GOAL_CATEGORIES: { id: GoalCategory; label: string; emoji: string }[] = [
   { id: 'Moto', label: 'Moto', emoji: '🏍️' },
   { id: 'Computador', label: 'Computador', emoji: '💻' },
   { id: 'Remodelación', label: 'Remodelación de Casa', emoji: '🔨' },
+  { id: 'Salud y Estética', label: 'Salud y Estética', emoji: '🩺' },
+  { id: 'Educación', label: 'Educación', emoji: '🎓' },
+  { id: 'Moda y Accesorios', label: 'Moda y Accesorios', emoji: '👗' },
+  { id: 'Deporte y Gimnasio', label: 'Deporte y Gimnasio', emoji: '🏋️' },
+  { id: 'Mascotas', label: 'Mascotas', emoji: '🐾' },
+  { id: 'Eventos', label: 'Eventos', emoji: '🎉' },
+  { id: 'Muebles y Decoración', label: 'Muebles y Decoración', emoji: '🛋️' },
+  { id: 'Belleza y Spa', label: 'Belleza y Spa', emoji: '💅' },
 ];
 
 // ───── Crear Meta Dialog (with dynamic subcategories) ─────

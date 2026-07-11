@@ -159,6 +159,161 @@ export type Database = {
           },
         ]
       }
+      me_interesa_solicitudes: {
+        Row: {
+          id: string
+          cliente_id: string
+          origen: string
+          estado: string
+          producto_bancario: string | null
+          tipo_vivienda: string | null
+          comuna: string | null
+          ciudad: string | null
+          estrato_min: number | null
+          estrato_max: number | null
+          presupuesto_min: number | null
+          presupuesto_max: number | null
+          financiacion_solicitada: boolean
+          categoria: string | null
+          subcategoria: string | null
+          created_at: string
+        }
+        Insert: {
+          id: string
+          cliente_id: string
+          origen: string
+          estado?: string
+          producto_bancario?: string | null
+          tipo_vivienda?: string | null
+          comuna?: string | null
+          ciudad?: string | null
+          estrato_min?: number | null
+          estrato_max?: number | null
+          presupuesto_min?: number | null
+          presupuesto_max?: number | null
+          financiacion_solicitada?: boolean
+          categoria?: string | null
+          subcategoria?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          cliente_id?: string
+          origen?: string
+          estado?: string
+          producto_bancario?: string | null
+          tipo_vivienda?: string | null
+          comuna?: string | null
+          ciudad?: string | null
+          estrato_min?: number | null
+          estrato_max?: number | null
+          presupuesto_min?: number | null
+          presupuesto_max?: number | null
+          financiacion_solicitada?: boolean
+          categoria?: string | null
+          subcategoria?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "me_interesa_solicitudes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      me_interesa_destinatarios: {
+        Row: {
+          id: string
+          solicitud_id: string
+          organization_id: string
+          destinatario_type: string
+          contactado: boolean
+          contactado_at: string | null
+          estado_pipeline: string
+          proxima_gestion_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id: string
+          solicitud_id: string
+          organization_id: string
+          destinatario_type: string
+          contactado?: boolean
+          contactado_at?: string | null
+          estado_pipeline?: string
+          proxima_gestion_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          solicitud_id?: string
+          organization_id?: string
+          destinatario_type?: string
+          contactado?: boolean
+          contactado_at?: string | null
+          estado_pipeline?: string
+          proxima_gestion_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "me_interesa_destinatarios_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "me_interesa_solicitudes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "me_interesa_destinatarios_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cliente_banco_productos: {
+        Row: {
+          id: string
+          cliente_id: string
+          organization_id: string
+          producto: string
+          created_at: string
+        }
+        Insert: {
+          id: string
+          cliente_id: string
+          organization_id: string
+          producto: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          cliente_id?: string
+          organization_id?: string
+          producto?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_banco_productos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_banco_productos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memberships: {
         Row: {
           created_at: string
@@ -361,6 +516,7 @@ export type Database = {
           ciudad: string | null
           created_at: string
           email: string | null
+          has_trust_seal: boolean
           id: string
           metadata: Json | null
           name: string
@@ -375,6 +531,7 @@ export type Database = {
           ciudad?: string | null
           created_at?: string
           email?: string | null
+          has_trust_seal?: boolean
           id: string
           metadata?: Json | null
           name: string
@@ -389,6 +546,7 @@ export type Database = {
           ciudad?: string | null
           created_at?: string
           email?: string | null
+          has_trust_seal?: boolean
           id?: string
           metadata?: Json | null
           name?: string
@@ -405,12 +563,15 @@ export type Database = {
         Row: {
           bono_comercial: string | null
           ciudad: string | null
+          comuna: string | null
           constructora_id: string | null
           constructora_nombre: string | null
           cpl_costo: number
           created_at: string
           cuota_inicial_pct: number
           estado: string
+          estrato_max: number | null
+          estrato_min: number | null
           id: string
           modo_lanzamiento: boolean
           nombre: string
@@ -418,6 +579,7 @@ export type Database = {
           precio_max: number
           precio_min: number
           success_fee_pct: number
+          tipo_vivienda: string | null
           unidades: number
           unidades_lanzamiento: number
           valor_separacion: number
@@ -425,12 +587,15 @@ export type Database = {
         Insert: {
           bono_comercial?: string | null
           ciudad?: string | null
+          comuna?: string | null
           constructora_id?: string | null
           constructora_nombre?: string | null
           cpl_costo?: number
           created_at?: string
           cuota_inicial_pct?: number
           estado?: string
+          estrato_max?: number | null
+          estrato_min?: number | null
           id: string
           modo_lanzamiento?: boolean
           nombre: string
@@ -438,6 +603,7 @@ export type Database = {
           precio_max?: number
           precio_min?: number
           success_fee_pct?: number
+          tipo_vivienda?: string | null
           unidades?: number
           unidades_lanzamiento?: number
           valor_separacion?: number
@@ -445,12 +611,15 @@ export type Database = {
         Update: {
           bono_comercial?: string | null
           ciudad?: string | null
+          comuna?: string | null
           constructora_id?: string | null
           constructora_nombre?: string | null
           cpl_costo?: number
           created_at?: string
           cuota_inicial_pct?: number
           estado?: string
+          estrato_max?: number | null
+          estrato_min?: number | null
           id?: string
           modo_lanzamiento?: boolean
           nombre?: string
@@ -458,6 +627,7 @@ export type Database = {
           precio_max?: number
           precio_min?: number
           success_fee_pct?: number
+          tipo_vivienda?: string | null
           unidades?: number
           unidades_lanzamiento?: number
           valor_separacion?: number
@@ -584,7 +754,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      resolve_organization_ids_for_users: {
+        Args: { p_user_ids: string[] }
+        Returns: { user_id: string; organization_id: string }[]
+      }
     }
     Enums: {
       [_ in never]: never

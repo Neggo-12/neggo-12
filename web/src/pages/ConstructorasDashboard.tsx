@@ -3,7 +3,7 @@ import {
   Building2, Users, TrendingUp, MapPin, Home, DollarSign,
   Target, Award, Search, ChevronDown, ChevronUp, ChevronRight,
   Phone, MessageCircle, MoreHorizontal, CheckCircle2,
-  UserPlus, BarChart3, ArrowRightLeft, X, Loader2, AlertTriangle,
+  UserPlus, BarChart3, ArrowRightLeft, X, Loader2, AlertTriangle, Inbox,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ import ScoreBadge from '@/components/ScoreBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import LeadStatusBadge from '@/components/LeadStatusBadge';
 import CrearProyectoDialog from '@/components/CrearProyectoDialog';
+import ConstructoraSolicitudesTab from '@/components/constructora/SolicitudesTab';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
@@ -42,14 +43,16 @@ import {
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useOrganizationName } from '@/hooks/useOrganizationName';
 import type { LeadInmobiliario, ProyectoConstructora, LeadStatus } from '@/types';
 import { MessageSquareText, TrendingDown } from 'lucide-react';
 
-type ConstTab = 'proyectos' | 'leads' | 'matching' | 'analitica' | 'feedback' | 'metricas-rechazo';
+type ConstTab = 'proyectos' | 'leads' | 'solicitudes' | 'matching' | 'analitica' | 'feedback' | 'metricas-rechazo';
 
 const CONST_SECTIONS: SidebarNavItem[] = [
   { key: 'proyectos', label: 'Proyectos', icon: Building2 },
   { key: 'leads', label: 'Leads Inmobiliarios', icon: Users },
+  { key: 'solicitudes', label: 'Solicitudes (Me Interesa)', icon: Inbox },
   { key: 'matching', label: 'Matching', icon: Target },
   { key: 'analitica', label: 'Analítica', icon: TrendingUp },
   { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText },
@@ -72,7 +75,7 @@ function rowToProyecto(row: ProyectoRow): ProyectoConstructora {
     status: (row.estado as ProyectoConstructora['status']) ?? 'activo',
     constructora: row.constructora_nombre ?? '',
     constructoraId: row.constructora_id ?? '',
-    tipoVivienda: 'apartamento',
+    tipoVivienda: (row.tipo_vivienda as ProyectoConstructora['tipoVivienda']) ?? 'apartamento',
     valorSeparacion: row.valor_separacion,
     cuotaInicialPct: row.cuota_inicial_pct,
     plazoCuotaInicialMeses: row.plazo_cuota_inicial_meses,
@@ -134,9 +137,11 @@ export default function ConstructorasDashboard() {
   const [callDialogLead, setCallDialogLead] = useState<LeadInmobiliario | null>(null);
   const [messageDialogLead, setMessageDialogLead] = useState<LeadInmobiliario | null>(null);
 
-  // Resolve org ID from session for multi-tenant isolation
+  const session = useAuthStore((s) => s.session);
+  const currentUser = useAuthStore((s) => s.currentUser);
   const getOrganizationId = useAuthStore((s) => s.getOrganizationId);
   const organizationId = getOrganizationId();
+  const { name: orgName, status: orgNameStatus } = useOrganizationName();
 
   // Real data from Supabase
   const [proyectos, setProyectos] = useState<ProyectoConstructora[]>([]);
@@ -145,7 +150,7 @@ export default function ConstructorasDashboard() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!isDbConfigured) {
+    if (!isDbConfigured || !session?.userId) {
       setIsLoading(false);
       return;
     }
@@ -153,8 +158,8 @@ export default function ConstructorasDashboard() {
     setLoadError(null);
     try {
       const [proyRes, leadRes] = await Promise.all([
-        fetchProyectos(organizationId),
-        fetchLeads(organizationId),
+        fetchProyectos(session.userId),
+        fetchLeads(session.userId),
       ]);
       if (proyRes.error) setLoadError(proyRes.error);
       if (leadRes.error && !proyRes.error) setLoadError(leadRes.error);
@@ -168,11 +173,21 @@ export default function ConstructorasDashboard() {
       setLoadError(err instanceof Error ? err.message : 'Error desconocido');
     }
     setIsLoading(false);
-  }, [organizationId]);
+  }, [session?.userId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const sidebarBrand = useMemo(() => {
+    const orgDisplayName =
+      orgNameStatus === 'ready' && orgName
+        ? orgName
+        : orgNameStatus === 'error'
+          ? 'Error al cargar organización'
+          : 'Cargando organización...';
+    return { initials: 'NC', name: orgDisplayName, subtitle: 'Captación Inmobiliaria', icon: Home };
+  }, [orgName, orgNameStatus]);
 
   const filteredLeads = useMemo(() => {
     let result = leadsInmobiliarios.filter((l) => l.hipotecarioInterest === true);
@@ -233,7 +248,7 @@ export default function ConstructorasDashboard() {
     return (
       <div className="min-h-screen bg-background flex">
         <WorkspaceSidebar
-          brand={{ initials: 'NC', name: 'Neggo Constructoras', subtitle: 'Captación Inmobiliaria', icon: Home }}
+          brand={sidebarBrand}
           navItems={CONST_SECTIONS}
           activeKey={activeSection}
           onNavigate={(key) => setActiveSection(key as ConstTab)}
@@ -262,7 +277,7 @@ export default function ConstructorasDashboard() {
     return (
       <div className="min-h-screen bg-background flex">
         <WorkspaceSidebar
-          brand={{ initials: 'NC', name: 'Neggo Constructoras', subtitle: 'Captación Inmobiliaria', icon: Home }}
+          brand={sidebarBrand}
           navItems={CONST_SECTIONS}
           activeKey={activeSection}
           onNavigate={(key) => setActiveSection(key as ConstTab)}
@@ -285,7 +300,7 @@ export default function ConstructorasDashboard() {
     return (
       <div className="min-h-screen bg-background flex">
         <WorkspaceSidebar
-          brand={{ initials: 'NC', name: 'Neggo Constructoras', subtitle: 'Captación Inmobiliaria', icon: Home }}
+          brand={sidebarBrand}
           navItems={CONST_SECTIONS}
           activeKey={activeSection}
           onNavigate={(key) => setActiveSection(key as ConstTab)}
@@ -310,7 +325,7 @@ export default function ConstructorasDashboard() {
   return (
     <div className="min-h-screen bg-background flex">
       <WorkspaceSidebar
-        brand={{ initials: 'NC', name: 'Neggo Constructoras', subtitle: 'Captación Inmobiliaria', icon: Home }}
+        brand={sidebarBrand}
         navItems={CONST_SECTIONS}
         activeKey={activeSection}
         onNavigate={(key) => setActiveSection(key as ConstTab)}
@@ -369,7 +384,7 @@ export default function ConstructorasDashboard() {
                   <Building2 className="h-4 w-4 text-blue-400" />
                   Proyectos Activos
                 </h3>
-                <CrearProyectoDialog />
+                <CrearProyectoDialog onProjectCreated={loadData} />
               </div>
               {proyectos.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-border/40 bg-card/40 animate-fade-in">
@@ -538,6 +553,14 @@ export default function ConstructorasDashboard() {
             </div>
           )}
 
+          {/* Section: Solicitudes (Me Interesa) */}
+          {activeSection === 'solicitudes' && (
+            <ConstructoraSolicitudesTab
+              constructoraUser={currentUser}
+              organizationId={organizationId}
+            />
+          )}
+
           {/* Section: Matching placeholder */}
           {activeSection === 'matching' && (
             <div className="rounded-xl border border-border/40 bg-card/50 p-8 text-center">
@@ -564,7 +587,18 @@ export default function ConstructorasDashboard() {
 
           {/* Section: Métricas de Rechazo */}
           {activeSection === 'metricas-rechazo' && (
-            <RejectionMetricsPanel entityType="constructoras" organizationId={organizationId} />
+            orgNameStatus === 'ready' && orgName ? (
+              <RejectionMetricsPanel entityType="constructoras" entityName={orgName} />
+            ) : orgNameStatus === 'error' ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <AlertTriangle className="h-8 w-8 text-red-400 mb-3" />
+                <p className="text-sm text-muted-foreground">No se pudo cargar el nombre de tu organización.</p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+              </div>
+            )
           )}
         </div>
       </div>

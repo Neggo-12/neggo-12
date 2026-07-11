@@ -38,14 +38,12 @@ const SECTOR_CONFIG: Record<string, { label: string; color: string }> = {
 interface RejectionMetricsPanelProps {
   /** Filter metrics to only this sector (optional) */
   entityType?: OfferSector;
-  /** Optional: further filter by entity name */
-  entityName?: string;
-  /** Organization ID for multi-tenant isolation — when provided, only metrics
-   *  belonging to users in this organization are fetched from the DB */
-  organizationId?: string | null;
+  /** Required: scopes the DB query itself (there is no organization id column
+   *  on `metricas_rechazo` — `entity_name` is the only real scoping key). */
+  entityName: string;
 }
 
-export default function RejectionMetricsPanel({ entityType, entityName, organizationId }: RejectionMetricsPanelProps) {
+export default function RejectionMetricsPanel({ entityType, entityName }: RejectionMetricsPanelProps) {
   const [metrics, setMetrics] = useState<RejectionMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSector, setSelectedSector] = useState<OfferSector | 'all'>(entityType ?? 'all');
@@ -54,8 +52,9 @@ export default function RejectionMetricsPanel({ entityType, entityName, organiza
   const isSectorLocked = entityType !== undefined;
 
   const loadMetrics = useCallback(async () => {
+    if (!entityName) return;
     setIsLoading(true);
-    const { data, error } = await fetchMetricasRechazo(organizationId);
+    const { data, error } = await fetchMetricasRechazo(entityName);
     if (data && data.length > 0) {
       setMetrics(data);
     } else if (error) {
@@ -67,7 +66,7 @@ export default function RejectionMetricsPanel({ entityType, entityName, organiza
       setMetrics(MOCK_METRICS);
     }
     setIsLoading(false);
-  }, [organizationId]);
+  }, [entityName]);
 
   useEffect(() => {
     void loadMetrics();

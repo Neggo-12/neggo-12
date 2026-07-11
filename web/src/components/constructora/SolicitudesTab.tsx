@@ -1,6 +1,6 @@
 import { Fragment, useState, useEffect, useCallback } from 'react';
 import {
-  Building2, Clock, FileText, Search, Shield, Sparkles, ChevronRight, ChevronDown,
+  Home, Clock, FileText, Search, Shield, Sparkles, ChevronRight, ChevronDown,
   Loader2, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,10 +19,10 @@ import { isDbConfigured } from '@/core/db/dbClient';
 import type { UsuarioDB } from '@/types';
 import PipelineStatusBadge from '@/components/crm/PipelineStatusBadge';
 import ExpandedLeadCRM from '@/components/crm/ExpandedLeadCRM';
-import { PRODUCT_LABELS } from '@/components/crm/leadLabels';
+import { TIPO_VIVIENDA_LABELS } from '@/components/crm/leadLabels';
 import { ESTADOS_CIERRE } from '@/components/crm/pipelineConfig';
 
-export default function SolicitudesTab({ bankUser, organizationId }: { bankUser: UsuarioDB | null; organizationId: string | null }) {
+export default function SolicitudesTab({ constructoraUser, organizationId }: { constructoraUser: UsuarioDB | null; organizationId: string | null }) {
   const [leads, setLeads] = useState<MeInteresaLeadDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +73,8 @@ export default function SolicitudesTab({ bankUser, organizationId }: { bankUser:
     const q = search.toLowerCase();
     return (
       l.clienteNombre.toLowerCase().includes(q) ||
-      (l.productoBancario ?? '').toLowerCase().includes(q)
+      (l.tipoVivienda ?? '').toLowerCase().includes(q) ||
+      (l.ciudad ?? '').toLowerCase().includes(q)
     );
   });
 
@@ -121,25 +122,25 @@ export default function SolicitudesTab({ bankUser, organizationId }: { bankUser:
 
   return (
     <div className="space-y-5">
-      {/* Bank identity header */}
+      {/* Constructora identity header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-xl border border-border/40 bg-card/40">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-            <Building2 className="h-5 w-5 text-emerald-400" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20">
+            <Home className="h-5 w-5 text-blue-400" />
           </div>
           <div>
             <h2 className="text-base font-semibold text-foreground">
-              {bankUser?.nombre ?? 'Banco'}
+              {constructoraUser?.nombre ?? 'Constructora'}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {bankUser?.id ? `ID: ${bankUser.id}` : ''} · {bankUser?.ciudad ?? ''}
+              {constructoraUser?.id ? `ID: ${constructoraUser.id}` : ''} · {constructoraUser?.ciudad ?? ''}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5">
-            <Shield className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="text-xs font-medium text-emerald-400">Sesión Activa</span>
+          <div className="flex items-center gap-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 px-3 py-1.5">
+            <Shield className="h-3.5 w-3.5 text-blue-400" />
+            <span className="text-xs font-medium text-blue-400">Sesión Activa</span>
           </div>
           <div className="text-right">
             <div className="text-xs text-muted-foreground">Solicitudes recibidas</div>
@@ -152,7 +153,7 @@ export default function SolicitudesTab({ bankUser, organizationId }: { bankUser:
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Buscar por cliente o producto..."
+          placeholder="Buscar por cliente, tipo de vivienda o ciudad..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9 bg-card/60 border-border/40 text-sm"
@@ -162,8 +163,8 @@ export default function SolicitudesTab({ bankUser, organizationId }: { bankUser:
       {/* Solicitudes table */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-border/40 bg-card/40 animate-fade-in">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-5">
-            <FileText className="h-8 w-8 text-emerald-400" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/20 mb-5">
+            <FileText className="h-8 w-8 text-blue-400" />
           </div>
           <h3 className="text-base font-semibold text-foreground mb-2">
             {search ? 'No se encontraron solicitudes' : 'No tienes solicitudes de clientes en este momento'}
@@ -171,7 +172,7 @@ export default function SolicitudesTab({ bankUser, organizationId }: { bankUser:
           <p className="text-sm text-muted-foreground max-w-md">
             {search
               ? 'Intenta ajustar tu término de búsqueda.'
-              : 'Cuando un cliente envíe una solicitud a tu entidad, aparecerá aquí automáticamente.'}
+              : 'Cuando un cliente envíe una solicitud "Me Interesa" que haga match con tus proyectos, aparecerá aquí automáticamente.'}
           </p>
         </div>
       ) : (
@@ -182,7 +183,8 @@ export default function SolicitudesTab({ bankUser, organizationId }: { bankUser:
                 <tr className="border-b border-border/40 bg-card/60">
                   <th className="w-8 px-2 py-3"></th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cliente</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Producto</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tipo de Vivienda</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ciudad</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Teléfono</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Estado</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fecha</th>
@@ -205,20 +207,15 @@ export default function SolicitudesTab({ bankUser, organizationId }: { bankUser:
                         </button>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-foreground font-medium">{lead.clienteNombre}</span>
-                          {lead.esClienteBanco && (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-400">
-                              <Shield className="h-2.5 w-2.5" />
-                              Cliente Banco
-                            </span>
-                          )}
-                        </div>
+                        <span className="text-xs text-foreground font-medium">{lead.clienteNombre}</span>
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant="outline" className="text-xs border-border/40 bg-secondary/40">
-                          {lead.productoBancario ? (PRODUCT_LABELS[lead.productoBancario] ?? lead.productoBancario) : '—'}
+                          {lead.tipoVivienda ? (TIPO_VIVIENDA_LABELS[lead.tipoVivienda] ?? lead.tipoVivienda) : '—'}
                         </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs text-muted-foreground">{lead.ciudad || '—'}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-xs font-mono text-muted-foreground">{lead.clienteTelefono || '—'}</span>
@@ -245,7 +242,7 @@ export default function SolicitudesTab({ bankUser, organizationId }: { bankUser:
                     </tr>
                     {isExpanded && (
                       <tr className="bg-card/20">
-                        <td colSpan={6} className="border-t border-border/30">
+                        <td colSpan={7} className="border-t border-border/30">
                           <ExpandedLeadCRM
                             lead={lead}
                             onPipelineChange={(estado) => handlePipelineChange(lead.destinatarioId, estado)}
@@ -267,7 +264,7 @@ export default function SolicitudesTab({ bankUser, organizationId }: { bankUser:
       {filtered.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[
-            { label: 'Total Solicitudes', value: leads.length, icon: FileText, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+            { label: 'Total Solicitudes', value: leads.length, icon: FileText, color: 'text-blue-400', bg: 'bg-blue-500/10' },
             {
               label: 'Pendientes',
               value: leads.filter((l) => l.estadoPipeline === 'pendiente').length,

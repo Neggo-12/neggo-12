@@ -238,7 +238,15 @@ export type GoalCategory =
   | 'Carro'
   | 'Moto'
   | 'Computador'
-  | 'Remodelación';
+  | 'Remodelación'
+  | 'Salud y Estética'
+  | 'Educación'
+  | 'Moda y Accesorios'
+  | 'Deporte y Gimnasio'
+  | 'Mascotas'
+  | 'Eventos'
+  | 'Muebles y Decoración'
+  | 'Belleza y Spa';
 
 export type OfferStatus = 'active' | 'rejected';
 
@@ -294,7 +302,15 @@ export type ComercioCategory =
   | 'Carro'
   | 'Moto'
   | 'Computador'
-  | 'Remodelación';
+  | 'Remodelación'
+  | 'Salud y Estética'
+  | 'Educación'
+  | 'Moda y Accesorios'
+  | 'Deporte y Gimnasio'
+  | 'Mascotas'
+  | 'Eventos'
+  | 'Muebles y Decoración'
+  | 'Belleza y Spa';
 
 export type SubscriptionTier = 'basico' | 'premium';
 
@@ -549,4 +565,99 @@ export const SUBCATEGORIAS: Record<GoalCategory, SubcategoryOption[]> = {
     { value: 'Bano', label: 'Baño' },
     { value: 'Integral', label: 'Integral / Todo el Hogar' },
   ],
+  'Salud y Estética': [
+    { value: 'Odontologia', label: 'Odontología / Diseño de Sonrisa' },
+    { value: 'CirugiaEstetica', label: 'Cirugía Estética' },
+    { value: 'Dermatologia', label: 'Dermatología' },
+  ],
+  Educación: [
+    { value: 'Idiomas', label: 'Idiomas' },
+    { value: 'Universidad', label: 'Universidad / Posgrado' },
+    { value: 'CursosCortos', label: 'Cursos Cortos' },
+  ],
+  'Moda y Accesorios': [
+    { value: 'Ropa', label: 'Ropa' },
+    { value: 'Calzado', label: 'Calzado' },
+    { value: 'Joyeria', label: 'Joyería' },
+  ],
+  'Deporte y Gimnasio': [
+    { value: 'MembresiaGym', label: 'Membresía Gym' },
+    { value: 'EquiposDeportivos', label: 'Equipos Deportivos' },
+  ],
+  Mascotas: [
+    { value: 'Veterinaria', label: 'Veterinaria' },
+    { value: 'AccesoriosAlimento', label: 'Accesorios / Alimento' },
+  ],
+  Eventos: [
+    { value: 'Matrimonio', label: 'Matrimonio' },
+    { value: 'FiestasCelebraciones', label: 'Fiestas / Celebraciones' },
+  ],
+  'Muebles y Decoración': [
+    { value: 'Muebles', label: 'Muebles' },
+    { value: 'DecoracionHogar', label: 'Decoración / Hogar' },
+  ],
+  'Belleza y Spa': [
+    { value: 'SpaRelajacion', label: 'Spa / Relajación' },
+    { value: 'PeluqueriaEstetica', label: 'Peluquería / Estética' },
+  ],
 };
+
+// ───── Geografía — Área Metropolitana de Medellín ─────
+
+export type ComunaTipo = 'comuna' | 'corregimiento' | 'municipio';
+
+export interface ComunaOption {
+  value: string;
+  label: string;
+  tipo: ComunaTipo;
+}
+
+export const COMUNAS_MEDELLIN: readonly ComunaOption[] = [
+  // 16 comunas de Medellín
+  { value: 'popular', label: 'Popular', tipo: 'comuna' },
+  { value: 'santa-cruz', label: 'Santa Cruz', tipo: 'comuna' },
+  { value: 'manrique', label: 'Manrique', tipo: 'comuna' },
+  { value: 'aranjuez', label: 'Aranjuez', tipo: 'comuna' },
+  { value: 'castilla', label: 'Castilla', tipo: 'comuna' },
+  { value: 'doce-de-octubre', label: 'Doce de Octubre', tipo: 'comuna' },
+  { value: 'robledo', label: 'Robledo', tipo: 'comuna' },
+  { value: 'villa-hermosa', label: 'Villa Hermosa', tipo: 'comuna' },
+  { value: 'buenos-aires', label: 'Buenos Aires', tipo: 'comuna' },
+  { value: 'la-candelaria', label: 'La Candelaria', tipo: 'comuna' },
+  { value: 'laureles-estadio', label: 'Laureles-Estadio', tipo: 'comuna' },
+  { value: 'la-america', label: 'La América', tipo: 'comuna' },
+  { value: 'san-javier', label: 'San Javier', tipo: 'comuna' },
+  { value: 'el-poblado', label: 'El Poblado', tipo: 'comuna' },
+  { value: 'guayabal', label: 'Guayabal', tipo: 'comuna' },
+  { value: 'belen', label: 'Belén', tipo: 'comuna' },
+  // 5 corregimientos de Medellín
+  { value: 'san-sebastian-de-palmitas', label: 'San Sebastián de Palmitas', tipo: 'corregimiento' },
+  { value: 'san-cristobal', label: 'San Cristóbal', tipo: 'corregimiento' },
+  { value: 'altavista', label: 'Altavista', tipo: 'corregimiento' },
+  { value: 'san-antonio-de-prado', label: 'San Antonio de Prado', tipo: 'corregimiento' },
+  { value: 'santa-elena', label: 'Santa Elena', tipo: 'corregimiento' },
+  // Municipios del Valle de Aburrá (fuera de Medellín)
+  { value: 'envigado', label: 'Envigado', tipo: 'municipio' },
+  { value: 'itagui', label: 'Itagüí', tipo: 'municipio' },
+  { value: 'sabaneta', label: 'Sabaneta', tipo: 'municipio' },
+  { value: 'bello', label: 'Bello', tipo: 'municipio' },
+  { value: 'la-estrella', label: 'La Estrella', tipo: 'municipio' },
+  { value: 'copacabana', label: 'Copacabana', tipo: 'municipio' },
+  { value: 'girardota', label: 'Girardota', tipo: 'municipio' },
+  { value: 'barbosa', label: 'Barbosa', tipo: 'municipio' },
+  { value: 'caldas', label: 'Caldas', tipo: 'municipio' },
+] as const;
+
+// ───── Ciudades — cobertura nacional ─────
+
+export const CIUDADES: readonly string[] = [
+  'Bogotá',
+  'Medellín',
+  'Cali',
+  'Barranquilla',
+  'Cartagena',
+  'Bucaramanga',
+  'Pereira',
+  'Manizales',
+  'Santa Marta',
+] as const;

@@ -10,7 +10,8 @@ import FeedbackTab from '@/components/bank/FeedbackTab';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Building2, BarChart3, Megaphone, MessageSquareText, FileText, TrendingDown } from 'lucide-react';
+import { Building2, BarChart3, Megaphone, MessageSquareText, FileText, TrendingDown, AlertTriangle, Loader2 } from 'lucide-react';
+import { useOrganizationName } from '@/hooks/useOrganizationName';
 
 type BankTab = 'solicitudes' | 'campanas' | 'analytics' | 'feedback' | 'metricas-rechazo';
 
@@ -31,6 +32,7 @@ export default function BankDashboard() {
   const currentUser = useAuthStore((s) => s.currentUser);
   const getOrganizationId = useAuthStore((s) => s.getOrganizationId);
   const organizationId = getOrganizationId();
+  const { name: orgName, status: orgNameStatus } = useOrganizationName();
 
   const bankIdentity = useMemo(() => {
     if (!currentUser) return { displayName: 'Neggo Banca', primaryBankName: '' };
@@ -39,13 +41,19 @@ export default function BankDashboard() {
 
   const sidebarBrand = useMemo(() => {
     if (!currentUser) return { initials: 'NB', name: 'Neggo Banca', subtitle: 'Pipeline Bancario', icon: Building2 };
+    const orgDisplayName =
+      orgNameStatus === 'ready' && orgName
+        ? orgName
+        : orgNameStatus === 'error'
+          ? 'Error al cargar organización'
+          : 'Cargando organización...';
     return {
       initials: currentUser.nombre.slice(0, 2).toUpperCase(),
-      name: bankIdentity.displayName,
+      name: orgDisplayName,
       subtitle: 'Pipeline Bancario',
       icon: Building2,
     };
-  }, [currentUser, bankIdentity]);
+  }, [currentUser, orgName, orgNameStatus]);
 
   const sidebarFooter = useMemo(() => {
     if (!currentUser) return { initials: 'OE', name: 'Operador Banca', role: 'Ejecutivo Senior' };
@@ -100,7 +108,7 @@ export default function BankDashboard() {
             </TabsList>
 
             <TabsContent value="solicitudes" className="mt-0 animate-slide-up">
-              <SolicitudesTab bankName={bankIdentity.primaryBankName} bankUser={currentUser} organizationId={organizationId} />
+              <SolicitudesTab bankUser={currentUser} organizationId={organizationId} />
             </TabsContent>
             <TabsContent value="campanas" className="mt-0 animate-slide-up">
               <CampanasTab bankName={bankIdentity.primaryBankName} />
@@ -120,7 +128,18 @@ export default function BankDashboard() {
               </div>
             </TabsContent>
             <TabsContent value="metricas-rechazo" className="mt-0 animate-slide-up">
-              <RejectionMetricsPanel entityType="banca" organizationId={organizationId} />
+              {orgNameStatus === 'ready' && orgName ? (
+                <RejectionMetricsPanel entityType="banca" entityName={orgName} />
+              ) : orgNameStatus === 'error' ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <AlertTriangle className="h-8 w-8 text-red-400 mb-3" />
+                  <p className="text-sm text-muted-foreground">No se pudo cargar el nombre de tu organización.</p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

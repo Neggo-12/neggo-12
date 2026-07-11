@@ -2,50 +2,80 @@ import { useState, useEffect, useCallback } from 'react';
 import { useComercioStore } from '@/features/comercios/store/useComercioStore';
 import ComercioOnboarding from '@/features/comercios/components/ComercioOnboarding';
 import OportunidadesFeed from '@/features/comercios/components/OportunidadesFeed';
+import ComercioSolicitudesTab from '@/components/comercio/SolicitudesTab';
+import ComercioSuscripcionTab from '@/components/comercio/SuscripcionTab';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import KPICard from '@/components/KPICard';
-import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText, TrendingDown } from 'lucide-react';
+import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText, TrendingDown, AlertTriangle, Loader2, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchOfertasComercios, type OfertaComercioRow } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useOrganizationName } from '@/hooks/useOrganizationName';
 
-type ComercioSection = 'dashboard' | 'oportunidades' | 'suscripcion' | 'feedback' | 'metricas-rechazo';
+type ComercioSection = 'dashboard' | 'oportunidades' | 'suscripcion' | 'solicitudes' | 'feedback' | 'metricas-rechazo';
 
 const COMERCIO_SECTIONS: SidebarNavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: Store },
   { key: 'oportunidades', label: 'Oportunidades IFC', icon: Radio, badge: 3 },
   { key: 'suscripcion', label: 'Suscripción', icon: CreditCard },
+  { key: 'solicitudes', label: 'Solicitudes (Me Interesa)', icon: Inbox },
   { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText, badge: 5 },
   { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: TrendingDown },
 ];
 
 export default function ComerciosDashboard() {
+  const [activeSection, setActiveSection] = useState<ComercioSection>('dashboard');
   const {
     isOnboardingComplete,
+    isOnboardingChecking,
+    isOnboardingHydrated,
+    hydrateOnboardingStatus,
     hasTrustSeal,
     currentComercio,
     propuestas,
+    setComercio,
   } = useComercioStore();
 
-  // Resolve org ID from session for multi-tenant isolation
-  const getOrganizationId = useAuthStore((s) => s.getOrganizationId);
-  const organizationId = getOrganizationId();
+  const session = useAuthStore((s) => s.session);
+  const { name: orgName, status: orgNameStatus } = useOrganizationName();
 
   const [ofertasReales, setOfertasReales] = useState<OfertaComercioRow[]>([]);
 
+  // Verifica el estado REAL de onboarding en organizations.metadata antes de
+  // decidir si mostrar el formulario — nunca confía solo en el estado en memoria.
+  useEffect(() => {
+    void hydrateOnboardingStatus();
+  }, [hydrateOnboardingStatus]);
+
+  // Sincroniza la identidad del comercio con el userId real de la sesión —
+  // nunca con un placeholder hardcodeado como el viejo 'COM-001'.
+  useEffect(() => {
+    if (session?.userId && currentComercio.id !== session.userId) {
+      setComercio({ id: session.userId });
+    }
+  }, [session?.userId, currentComercio.id, setComercio]);
+
   const loadOfertas = useCallback(async () => {
-    if (!isDbConfigured) return;
-    const { data } = await fetchOfertasComercios(organizationId);
+    if (!isDbConfigured || !session?.userId) return;
+    const { data } = await fetchOfertasComercios(session.userId);
     setOfertasReales(data ?? []);
-  }, [organizationId]);
+  }, [session?.userId]);
 
   useEffect(() => {
     if (isOnboardingComplete) { void loadOfertas(); }
   }, [isOnboardingComplete, loadOfertas]);
+
+  if (!isOnboardingHydrated || isOnboardingChecking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!isOnboardingComplete) {
     return <ComercioOnboarding />;
@@ -67,8 +97,8 @@ export default function ComerciosDashboard() {
           icon: Store,
         }}
         navItems={COMERCIO_SECTIONS}
-        activeKey="dashboard"
-        onNavigate={() => {}}
+        activeKey={activeSection}
+        onNavigate={(key) => setActiveSection(key as ComercioSection)}
         footer={{ initials: currentComercio.nombre.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase(), name: currentComercio.nombre, role: currentComercio.plan === 'premium' ? 'Plan Premium' : 'Plan Básico' }}
         accent="emerald"
         backToHubLabel="Cambiar Entorno"
@@ -77,6 +107,8 @@ export default function ComerciosDashboard() {
       {/* ─── Main Content ─── */}
       <div className="flex-1 min-w-0 overflow-y-auto lg:pl-64">
         <div className="space-y-6 p-4 sm:p-6 lg:p-8 animate-fade-in">
+          {activeSection === 'dashboard' && (
+            <>
           {/* Header */}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
@@ -98,6 +130,20 @@ export default function ComerciosDashboard() {
               </div>
               <p className="text-sm text-muted-foreground">
                 {currentComercio.categoria} · {currentComercio.ciudad} · NIT {currentComercio.nit}
+              </p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <span className="font-medium text-foreground/70">Organización registrada:</span>
+                {orgNameStatus === 'ready' && orgName ? (
+                  <span>{orgName}</span>
+                ) : orgNameStatus === 'error' ? (
+                  <span className="text-red-400 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> No se pudo cargar
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Cargando...
+                  </span>
+                )}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -164,45 +210,73 @@ export default function ComerciosDashboard() {
             </div>
           )}
 
-          {/* Oportunidades Feed */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">
-                  Intenciones Financieras Certificadas (IFC)
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Oportunidades que hacen match con tu categoría y ciudad
-                </p>
+            </>
+          )}
+
+          {activeSection === 'oportunidades' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-foreground">
+                    Intenciones Financieras Certificadas (IFC)
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Oportunidades que hacen match con tu categoría y ciudad
+                  </p>
+                </div>
+                {ofertasReales.length > 0 && (
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {ofertasReales.length} ofertas registradas
+                  </span>
+                )}
               </div>
-              {ofertasReales.length > 0 && (
-                <span className="text-xs font-mono text-muted-foreground">
-                  {ofertasReales.length} ofertas registradas
-                </span>
+              <OportunidadesFeed />
+            </div>
+          )}
+
+          {activeSection === 'suscripcion' && <ComercioSuscripcionTab />}
+
+          {activeSection === 'solicitudes' && (
+            <ComercioSolicitudesTab
+              comercioNombre={currentComercio.nombre}
+              comercioId={currentComercio.id}
+              comercioCiudad={currentComercio.ciudad}
+              organizationId={session?.organizationId ?? null}
+            />
+          )}
+
+          {activeSection === 'feedback' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-foreground">
+                    Feedback de Clientes
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Mensajes de clientes sobre tus productos y servicios
+                  </p>
+                </div>
+              </div>
+              <CrossSectorFeedbackPanel entityType="comercio" organizationId={session?.organizationId ?? null} />
+            </div>
+          )}
+
+          {activeSection === 'metricas-rechazo' && (
+            <div className="space-y-4">
+              {orgNameStatus === 'ready' && orgName ? (
+                <RejectionMetricsPanel entityType="establecimientos" entityName={orgName} />
+              ) : orgNameStatus === 'error' ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <AlertTriangle className="h-8 w-8 text-red-400 mb-3" />
+                  <p className="text-sm text-muted-foreground">No se pudo cargar el nombre de tu organización.</p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+                </div>
               )}
             </div>
-            <OportunidadesFeed />
-          </div>
-
-          {/* Feedback de Clientes */}
-          <div className="space-y-4 pt-4 border-t border-border/40">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">
-                  Feedback de Clientes
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Mensajes de clientes sobre tus productos y servicios
-                </p>
-              </div>
-            </div>
-            <CrossSectorFeedbackPanel entityType="comercio" organizationId={organizationId} />
-          </div>
-
-          {/* Métricas de Rechazo */}
-          <div className="space-y-4 pt-4 border-t border-border/40">
-            <RejectionMetricsPanel entityType="establecimientos" organizationId={organizationId} />
-          </div>
+          )}
         </div>
       </div>
     </div>
