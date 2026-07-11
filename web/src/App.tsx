@@ -9,14 +9,18 @@ import LandingHub from "./pages/LandingHub";
 import LandingBancos from "./pages/LandingBancos";
 import LandingConstructoras from "./pages/LandingConstructoras";
 import LandingClientes from "./pages/LandingClientes";
+import CorporativoComercios from "./pages/CorporativoComercios";
 import HomePage from "./pages/Home";
 import BankDashboard from "./pages/BankDashboard";
 import ConstructorasDashboard from "./pages/ConstructorasDashboard";
 import ClientPortal from "./pages/ClientPortal";
 import ComerciosDashboard from "./pages/ComerciosDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminSignup from "./pages/AdminSignup";
 import LoginEcosistema from "./pages/LoginEcosistema";
 import NotFound from "./pages/NotFound";
+import RequireAdmin from "@/components/RequireAdmin";
+import RequireRole from "@/components/RequireRole";
 
 const queryClient = new QueryClient();
 
@@ -45,16 +49,58 @@ const App = () => (
             <Route path="/landing/constructoras" element={<LandingConstructoras />} />
             <Route path="/landing/clientes" element={<LandingClientes />} />
 
+            {/* Sector fijo con auth embebida — Comercios (público, previo a login) */}
+            <Route path="/corporativo/comercios" element={<CorporativoComercios />} />
+
             {/* Workspaces — each self-contained with its own sidebar */}
             <Route path="/app" element={<HomePage />} />
-            <Route path="/banca" element={<BankDashboard />} />
-            <Route path="/constructoras" element={<ConstructorasDashboard />} />
-            <Route path="/portal" element={<ClientPortal />} />
-            <Route path="/comercios" element={<ComerciosDashboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route
+              path="/banca"
+              element={
+                <RequireRole allowedRoles={["Banco"]}>
+                  <BankDashboard />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/constructoras"
+              element={
+                <RequireRole allowedRoles={["Constructora"]}>
+                  <ConstructorasDashboard />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/portal"
+              element={
+                <RequireRole allowedRoles={["Cliente"]}>
+                  <ClientPortal />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/comercios"
+              element={
+                <RequireRole allowedRoles={["Comercio"]}>
+                  <ComerciosDashboard />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <RequireAdmin>
+                  <AdminDashboard />
+                </RequireAdmin>
+              }
+            />
 
             {/* Auth / Login */}
             <Route path="/login-ecosistema" element={<LoginEcosistema />} />
+
+            {/* Unlinked — reachable only by typing the URL. Creates the base
+                account for the master admin; never grants the Admin role. */}
+            <Route path="/admin-signup" element={<AdminSignup />} />
 
             {/* 404 */}
             <Route path="*" element={<NotFound />} />

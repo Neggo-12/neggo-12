@@ -45,7 +45,14 @@ export interface RegisterB2CInput {
   email: string;
   celular: string;
   password: string;
-  selectedBanks: string[];
+  bancoProductos: { organizationId: string; productos: string[] }[];
+}
+
+/** Input for registering the base account for the platform master admin.
+ *  Creates ONLY the account — never assigns the Admin role. */
+export interface RegisterAdminMasterInput {
+  email: string;
+  password: string;
 }
 
 /** Result of a registration attempt. */

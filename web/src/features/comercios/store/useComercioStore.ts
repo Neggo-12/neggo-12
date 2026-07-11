@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import { insertOfertaComercio } from '@/core/db/repositories';
+import { insertOfertaComercio, fetchOrganizationMetadata, updateOrganizationMetadata, fetchOrganizationTrustSeal, updateOrganizationTrustSeal, updateOrganizationCiudad, fetchOrganizationCore } from '@/core/db/repositories';
+import { useAuthStore } from '@/store/useAuthStore';
 import type {
   Comercio,
   ComercioCategory,
@@ -9,10 +10,22 @@ import type {
   PropuestaComercio,
 } from '@/types';
 
+interface ComercioOnboardingMetadata {
+  categoria: ComercioCategory;
+  especialidades: string[];
+  plan: SubscriptionTier;
+  onboardingComplete: true;
+}
+
+/** Resolves the real organization id for the logged-in comercio from the session. */
+function getComercioOrganizationId(): string | null {
+  return useAuthStore.getState().session?.organizationId ?? null;
+}
+
 // ───── Mock commerce data ─────
 
 const DEFAULT_COMERCIO: Comercio = {
-  id: 'COM-001',
+  id: '', // se sincroniza con el userId real de la sesión desde ComerciosDashboard al montar
   nombre: '',
   nit: '',
   ciudad: '',
@@ -101,6 +114,10 @@ interface ComercioState {
   hasTrustSeal: boolean;
   /** Whether the onboarding is complete */
   isOnboardingComplete: boolean;
+  /** True while checking the real onboarding status from `organizations.metadata` */
+  isOnboardingChecking: boolean;
+  /** True once the DB check has run at least once this session */
+  isOnboardingHydrated: boolean;
   /** IFC opportunities matching the commerce category + city */
   oportunidades: OportunidadIFC[];
   /** Proposals sent by this commerce */
@@ -111,7 +128,12 @@ interface ComercioState {
   isPropuestaDialogOpen: boolean;
 
   setComercio: (data: Partial<Comercio>) => void;
-  completeOnboarding: () => void;
+  /** Reads `organizations.metadata` and hydrates onboarding status from the real DB record. */
+  hydrateOnboardingStatus: () => Promise<void>;
+  /** Persists onboarding completion to `organizations.metadata`. Returns false (and toasts an error) if the write fails. */
+  completeOnboarding: () => Promise<boolean>;
+  /** Cambia el plan de suscripción — reconstruye el metadata completo para no pisar categoria/especialidades. */
+  updatePlan: (plan: SubscriptionTier) => Promise<boolean>;
   activateTrustSeal: () => void;
   sendPropuesta: (propuesta: Omit<PropuestaComercio, 'id' | 'enviada' | 'fechaEnvio' | 'descripcionDetallada' | 'terminosCondiciones' | 'ganchoComercial'> & { descripcionDetallada?: string; terminosCondiciones?: string; ganchoComercial?: string }) => void;
   markPropuestaEnviada: (oportunidadId: string) => void;
@@ -123,6 +145,8 @@ export const useComercioStore = create<ComercioState>((set, get) => ({
   currentComercio: DEFAULT_COMERCIO,
   hasTrustSeal: false,
   isOnboardingComplete: false,
+  isOnboardingChecking: false,
+  isOnboardingHydrated: false,
   oportunidades: [],
   propuestas: [],
   selectedOpportunityId: null,
@@ -131,11 +155,103 @@ export const useComercioStore = create<ComercioState>((set, get) => ({
   setComercio: (data) =>
     set((s) => ({ currentComercio: { ...s.currentComercio, ...data } })),
 
-  completeOnboarding: () =>
-    set({
-      isOnboardingComplete: true,
-      hasTrustSeal: true,
-    }),
+  hydrateOnboardingStatus: async () => {
+    if (get().isOnboardingHydrated || get().isOnboardingChecking) return;
+    const organizationId = getComercioOrganizationId();
+    if (!organizationId) {
+      // No se pudo resolver la organización — fail-safe: se muestra el onboarding.
+      set({ isOnboardingChecking: false, isOnboardingHydrated: true });
+      return;
+    }
+    set({ isOnboardingChecking: true });
+    const [{ data, error }, trustSealRes, coreRes] = await Promise.all([
+      fetchOrganizationMetadata(organizationId),
+      fetchOrganizationTrustSeal(organizationId),
+      fetchOrganizationCore(organizationId),
+    ]);
+    if (error || !data) {
+      set({ isOnboardingChecking: false, isOnboardingHydrated: true });
+      return;
+    }
+    const metadata = data as Partial<ComercioOnboardingMetadata>;
+    if (metadata.onboardingComplete === true) {
+      set((s) => ({
+        isOnboardingComplete: true,
+        hasTrustSeal: trustSealRes.data ?? true,
+        isOnboardingChecking: false,
+        isOnboardingHydrated: true,
+        currentComercio: {
+          ...s.currentComercio,
+          nombre: coreRes.data?.name ?? s.currentComercio.nombre,
+          nit: coreRes.data?.nit ?? s.currentComercio.nit,
+          ciudad: coreRes.data?.ciudad ?? s.currentComercio.ciudad,
+          categoria: metadata.categoria ?? s.currentComercio.categoria,
+          especialidades: metadata.especialidades ?? s.currentComercio.especialidades,
+          plan: metadata.plan ?? s.currentComercio.plan,
+        },
+      }));
+    } else {
+      set({ isOnboardingChecking: false, isOnboardingHydrated: true });
+    }
+  },
+
+  completeOnboarding: async () => {
+    const comercio = get().currentComercio;
+    const organizationId = getComercioOrganizationId();
+    if (!organizationId) {
+      toast.error('No se pudo guardar tu registro', {
+        description: 'No se pudo identificar tu organización. Vuelve a iniciar sesión e intenta de nuevo.',
+      });
+      return false;
+    }
+    const metadata: ComercioOnboardingMetadata = {
+      categoria: comercio.categoria,
+      especialidades: comercio.especialidades ?? [],
+      plan: comercio.plan,
+      onboardingComplete: true,
+    };
+    const [metadataResult, trustSealResult, ciudadResult] = await Promise.all([
+      updateOrganizationMetadata(organizationId, metadata),
+      updateOrganizationTrustSeal(organizationId, true),
+      updateOrganizationCiudad(organizationId, comercio.ciudad),
+    ]);
+    if (metadataResult.error || trustSealResult.error || ciudadResult.error) {
+      const error = metadataResult.error ?? trustSealResult.error ?? ciudadResult.error!;
+      toast.error('No se pudo guardar tu registro', {
+        description: `Tu información no se guardó en el servidor: ${error}`,
+      });
+      return false;
+    }
+    set({ isOnboardingComplete: true, hasTrustSeal: true });
+    return true;
+  },
+
+  updatePlan: async (plan) => {
+    const organizationId = getComercioOrganizationId();
+    if (!organizationId) {
+      toast.error('No se pudo identificar tu organización', { description: 'Vuelve a iniciar sesión e intenta de nuevo.' });
+      return false;
+    }
+    const comercio = get().currentComercio;
+    // Reconstruye el objeto metadata COMPLETO — updateOrganizationMetadata sobrescribe
+    // el blob entero, no lo mezcla, así que enviar solo { plan } borraría categoria/especialidades.
+    const metadata: ComercioOnboardingMetadata = {
+      categoria: comercio.categoria,
+      especialidades: comercio.especialidades ?? [],
+      plan,
+      onboardingComplete: true,
+    };
+    const { error } = await updateOrganizationMetadata(organizationId, metadata);
+    if (error) {
+      toast.error('No se pudo cambiar el plan', { description: error });
+      return false;
+    }
+    set((s) => ({ currentComercio: { ...s.currentComercio, plan } }));
+    toast.success('Plan actualizado', {
+      description: `Tu suscripción ahora es ${plan === 'premium' ? 'Premium' : 'Básico'}.`,
+    });
+    return true;
+  },
 
   activateTrustSeal: () => set({ hasTrustSeal: true }),
 

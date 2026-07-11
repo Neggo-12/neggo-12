@@ -28,11 +28,11 @@ function normalizeTenantType(raw: string | null | undefined): TenantType {
 }
 
 /**
- * Resolves whether a user is a platform admin by reading `users.rol`.
- * Fails closed: any error, missing record, or missing session returns `false`.
+ * Resolves a user's `rol` from the `users` table. Fails closed: returns
+ * `null` on any error, missing record, or missing session.
  */
-export async function resolveIsPlatformAdmin(userId: string | null | undefined): Promise<boolean> {
-  if (!supabase || !userId) return false;
+export async function resolveUserRole(userId: string | null | undefined): Promise<string | null> {
+  if (!supabase || !userId) return null;
   try {
     const { data, error } = await supabase
       .from('users')
@@ -40,11 +40,20 @@ export async function resolveIsPlatformAdmin(userId: string | null | undefined):
       .eq('id', userId)
       .limit(1)
       .maybeSingle();
-    if (error || !data) return false;
-    return data.rol === 'Admin';
+    if (error || !data) return null;
+    return data.rol;
   } catch {
-    return false;
+    return null;
   }
+}
+
+/**
+ * Resolves whether a user is a platform admin by reading `users.rol`.
+ * Fails closed: any error, missing record, or missing session returns `false`.
+ */
+export async function resolveIsPlatformAdmin(userId: string | null | undefined): Promise<boolean> {
+  const role = await resolveUserRole(userId);
+  return role === 'Admin';
 }
 
 /**

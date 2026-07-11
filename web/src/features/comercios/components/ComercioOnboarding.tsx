@@ -5,19 +5,23 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Store,
   Check,
   ShieldCheck,
   Sparkles,
   ArrowRight,
   ArrowLeft,
-  Building2,
-  Hash,
   MapPin,
   Wrench,
-  type LucideIcon,
 } from 'lucide-react';
-import { SUBCATEGORIAS } from '@/types';
+import { SUBCATEGORIAS, CIUDADES } from '@/types';
 import type { ComercioCategory, SubscriptionTier } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -29,9 +33,17 @@ const CATEGORIAS: { value: ComercioCategory; label: string }[] = [
   { value: 'Moto', label: 'Moto' },
   { value: 'Computador', label: 'Computador' },
   { value: 'Remodelación', label: 'Remodelación' },
+  { value: 'Salud y Estética', label: 'Salud y Estética' },
+  { value: 'Educación', label: 'Educación' },
+  { value: 'Moda y Accesorios', label: 'Moda y Accesorios' },
+  { value: 'Deporte y Gimnasio', label: 'Deporte y Gimnasio' },
+  { value: 'Mascotas', label: 'Mascotas' },
+  { value: 'Eventos', label: 'Eventos' },
+  { value: 'Muebles y Decoración', label: 'Muebles y Decoración' },
+  { value: 'Belleza y Spa', label: 'Belleza y Spa' },
 ];
 
-interface Plan {
+export interface Plan {
   tier: SubscriptionTier;
   name: string;
   price: string;
@@ -40,7 +52,7 @@ interface Plan {
   highlighted: boolean;
 }
 
-const PLANES: Plan[] = [
+export const PLANES: Plan[] = [
   {
     tier: 'basico',
     name: 'Plan Básico',
@@ -73,6 +85,7 @@ export default function ComercioOnboarding() {
   const [step, setStep] = useState<'info' | 'especialidades' | 'plan'>('info');
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>('premium');
   const [showSeal, setShowSeal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Dynamic subcategory options based on selected category
   const subOptions = useMemo(
@@ -92,10 +105,14 @@ export default function ComercioOnboarding() {
     setStep('plan');
   };
 
-  const handleComplete = (): void => {
+  const handleComplete = async (): Promise<void> => {
     setComercio({ plan: selectedPlan });
-    completeOnboarding();
-    setShowSeal(true);
+    setIsSaving(true);
+    const success = await completeOnboarding();
+    setIsSaving(false);
+    if (success) {
+      setShowSeal(true);
+    }
   };
 
   if (showSeal) {
@@ -166,27 +183,21 @@ export default function ComercioOnboarding() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <InfoField
-                label="Nombre Comercial"
-                icon={Building2}
-                placeholder="Ej: AutoMercado Premium"
-                value={currentComercio.nombre}
-                onChange={(v) => setComercio({ nombre: v })}
-              />
-              <InfoField
-                label="NIT"
-                icon={Hash}
-                placeholder="Ej: 900.123.456-7"
-                value={currentComercio.nit}
-                onChange={(v) => setComercio({ nit: v })}
-              />
-              <InfoField
-                label="Ciudad de Operación"
-                icon={MapPin}
-                placeholder="Ej: Medellín"
-                value={currentComercio.ciudad}
-                onChange={(v) => setComercio({ ciudad: v })}
-              />
+              <div className="space-y-2">
+                <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" /> Ciudad de Operación
+                </Label>
+                <Select value={currentComercio.ciudad} onValueChange={(v) => setComercio({ ciudad: v })}>
+                  <SelectTrigger className="w-full bg-card border-border/40">
+                    <SelectValue placeholder="Selecciona tu ciudad" />
+                  </SelectTrigger>
+                  <SelectContent className="border-border/60 bg-card">
+                    {CIUDADES.map((c) => (
+                      <SelectItem key={c} value={c} className="text-sm">{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Categoría / Vertical Exclusiva
@@ -211,7 +222,7 @@ export default function ComercioOnboarding() {
               </div>
               <Button
                 className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
-                disabled={!currentComercio.nombre || !currentComercio.nit || !currentComercio.ciudad || !currentComercio.categoria}
+                disabled={!currentComercio.ciudad || !currentComercio.categoria}
                 onClick={handleInfoSubmit}
               >
                 Continuar
@@ -355,8 +366,9 @@ export default function ComercioOnboarding() {
               <Button
                 className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
                 onClick={handleComplete}
+                disabled={isSaving}
               >
-                Activar Suscripción
+                {isSaving ? 'Guardando...' : 'Activar Suscripción'}
                 <Sparkles className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -395,40 +407,6 @@ function TrustSealActivation({ nombre }: { nombre: string }) {
             <span className="text-sm font-medium text-emerald-400">Sello de Confianza Activo</span>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-// ───── Reusable input field ─────
-
-function InfoField({
-  label,
-  icon: Icon,
-  placeholder,
-  value,
-  onChange,
-}: {
-  label: string;
-  icon: LucideIcon;
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </Label>
-      <div className="relative">
-        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-lg border border-border/40 bg-card pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/20 transition-all"
-        />
       </div>
     </div>
   );

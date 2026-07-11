@@ -14,6 +14,8 @@ import {
   fetchUsersByStatus,
   fetchAllUsers,
   updateUserStatus,
+  fetchOrganizationIdByUserId,
+  updateOrganizationStatus,
   type UserRow,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
@@ -213,6 +215,18 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       toast.error('Error al aprobar entidad', { description: error });
       return;
     }
+
+    // Activa también la organización vinculada (si el usuario maestro pertenece a una).
+    const { data: organizationId, error: orgLookupError } = await fetchOrganizationIdByUserId(requestId);
+    if (orgLookupError) {
+      toast.error('Usuario aprobado, pero no se pudo verificar su organización', { description: orgLookupError });
+    } else if (organizationId) {
+      const { error: orgError } = await updateOrganizationStatus(organizationId, 'approved');
+      if (orgError) {
+        toast.error('Usuario aprobado, pero falló activar la organización', { description: orgError });
+      }
+    }
+
     // Actualizar estado local
     set((s) => ({
       onboardingRequests: s.onboardingRequests.map((r) =>
@@ -230,6 +244,18 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       toast.error('Error al rechazar entidad', { description: error });
       return;
     }
+
+    // Rechaza también la organización vinculada (si el usuario maestro pertenece a una).
+    const { data: organizationId, error: orgLookupError } = await fetchOrganizationIdByUserId(requestId);
+    if (orgLookupError) {
+      toast.error('Usuario rechazado, pero no se pudo verificar su organización', { description: orgLookupError });
+    } else if (organizationId) {
+      const { error: orgError } = await updateOrganizationStatus(organizationId, 'rejected');
+      if (orgError) {
+        toast.error('Usuario rechazado, pero falló actualizar la organización', { description: orgError });
+      }
+    }
+
     set((s) => ({
       onboardingRequests: s.onboardingRequests.map((r) =>
         r.id === requestId

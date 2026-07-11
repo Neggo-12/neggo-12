@@ -11,11 +11,13 @@
  *    always read back from the `users` table after authentication.
  */
 import { supabase } from '@/core/db/dbClient';
+import { insertClienteBancoProductos } from '@/core/db/repositories';
 import type {
   LoginInput,
   LoginResult,
   RegisterB2BInput,
   RegisterB2CInput,
+  RegisterAdminMasterInput,
   RegisterResult,
   RestoreResult,
   PasswordResetResult,
@@ -56,6 +58,24 @@ function errMessage(error: unknown, fallback = 'Ocurrió un error inesperado.'):
     if (typeof msg === 'string') return msg;
   }
   return fallback;
+}
+
+/**
+ * Translates a Postgres unique_violation (SQLSTATE 23505) on `nit` or
+ * `numero_documento` into a friendly Spanish message. Returns `null` when
+ * the error isn't a recognized unique-constraint violation on those columns,
+ * so callers fall back to {@link errMessage}.
+ */
+function friendlyDuplicateMessage(error: unknown): string | null {
+  if (!error || typeof error !== 'object') return null;
+  const code = 'code' in error ? (error as { code?: unknown }).code : undefined;
+  if (code !== '23505') return null;
+  const message = 'message' in error ? (error as { message?: unknown }).message : undefined;
+  const msg = typeof message === 'string' ? message : '';
+  if (msg.includes('numero_documento')) return 'Esta cédula/documento ya está registrado en el ecosistema.';
+  if (msg.includes('nit')) return 'Este NIT ya está registrado en el ecosistema.';
+  if (msg.includes('email')) return 'Este correo ya está registrado.';
+  return 'Ya existe un registro con estos datos.';
 }
 
 // ───── Last-login session hand-off ─────
@@ -246,7 +266,10 @@ export async function registerB2B(input: RegisterB2BInput): Promise<RegisterResu
   // surface the error. When email confirmation is pending, RLS may block the
   // insert until the user confirms — in that case we still report success.
   if (userError && !requiresEmailConfirmation) {
-    return { success: false, error: errMessage(userError, 'No se pudo registrar el usuario.') };
+    return {
+      success: false,
+      error: friendlyDuplicateMessage(userError) ?? errMessage(userError, 'No se pudo registrar el usuario.'),
+    };
   }
 
   // 2) organizations — the tenant entity.
@@ -262,6 +285,15 @@ export async function registerB2B(input: RegisterB2BInput): Promise<RegisterResu
     status: 'pending',
     created_at: nowIso,
   });
+
+  // A duplicate NIT on `organizations` fails here even when the `users`
+  // insert above succeeded — surface it instead of silently reporting success.
+  if (orgError) {
+    const friendly = friendlyDuplicateMessage(orgError);
+    if (friendly) {
+      return { success: false, error: friendly };
+    }
+  }
 
   // 3) memberships — link the master user to the organization.
   if (!orgError) {
@@ -313,11 +345,69 @@ export async function registerB2C(input: RegisterB2CInput): Promise<RegisterResu
     telefono: input.celular,
     tipo_documento: input.tipoId,
     numero_documento: input.numeroId,
-    preferences: { selectedBanks: input.selectedBanks },
   });
 
   if (userError && !requiresEmailConfirmation) {
-    return { success: false, error: errMessage(userError, 'No se pudo registrar el cliente.') };
+    return {
+      success: false,
+      error: friendlyDuplicateMessage(userError) ?? errMessage(userError, 'No se pudo registrar el cliente.'),
+    };
+  }
+
+  // Best-effort: registra los productos bancarios declarados. No bloquea el
+  // registro si falla (el usuario ya quedó creado); solo se pierde ese detalle
+  // de perfil, que el cliente puede volver a declarar después.
+  if (input.bancoProductos.length > 0) {
+    await insertClienteBancoProductos(userId, input.bancoProductos);
+  }
+
+  return {
+    success: true,
+    userId,
+    pendingApproval: false,
+    requiresEmailConfirmation,
+  };
+}
+
+// ───── Registration: Admin master (base account only) ─────
+
+/**
+ * Creates the BASE account for the platform master admin — email + password
+ * only. This NEVER assigns `rol = 'Admin'`. It inserts the same neutral role
+ * `registerB2C` uses (`rol: 'Cliente'`, `status: 'approved'`) so the account
+ * can authenticate immediately but has zero elevated privileges. Promotion to
+ * `rol = 'Admin'` is an out-of-band manual step (SQL in Supabase) — this
+ * function has no path to grant it.
+ */
+export async function registerAdminMaster(
+  input: RegisterAdminMasterInput,
+): Promise<RegisterResult> {
+  if (!supabase) {
+    return { success: false, error: 'Base de datos no configurada.' };
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email: input.email,
+    password: input.password,
+  });
+
+  if (error || !data.user) {
+    return { success: false, error: errMessage(error, 'No se pudo crear la cuenta.') };
+  }
+
+  const userId = data.user.id;
+  const requiresEmailConfirmation = !data.session;
+
+  const { error: userError } = await supabase.from('users').insert({
+    id: userId,
+    email: input.email,
+    nombre: input.email,
+    rol: 'Cliente',
+    status: 'approved',
+  });
+
+  if (userError && !requiresEmailConfirmation) {
+    return { success: false, error: errMessage(userError, 'No se pudo registrar el usuario.') };
   }
 
   return {

@@ -39,21 +39,26 @@ export function validatePassword(password: string): PasswordValidation {
 /** Fields checked for duplicates before registration. */
 export interface DuplicateCheckInput {
   email: string;
-  telefono: string;
+  /** Cédula (B2C) or NIT (B2B) — never phone, which is not unique. */
+  documentNumber: string;
+  /** Determines which column(s) get checked: 'cedula' → users.numero_documento;
+   *  'nit' → users.nit AND organizations.nit. */
+  documentType: 'cedula' | 'nit';
 }
 
 /**
- * Checks whether the given email or phone already exists in the `users` table.
- * Returns the name of the duplicated field (`'correo'` | `'celular'`) or `null`
- * when no duplicate is found. Never throws — on any error it returns `null`
- * (fail-open for a non-security UX pre-check; RLS remains the real boundary).
+ * Checks whether the given email or document number (cédula/NIT) already
+ * exists. Phone is intentionally NOT checked — people change phone numbers
+ * frequently, so it must never be treated as unique. Never throws — on any
+ * error it returns `null` (fail-open for a non-security UX pre-check; RLS
+ * remains the real boundary).
  */
 export async function checkDuplicates(
   input: DuplicateCheckInput,
-): Promise<'correo' | 'celular' | null> {
+): Promise<'correo' | 'documento' | null> {
   if (!supabase) return null;
   const email = input.email.trim().toLowerCase();
-  const telefono = input.telefono.trim();
+  const documentNumber = input.documentNumber.trim();
 
   try {
     if (email) {
@@ -64,13 +69,23 @@ export async function checkDuplicates(
         .limit(1);
       if (data && data.length > 0) return 'correo';
     }
-    if (telefono) {
-      const { data } = await supabase
-        .from('users')
-        .select('id')
-        .eq('telefono', telefono)
-        .limit(1);
-      if (data && data.length > 0) return 'celular';
+    if (documentNumber) {
+      if (input.documentType === 'cedula') {
+        const { data } = await supabase
+          .from('users')
+          .select('id')
+          .eq('numero_documento', documentNumber)
+          .limit(1);
+        if (data && data.length > 0) return 'documento';
+      } else {
+        const [usersRes, orgsRes] = await Promise.all([
+          supabase.from('users').select('id').eq('nit', documentNumber).limit(1),
+          supabase.from('organizations').select('id').eq('nit', documentNumber).limit(1),
+        ]);
+        if ((usersRes.data && usersRes.data.length > 0) || (orgsRes.data && orgsRes.data.length > 0)) {
+          return 'documento';
+        }
+      }
     }
   } catch {
     return null;
