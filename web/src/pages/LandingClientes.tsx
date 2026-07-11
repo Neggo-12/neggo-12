@@ -19,6 +19,7 @@ import {
   Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AuthPanel } from "@/components/auth/AuthForms";
 import { leads, campaigns, proyectos } from "@/data/mock";
 import { useState, useEffect } from "react";
 
@@ -482,6 +483,34 @@ export default function LandingClientes() {
                   <ArrowUpRight className="h-4 w-4" />
                 </Link>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═════════════════════════════════════════════════════════
+          AUTH — Acceso embebido para Clientes
+         ═════════════════════════════════════════════════════════ */}
+      <section id="acceso" className="border-t border-border/30">
+        <div className="mx-auto max-w-md px-4 sm:px-6 py-20">
+          <div className="text-center mb-8">
+            <p className="text-xs uppercase tracking-[0.25em] text-cyan-400 font-semibold mb-3">
+              Acceso Clientes
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+              Ingresa o regístrate
+            </h2>
+          </div>
+          <div className="rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
+            <div className="p-5 sm:p-6">
+              <AuthPanel
+                mode="b2c"
+                themeColor="cyan"
+                description={{
+                  login: "Inicia sesión para acceder a tus metas de ahorro, ofertas personalizadas y el control de tu vida financiera.",
+                  register: "Crea tu cuenta personal para acceder a ofertas financieras, proyectos inmobiliarios y metas de ahorro.",
+                }}
+              />
             </div>
           </div>
         </div>

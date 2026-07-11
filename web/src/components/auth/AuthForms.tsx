@@ -1,26 +1,19 @@
 import { useState, useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Sparkles,
-  Building2,
-  UserCircle,
-  Landmark,
-  Store,
-  Home,
-  ShieldCheck,
-  CheckCircle2,
-  Loader2,
-  ArrowLeft,
-  Lock,
-  Crown,
-  Eye,
-  EyeOff,
   Mail,
   KeyRound,
+  Lock,
   AlertCircle,
+  Loader2,
   LogIn,
   UserPlus,
-  BadgeCheck,
+  CheckCircle2,
+  Building2,
+  Home,
+  Store,
+  ArrowLeft,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,183 +32,38 @@ import {
   validatePassword,
   checkDuplicates,
 } from "@/core/db/supabaseClient";
-import { fetchBancosAprobados } from "@/core/db/repositories";
 import { useAdminStore } from "@/features/admin/store/useAdminStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import type { OnboardingRequest, AdminEntityType, AuthorizationStatus } from "@/types";
+import { PasswordField, PasswordRequirements } from "./AuthFields";
+import {
+  type B2BSector,
+  type AuthMode,
+  type SubmitState,
+  type AccentColor,
+  BANK_PRODUCTS,
+  ID_TYPES,
+  getSectorConfig,
+  getTheme,
+} from "./authConfig";
+import { fetchBancosAprobados } from "@/core/db/repositories";
 
-const BANK_PRODUCTS: readonly { value: string; label: string }[] = [
-  { value: "cuenta_ahorros", label: "Cuenta de Ahorros" },
-  { value: "cuenta_corriente", label: "Cuenta Corriente" },
-  { value: "tarjeta_credito", label: "Tarjeta de Crédito" },
-  { value: "cdt", label: "CDT" },
-  { value: "credito_hipotecario", label: "Crédito Hipotecario" },
-  { value: "credito_libre_inversion", label: "Crédito de Libre Inversión" },
-] as const;
+// ═══════════════════════════════════════════════════════════════
+// B2B LOGIN
+// ═══════════════════════════════════════════════════════════════
 
-// ───── ID types ─────
-
-const ID_TYPES: readonly { id: string; label: string }[] = [
-  { id: "cc", label: "Cédula de Ciudadanía" },
-  { id: "ce", label: "Cédula de Extranjería" },
-  { id: "nit", label: "NIT" },
-  { id: "pasaporte", label: "Pasaporte" },
-] as const;
-
-// ───── Types ─────
-
-type LoginTab = "b2b" | "b2c";
-type AuthMode = "login" | "register";
-type B2BSector = "banca" | "constructora" | "comercio";
-
-type SubmitState = "idle" | "loading" | "done";
-
-const B2B_SECTORS: readonly {
-  id: B2BSector;
-  label: string;
-  icon: typeof Landmark;
-  color: string;
-  bg: string;
-  border: string;
-  placeholder: string;
-  roleValue: string;
-}[] = [
-  {
-    id: "banca",
-    label: "Bancos",
-    icon: Landmark,
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/30",
-    placeholder: "Ej: Bancolombia S.A.",
-    roleValue: "Banco",
-  },
-  {
-    id: "constructora",
-    label: "Constructoras",
-    icon: Home,
-    color: "text-blue-400",
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/30",
-    placeholder: "Ej: Marval S.A.",
-    roleValue: "Constructora",
-  },
-  {
-    id: "comercio",
-    label: "Comercios",
-    icon: Store,
-    color: "text-amber-400",
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/30",
-    placeholder: "Ej: AutoMercado Premium S.A.",
-    roleValue: "Comercio",
-  },
-] as const;
-
-// ───── Shared: Password Field with toggle visibility ─────
-
-function PasswordField({
-  value,
-  onChange,
-  placeholder,
-  id,
-  label,
+export function B2BLogin({
+  themeColor = "blue",
+  expectedRole,
 }: {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder: string;
-  id: string;
-  label: string;
+  themeColor?: AccentColor;
+  /** Server-verified role required for this portal. Login succeeds against
+   *  Supabase Auth, but access is denied and the session is signed out if
+   *  the authenticated user's role doesn't match. */
+  expectedRole?: string;
 }) {
-  const [visible, setVisible] = useState(false);
-
-  return (
-    <div className="space-y-2">
-      <Label
-        htmlFor={id}
-        className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
-      >
-        {label}
-      </Label>
-      <div className="relative">
-        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          id={id}
-          type={visible ? "text" : "password"}
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm pl-10 pr-10 font-mono"
-        />
-        <button
-          type="button"
-          onClick={() => setVisible((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          tabIndex={-1}
-        >
-          {visible ? (
-            <EyeOff className="h-4 w-4" />
-          ) : (
-            <Eye className="h-4 w-4" />
-          )}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ───── Shared: Password Requirements Indicator ─────
-
-function PasswordRequirements({ password }: { password: string }) {
-  if (!password) return null;
-  const { errors } = validatePassword(password);
-  const checks = [
-    {
-      label: "Mínimo 8 caracteres",
-      met: password.length >= 8,
-    },
-    {
-      label: "Al menos una mayúscula",
-      met: /[A-Z]/.test(password),
-    },
-    {
-      label: "Al menos un número",
-      met: /[0-9]/.test(password),
-    },
-  ];
-
-  return (
-    <div className="space-y-1.5 rounded-lg border border-border/30 bg-card/30 p-3">
-      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-        Requisitos de seguridad
-      </p>
-      {checks.map((c) => (
-        <div key={c.label} className="flex items-center gap-2 text-[11px]">
-          <div
-            className={cn(
-              "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full transition-colors",
-              c.met ? "bg-emerald-500/20 text-emerald-400" : "bg-muted text-muted-foreground"
-            )}
-          >
-            {c.met ? (
-              <CheckCircle2 className="h-2.5 w-2.5" />
-            ) : (
-              <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-            )}
-          </div>
-          <span className={c.met ? "text-emerald-400" : "text-muted-foreground"}>
-            {c.label}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ───── B2B: Login Form ─────
-
-function B2BLogin() {
   const navigate = useNavigate();
+  const theme = getTheme(themeColor);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -235,8 +83,7 @@ function B2BLogin() {
       try {
         if (!isSupabaseConfigured) {
           toast.error("Base de datos no configurada", {
-            description:
-              "Las credenciales de Supabase no están configuradas. Contacta al administrador.",
+            description: "Las credenciales de Supabase no están configuradas. Contacta al administrador.",
           });
           setLoading(false);
           return;
@@ -250,13 +97,11 @@ function B2BLogin() {
         if (!result.success) {
           if (result.pendingApproval) {
             toast.error("Cuenta pendiente de aprobación", {
-              description:
-                "Tu registro está siendo revisado por el equipo de Neggo. Recibirás un correo cuando sea aprobado.",
+              description: "Tu registro está siendo revisado por el equipo de Neggo. Recibirás un correo cuando sea aprobado.",
             });
           } else if (result.rejected) {
             toast.error("Cuenta rechazada", {
-              description:
-                "Tu solicitud de registro fue rechazada. Contacta a soporte para más información.",
+              description: "Tu solicitud de registro fue rechazada. Contacta a soporte para más información.",
             });
           } else {
             toast.error("Error de acceso", {
@@ -267,10 +112,18 @@ function B2BLogin() {
           return;
         }
 
+        if (expectedRole && result.role !== expectedRole) {
+          await useAuthStore.getState().logout();
+          toast.error("Cuenta incorrecta para este portal", {
+            description: "Esta cuenta no corresponde a este portal. Usa el portal correcto para tu tipo de cuenta.",
+          });
+          setLoading(false);
+          return;
+        }
+
         toast.success("¡Acceso exitoso!", {
           description: `Bienvenido al ecosistema Neggo como ${result.role}.`,
         });
-        // Backend decides the dashboard route
         setTimeout(() => navigate(result.dashboardRoute ?? "/"), 600);
       } catch {
         toast.error("Error inesperado", {
@@ -279,7 +132,7 @@ function B2BLogin() {
       }
       setLoading(false);
     },
-    [canLogin, email, password, navigate]
+    [canLogin, email, password, navigate, expectedRole]
   );
 
   const handleRecovery = useCallback(
@@ -290,9 +143,7 @@ function B2BLogin() {
 
       try {
         if (!isSupabaseConfigured) {
-          toast.error("Base de datos no configurada", {
-            description: "Contacta al administrador.",
-          });
+          toast.error("Base de datos no configurada", { description: "Contacta al administrador." });
           setRecoveryLoading(false);
           return;
         }
@@ -301,22 +152,17 @@ function B2BLogin() {
         const result = await requestPasswordReset(recoveryEmail.trim().toLowerCase());
 
         if (!result.success) {
-          toast.error("Error al enviar recuperación", {
-            description: result.error,
-          });
+          toast.error("Error al enviar recuperación", { description: result.error });
           setRecoveryLoading(false);
           return;
         }
 
         setRecoverySent(true);
         toast.success("Correo de recuperación enviado", {
-          description:
-            "Revisa tu bandeja de entrada para restablecer tu contraseña.",
+          description: "Revisa tu bandeja de entrada para restablecer tu contraseña.",
         });
       } catch {
-        toast.error("Error inesperado", {
-          description: "No se pudo enviar el correo de recuperación.",
-        });
+        toast.error("Error inesperado", { description: "No se pudo enviar el correo de recuperación." });
       }
       setRecoveryLoading(false);
     },
@@ -328,25 +174,19 @@ function B2BLogin() {
       <div className="space-y-5 animate-fade-in">
         {recoverySent ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/20 mb-4">
-              <Mail className="h-8 w-8 text-blue-400" />
+            <div className={cn("flex h-16 w-16 items-center justify-center rounded-2xl mb-4 border", theme.recoveryBg, theme.recoveryBorder)}>
+              <Mail className={cn("h-8 w-8", theme.recoveryIconColor)} />
             </div>
-            <h3 className="text-lg font-bold text-foreground mb-2">
-              Correo enviado
-            </h3>
+            <h3 className="text-lg font-bold text-foreground mb-2">Correo enviado</h3>
             <p className="text-sm text-muted-foreground max-w-sm">
               Hemos enviado un enlace de recuperación a{" "}
-              <span className="text-blue-400 font-medium">{recoveryEmail}</span>.
+              <span className={cn("font-medium", theme.accent)}>{recoveryEmail}</span>.
               Revisa tu bandeja de entrada y sigue las instrucciones.
             </p>
             <button
               type="button"
-              onClick={() => {
-                setShowRecovery(false);
-                setRecoverySent(false);
-                setRecoveryEmail("");
-              }}
-              className="mt-4 text-xs text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+              onClick={() => { setShowRecovery(false); setRecoverySent(false); setRecoveryEmail(""); }}
+              className={cn("mt-4 text-xs transition-colors cursor-pointer", theme.recoveryAccent)}
             >
               ← Volver al inicio de sesión
             </button>
@@ -355,7 +195,7 @@ function B2BLogin() {
           <form onSubmit={handleRecovery} className="space-y-5">
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-1">
-                <Mail className="h-4 w-4 text-blue-400" />
+                <Mail className={cn("h-4 w-4", theme.accent)} />
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Correo electrónico de recuperación
                 </Label>
@@ -369,36 +209,23 @@ function B2BLogin() {
                 autoFocus
               />
             </div>
-
             <Button
               type="submit"
               disabled={!recoveryEmail.trim() || recoveryLoading}
               className={cn(
                 "w-full h-11 gap-2 font-semibold text-sm rounded-xl transition-all duration-300",
-                recoveryEmail.trim()
-                  ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
-                  : "bg-muted text-muted-foreground cursor-not-allowed"
+                recoveryEmail.trim() ? theme.recoveryButton : "bg-muted text-muted-foreground cursor-not-allowed"
               )}
             >
               {recoveryLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Enviando...
-                </>
+                <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
               ) : (
-                <>
-                  <Mail className="h-4 w-4" />
-                  Enviar enlace de recuperación
-                </>
+                <><Mail className="h-4 w-4" /> Enviar enlace de recuperación</>
               )}
             </Button>
-
             <button
               type="button"
-              onClick={() => {
-                setShowRecovery(false);
-                setRecoveryEmail("");
-              }}
+              onClick={() => { setShowRecovery(false); setRecoveryEmail(""); }}
               className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               ← Volver al inicio de sesión
@@ -428,7 +255,7 @@ function B2BLogin() {
       </div>
 
       <PasswordField
-        id="b2b-login-password"
+        id={`b2b-login-${themeColor}`}
         label="Contraseña"
         placeholder="Ingresa tu contraseña"
         value={password}
@@ -439,7 +266,7 @@ function B2BLogin() {
         <button
           type="button"
           onClick={() => setShowRecovery(true)}
-          className="text-xs text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+          className={cn("text-xs transition-colors cursor-pointer", theme.recoveryAccent)}
         >
           ¿Olvidaste tu contraseña?
         </button>
@@ -450,31 +277,26 @@ function B2BLogin() {
         disabled={!canLogin}
         className={cn(
           "w-full h-11 gap-2 font-semibold text-sm rounded-xl transition-all duration-300",
-          canLogin
-            ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
-            : "bg-muted text-muted-foreground cursor-not-allowed"
+          canLogin ? theme.button : "bg-muted text-muted-foreground cursor-not-allowed"
         )}
       >
         {loading ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Verificando credenciales...
-          </>
+          <><Loader2 className="h-4 w-4 animate-spin" /> Verificando credenciales...</>
         ) : (
-          <>
-            <LogIn className="h-4 w-4" />
-            Ingresar
-          </>
+          <><LogIn className="h-4 w-4" /> Ingresar</>
         )}
       </Button>
     </form>
   );
 }
 
-// ───── B2B: Register Form ─────
+// ═══════════════════════════════════════════════════════════════
+// B2B REGISTER (locked to a single sector)
+// ═══════════════════════════════════════════════════════════════
 
-function B2BRegister() {
-  const [sector, setSector] = useState<B2BSector>("banca");
+export function B2BRegister({ sector }: { sector: B2BSector }) {
+  const sectorCfg = getSectorConfig(sector);
+  const theme = getTheme(sectorCfg.themeColor);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [form, setForm] = useState({
     razonSocial: "",
@@ -485,12 +307,10 @@ function B2BRegister() {
     password: "",
     confirmPassword: "",
   });
-
   const [resultRequiresEmailConfirmation, setResultRequiresEmailConfirmation] = useState(false);
-  const activeSector = B2B_SECTORS.find((s) => s.id === sector)!;
+
   const pwValidation = validatePassword(form.password);
-  const passwordsMatch =
-    form.password && form.confirmPassword && form.password === form.confirmPassword;
+  const passwordsMatch = form.password && form.confirmPassword && form.password === form.confirmPassword;
 
   const canSubmit =
     form.razonSocial.trim() !== "" &&
@@ -519,14 +339,11 @@ function B2BRegister() {
 
       try {
         if (!isSupabaseConfigured) {
-          toast.error("Base de datos no configurada", {
-            description: "Contacta al administrador.",
-          });
+          toast.error("Base de datos no configurada", { description: "Contacta al administrador." });
           setSubmitState("idle");
           return;
         }
 
-        // Duplicate check
         const duplicateField = await checkDuplicates({
           email: form.correo.trim().toLowerCase(),
           documentNumber: form.nit.trim(),
@@ -534,10 +351,7 @@ function B2BRegister() {
         });
 
         if (duplicateField) {
-          const fieldLabels: Record<string, string> = {
-            correo: "correo",
-            documento: "NIT",
-          };
+          const fieldLabels: Record<string, string> = { correo: "correo", documento: "NIT" };
           toast.error("Error: Datos duplicados", {
             description: `El ${fieldLabels[duplicateField] || duplicateField} ya se encuentra registrado en el ecosistema.`,
           });
@@ -545,7 +359,6 @@ function B2BRegister() {
           return;
         }
 
-        // Delegate to the auth domain service (creates user + org + membership transactionally)
         const result = await useAuthStore.getState().registerB2BOrganization({
           razonSocial: form.razonSocial.trim(),
           nit: form.nit.trim(),
@@ -557,16 +370,11 @@ function B2BRegister() {
         });
 
         if (!result.success) {
-          toast.error("Error al registrar", {
-            description: result.error,
-          });
+          toast.error("Error al registrar", { description: result.error });
           setSubmitState("idle");
           return;
         }
 
-        // Fallback garantizado: añadir al store de Zustand para que el Admin
-        // lo vea de inmediato en memoria, incluso si Supabase falla o no está
-        // configurado. Esto asegura que el registro SIEMPRE aparezca en /admin.
         const entityTypeMap: Record<B2BSector, AdminEntityType> = {
           banca: "banco",
           constructora: "constructora",
@@ -576,14 +384,14 @@ function B2BRegister() {
           id: result.userId ?? `USR-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
           entityType: entityTypeMap[sector],
           name: form.razonSocial.trim(),
-          detail: `${activeSector.roleValue} — ${form.correo.trim().toLowerCase()}`,
+          detail: `${sectorCfg.roleValue} — ${form.correo.trim().toLowerCase()}`,
           city: "Sin ciudad",
           nit: form.nit.trim(),
           status: "pendiente" as AuthorizationStatus,
           submittedAt: new Date().toISOString(),
           contacto: {
             nombre: form.representante.trim(),
-            cargo: activeSector.roleValue,
+            cargo: sectorCfg.roleValue,
             correo: form.correo.trim().toLowerCase(),
             telefono: form.telefono.trim(),
             estadoDocumentos: "pendiente",
@@ -595,40 +403,35 @@ function B2BRegister() {
         setSubmitState("done");
         if (result.requiresEmailConfirmation) {
           toast.success("Registro enviado — confirma tu correo", {
-            description:
-              "Tu solicitud como " + activeSector.label + " fue recibida. Hemos enviado un correo de confirmación a " + form.correo.trim().toLowerCase() + ". Revisa tu bandeja y confirma para completar el registro.",
+            description: `Tu solicitud como ${sectorCfg.label} fue recibida. Hemos enviado un correo de confirmación a ${form.correo.trim().toLowerCase()}. Revisa tu bandeja y confirma para completar el registro.`,
           });
         } else {
           toast.success("Registro enviado a revisión", {
-            description:
-              "Tu solicitud como " + activeSector.label + " está en revisión. El equipo de Neggo la aprobará en las próximas 24-48 horas hábiles.",
+            description: `Tu solicitud como ${sectorCfg.label} está en revisión. El equipo de Neggo la aprobará en las próximas 24-48 horas hábiles.`,
           });
         }
       } catch {
-        toast.error("Error inesperado", {
-          description: "Ocurrió un error al procesar tu registro.",
-        });
+        toast.error("Error inesperado", { description: "Ocurrió un error al procesar tu registro." });
         setSubmitState("idle");
       }
     },
-    [canSubmit, form, activeSector, sector]
+    [canSubmit, form, sectorCfg, sector]
   );
 
   if (submitState === "done") {
-    const emailConfirmation = resultRequiresEmailConfirmation;
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
-          <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+        <div className={cn("flex h-16 w-16 items-center justify-center rounded-2xl mb-4 border", theme.recoveryBg, theme.recoveryBorder)}>
+          <CheckCircle2 className={cn("h-8 w-8", theme.accent)} />
         </div>
         <h3 className="text-lg font-bold text-foreground mb-2">
-          {emailConfirmation ? "Solicitud enviada" : "Solicitud enviada exitosamente"}
+          {resultRequiresEmailConfirmation ? "Solicitud enviada" : "Solicitud enviada exitosamente"}
         </h3>
         <p className="text-sm text-muted-foreground max-w-sm">
-          {emailConfirmation ? (
+          {resultRequiresEmailConfirmation ? (
             <>
               Tu registro como{" "}
-              <span className="font-medium text-foreground">{activeSector.label}</span>{" "}
+              <span className="font-medium text-foreground">{sectorCfg.label}</span>{" "}
               fue recibido. Hemos enviado un correo de confirmación a{" "}
               <span className="font-medium text-foreground">{form.correo.trim().toLowerCase()}</span>.{" "}
               Revisa tu bandeja y confirma el enlace para completar el proceso.
@@ -636,7 +439,7 @@ function B2BRegister() {
           ) : (
             <>
               Tu registro como{" "}
-              <span className="font-medium text-foreground">{activeSector.label}</span>{" "}
+              <span className="font-medium text-foreground">{sectorCfg.label}</span>{" "}
               está siendo revisado por el equipo de Neggo. Recibirás un correo de
               confirmación cuando tu cuenta sea aprobada.
             </>
@@ -648,42 +451,12 @@ function B2BRegister() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 animate-fade-in">
-      {/* ── Sector Selector ── */}
-      <div className="space-y-2">
-        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Tipo de Entidad
-        </Label>
-        <div className="grid grid-cols-3 gap-2">
-          {B2B_SECTORS.map((s) => {
-            const isActive = sector === s.id;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setSector(s.id)}
-                className={cn(
-                  "flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 text-xs font-semibold transition-all duration-200 cursor-pointer",
-                  isActive
-                    ? cn(s.bg, s.border, s.color, "shadow-sm")
-                    : "border-border/40 bg-card/40 text-muted-foreground hover:text-foreground hover:border-border/60"
-                )}
-              >
-                <s.icon
-                  className={cn("h-5 w-5", isActive ? s.color : "text-muted-foreground")}
-                />
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       <div className="space-y-2">
         <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Razón Social
         </Label>
         <Input
-          placeholder={activeSector.placeholder}
+          placeholder={sectorCfg.placeholder}
           value={form.razonSocial}
           onChange={updateField("razonSocial")}
           className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm"
@@ -691,9 +464,7 @@ function B2BRegister() {
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          NIT
-        </Label>
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">NIT</Label>
         <Input
           placeholder="Ej: 900.123.456-7"
           value={form.nit}
@@ -703,9 +474,7 @@ function B2BRegister() {
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Correo Corporativo
-        </Label>
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Correo Corporativo</Label>
         <Input
           type="email"
           placeholder="Ej: gerente@empresa.com"
@@ -716,9 +485,7 @@ function B2BRegister() {
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Representante Legal
-        </Label>
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Representante Legal</Label>
         <Input
           placeholder="Nombre completo del representante"
           value={form.representante}
@@ -728,9 +495,7 @@ function B2BRegister() {
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Teléfono de Contacto
-        </Label>
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Teléfono de Contacto</Label>
         <Input
           type="tel"
           placeholder="Ej: +57 300 123 4567"
@@ -740,19 +505,16 @@ function B2BRegister() {
         />
       </div>
 
-      {/* ── Password Fields ── */}
       <PasswordField
-        id="b2b-reg-password"
+        id={`b2b-reg-${sector}`}
         label="Contraseña"
         placeholder="Mínimo 8 caracteres, 1 mayúscula, 1 número"
         value={form.password}
         onChange={updateField("password")}
       />
-
       <PasswordRequirements password={form.password} />
-
       <PasswordField
-        id="b2b-reg-confirm"
+        id={`b2b-reg-confirm-${sector}`}
         label="Confirmar Contraseña"
         placeholder="Repite tu contraseña"
         value={form.confirmPassword}
@@ -771,27 +533,13 @@ function B2BRegister() {
         disabled={!canSubmit}
         className={cn(
           "w-full h-11 gap-2 font-semibold text-sm rounded-xl transition-all duration-300",
-          canSubmit
-            ? cn(
-                activeSector.id === "banca"
-                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20"
-                  : activeSector.id === "constructora"
-                    ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
-                    : "bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/20"
-              )
-            : "bg-muted text-muted-foreground cursor-not-allowed"
+          canSubmit ? theme.button : "bg-muted text-muted-foreground cursor-not-allowed"
         )}
       >
         {submitState === "loading" ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Verificando y registrando...
-          </>
+          <><Loader2 className="h-4 w-4 animate-spin" /> Verificando y registrando...</>
         ) : (
-          <>
-            <UserPlus className="h-4 w-4" />
-            Solicitar Registro Empresarial
-          </>
+          <><UserPlus className="h-4 w-4" /> Solicitar Registro</>
         )}
       </Button>
 
@@ -803,91 +551,19 @@ function B2BRegister() {
   );
 }
 
-// ───── B2B Portal (wrapper with login/register sub-tabs) ─────
+// ═══════════════════════════════════════════════════════════════
+// B2C LOGIN
+// ═══════════════════════════════════════════════════════════════
 
-function B2BPortal({
-  authMode,
-  onAuthModeChange,
+export function B2CLogin({
+  themeColor = "cyan",
+  expectedRole = "Cliente",
 }: {
-  authMode: AuthMode;
-  onAuthModeChange: (mode: AuthMode) => void;
+  themeColor?: AccentColor;
+  expectedRole?: string;
 }) {
-  const setAuthMode = onAuthModeChange;
-
-  return (
-    <div className="space-y-4 animate-fade-in">
-      {/* Entity type badges */}
-      <div className="flex flex-wrap gap-2">
-        {B2B_SECTORS.map((s) => (
-          <div
-            key={s.id}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-semibold",
-              s.bg,
-              s.border,
-              s.color
-            )}
-          >
-            <s.icon className="h-3 w-3" />
-            {s.label}
-          </div>
-        ))}
-      </div>
-
-      <p className="text-xs text-muted-foreground leading-relaxed">
-        {authMode === "register"
-          ? "Regístrate como empresa para acceder al ecosistema Neggo. Bancos, constructoras y comercios aliados pueden gestionar leads, publicar ofertas y conectar con clientes verificados."
-          : "Inicia sesión con tu cuenta empresarial para gestionar leads, publicar ofertas y acceder a tu panel de control."}
-      </p>
-
-      {/* ── Login / Register sub-tabs ── */}
-      <div className="rounded-xl border border-border/40 bg-card/30 overflow-hidden">
-        <div className="flex border-b border-border/30">
-          <button
-            onClick={() => setAuthMode("login")}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold transition-all relative",
-              authMode === "login"
-                ? "text-blue-400"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <LogIn className="h-3.5 w-3.5" />
-            Iniciar Sesión
-            {authMode === "login" && (
-              <div className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-blue-500 shadow-[0_0_6px_hsl(217_91%_60%/0.4)]" />
-            )}
-          </button>
-          <div className="w-px bg-border/30 my-1.5" />
-          <button
-            onClick={() => setAuthMode("register")}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold transition-all relative",
-              authMode === "register"
-                ? "text-emerald-400"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <UserPlus className="h-3.5 w-3.5" />
-            Registrarse
-            {authMode === "register" && (
-              <div className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-emerald-500 shadow-[0_0_6px_hsl(160_84%_39%/0.4)]" />
-            )}
-          </button>
-        </div>
-
-        <div className="p-5">
-          {authMode === "login" ? <B2BLogin /> : <B2BRegister />}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ───── B2C: Login Form ─────
-
-function B2CLogin() {
   const navigate = useNavigate();
+  const theme = getTheme(themeColor);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -906,9 +582,7 @@ function B2CLogin() {
 
       try {
         if (!isSupabaseConfigured) {
-          toast.error("Base de datos no configurada", {
-            description: "Contacta al administrador.",
-          });
+          toast.error("Base de datos no configurada", { description: "Contacta al administrador." });
           setLoading(false);
           return;
         }
@@ -920,30 +594,31 @@ function B2CLogin() {
 
         if (!result.success) {
           if (result.pendingApproval) {
-            toast.error("Cuenta pendiente de aprobación", {
-              description: "Tu cuenta está siendo revisada por el equipo de Neggo.",
-            });
+            toast.error("Cuenta pendiente de aprobación", { description: "Tu cuenta está siendo revisada por el equipo de Neggo." });
           } else {
-            toast.error("Error de acceso", {
-              description: result.error ?? "No se pudo iniciar sesión.",
-            });
+            toast.error("Error de acceso", { description: result.error ?? "No se pudo iniciar sesión." });
           }
           setLoading(false);
           return;
         }
 
-        toast.success("¡Bienvenido a Neggo!", {
-          description: "Accediendo a tu portal financiero personal...",
-        });
+        if (expectedRole && result.role !== expectedRole) {
+          await useAuthStore.getState().logout();
+          toast.error("Cuenta incorrecta para este portal", {
+            description: "Esta cuenta no corresponde a este portal. Usa el portal correcto para tu tipo de cuenta.",
+          });
+          setLoading(false);
+          return;
+        }
+
+        toast.success("¡Bienvenido a Neggo!", { description: "Accediendo a tu portal financiero personal..." });
         setTimeout(() => navigate(result.dashboardRoute ?? "/portal"), 800);
       } catch {
-        toast.error("Error inesperado", {
-          description: "Ocurrió un error al intentar iniciar sesión.",
-        });
+        toast.error("Error inesperado", { description: "Ocurrió un error al intentar iniciar sesión." });
       }
       setLoading(false);
     },
-    [canLogin, email, password, navigate]
+    [canLogin, email, password, navigate, expectedRole]
   );
 
   const handleRecovery = useCallback(
@@ -954,9 +629,7 @@ function B2CLogin() {
 
       try {
         if (!isSupabaseConfigured) {
-          toast.error("Base de datos no configurada", {
-            description: "Contacta al administrador.",
-          });
+          toast.error("Base de datos no configurada", { description: "Contacta al administrador." });
           setRecoveryLoading(false);
           return;
         }
@@ -965,22 +638,15 @@ function B2CLogin() {
         const result = await requestPasswordReset(recoveryEmail.trim().toLowerCase());
 
         if (!result.success) {
-          toast.error("Error al enviar recuperación", {
-            description: result.error,
-          });
+          toast.error("Error al enviar recuperación", { description: result.error });
           setRecoveryLoading(false);
           return;
         }
 
         setRecoverySent(true);
-        toast.success("Correo de recuperación enviado", {
-          description:
-            "Revisa tu bandeja de entrada para restablecer tu contraseña.",
-        });
+        toast.success("Correo de recuperación enviado", { description: "Revisa tu bandeja de entrada para restablecer tu contraseña." });
       } catch {
-        toast.error("Error inesperado", {
-          description: "No se pudo enviar el correo de recuperación.",
-        });
+        toast.error("Error inesperado", { description: "No se pudo enviar el correo de recuperación." });
       }
       setRecoveryLoading(false);
     },
@@ -992,24 +658,18 @@ function B2CLogin() {
       <div className="space-y-5 animate-fade-in">
         {recoverySent ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-500/10 border border-cyan-500/20 mb-4">
-              <Mail className="h-8 w-8 text-cyan-400" />
+            <div className={cn("flex h-16 w-16 items-center justify-center rounded-2xl mb-4 border", theme.recoveryBg, theme.recoveryBorder)}>
+              <Mail className={cn("h-8 w-8", theme.recoveryIconColor)} />
             </div>
-            <h3 className="text-lg font-bold text-foreground mb-2">
-              Correo enviado
-            </h3>
+            <h3 className="text-lg font-bold text-foreground mb-2">Correo enviado</h3>
             <p className="text-sm text-muted-foreground max-w-sm">
               Hemos enviado un enlace de recuperación a{" "}
-              <span className="text-cyan-400 font-medium">{recoveryEmail}</span>.
+              <span className={cn("font-medium", theme.accent)}>{recoveryEmail}</span>.
             </p>
             <button
               type="button"
-              onClick={() => {
-                setShowRecovery(false);
-                setRecoverySent(false);
-                setRecoveryEmail("");
-              }}
-              className="mt-4 text-xs text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+              onClick={() => { setShowRecovery(false); setRecoverySent(false); setRecoveryEmail(""); }}
+              className={cn("mt-4 text-xs transition-colors cursor-pointer", theme.recoveryAccent)}
             >
               ← Volver al inicio de sesión
             </button>
@@ -1018,7 +678,7 @@ function B2CLogin() {
           <form onSubmit={handleRecovery} className="space-y-5">
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-1">
-                <Mail className="h-4 w-4 text-cyan-400" />
+                <Mail className={cn("h-4 w-4", theme.accent)} />
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Correo electrónico de recuperación
                 </Label>
@@ -1032,36 +692,23 @@ function B2CLogin() {
                 autoFocus
               />
             </div>
-
             <Button
               type="submit"
               disabled={!recoveryEmail.trim() || recoveryLoading}
               className={cn(
                 "w-full h-11 gap-2 font-semibold text-sm rounded-xl transition-all duration-300",
-                recoveryEmail.trim()
-                  ? "bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/20"
-                  : "bg-muted text-muted-foreground cursor-not-allowed"
+                recoveryEmail.trim() ? theme.recoveryButton : "bg-muted text-muted-foreground cursor-not-allowed"
               )}
             >
               {recoveryLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Enviando...
-                </>
+                <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
               ) : (
-                <>
-                  <Mail className="h-4 w-4" />
-                  Enviar enlace de recuperación
-                </>
+                <><Mail className="h-4 w-4" /> Enviar enlace de recuperación</>
               )}
             </Button>
-
             <button
               type="button"
-              onClick={() => {
-                setShowRecovery(false);
-                setRecoveryEmail("");
-              }}
+              onClick={() => { setShowRecovery(false); setRecoveryEmail(""); }}
               className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               ← Volver al inicio de sesión
@@ -1075,9 +722,7 @@ function B2CLogin() {
   return (
     <form onSubmit={handleLogin} className="space-y-5 animate-fade-in">
       <div className="space-y-2">
-        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Correo Electrónico
-        </Label>
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Correo Electrónico</Label>
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -1091,7 +736,7 @@ function B2CLogin() {
       </div>
 
       <PasswordField
-        id="b2c-login-password"
+        id={`b2c-login-${themeColor}`}
         label="Contraseña"
         placeholder="Ingresa tu contraseña"
         value={password}
@@ -1102,7 +747,7 @@ function B2CLogin() {
         <button
           type="button"
           onClick={() => setShowRecovery(true)}
-          className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+          className={cn("text-xs transition-colors cursor-pointer", theme.recoveryAccent)}
         >
           ¿Olvidaste tu contraseña?
         </button>
@@ -1113,31 +758,26 @@ function B2CLogin() {
         disabled={!canLogin}
         className={cn(
           "w-full h-11 gap-2 font-semibold text-sm rounded-xl transition-all duration-300",
-          canLogin
-            ? "bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/20"
-            : "bg-muted text-muted-foreground cursor-not-allowed"
+          canLogin ? theme.button : "bg-muted text-muted-foreground cursor-not-allowed"
         )}
       >
         {loading ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Verificando credenciales...
-          </>
+          <><Loader2 className="h-4 w-4 animate-spin" /> Verificando credenciales...</>
         ) : (
-          <>
-            <LogIn className="h-4 w-4" />
-            Ingresar
-          </>
+          <><LogIn className="h-4 w-4" /> Ingresar</>
         )}
       </Button>
     </form>
   );
 }
 
-// ───── B2C: Register Form ─────
+// ═══════════════════════════════════════════════════════════════
+// B2C REGISTER
+// ═══════════════════════════════════════════════════════════════
 
-function B2CRegister() {
+export function B2CRegister({ themeColor = "cyan" }: { themeColor?: AccentColor }) {
   const navigate = useNavigate();
+  const theme = getTheme(themeColor);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [form, setForm] = useState({
     nombres: "",
@@ -1156,8 +796,7 @@ function B2CRegister() {
   const [resultRequiresEmailConfirmation, setResultRequiresEmailConfirmation] = useState(false);
 
   const pwValidation = validatePassword(form.password);
-  const passwordsMatch =
-    form.password && form.confirmPassword && form.password === form.confirmPassword;
+  const passwordsMatch = form.password && form.confirmPassword && form.password === form.confirmPassword;
 
   const canSubmit =
     form.nombres.trim() !== "" &&
@@ -1203,10 +842,9 @@ function B2CRegister() {
     });
   }, []);
 
-  const updateField =
-    (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-    };
+  const updateField = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  };
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -1216,14 +854,11 @@ function B2CRegister() {
 
       try {
         if (!isSupabaseConfigured) {
-          toast.error("Base de datos no configurada", {
-            description: "Contacta al administrador.",
-          });
+          toast.error("Base de datos no configurada", { description: "Contacta al administrador." });
           setSubmitState("idle");
           return;
         }
 
-        // Duplicate check
         const duplicateField = await checkDuplicates({
           email: form.correo.trim().toLowerCase(),
           documentNumber: form.numeroId.trim(),
@@ -1231,10 +866,7 @@ function B2CRegister() {
         });
 
         if (duplicateField) {
-          const fieldLabels: Record<string, string> = {
-            correo: "correo",
-            documento: "cédula/documento",
-          };
+          const fieldLabels: Record<string, string> = { correo: "correo", documento: "cédula/documento" };
           toast.error("Error: Datos duplicados", {
             description: `El ${fieldLabels[duplicateField] || duplicateField} ya se encuentra registrado en el ecosistema.`,
           });
@@ -1242,7 +874,6 @@ function B2CRegister() {
           return;
         }
 
-        // Delegate to the auth domain service (auto-approves + auto-logs-in B2C clients)
         const result = await useAuthStore.getState().registerB2CClient({
           nombres: form.nombres.trim(),
           apellidos: form.apellidos.trim(),
@@ -1257,9 +888,7 @@ function B2CRegister() {
         });
 
         if (!result.success) {
-          toast.error("Error al registrar", {
-            description: result.error,
-          });
+          toast.error("Error al registrar", { description: result.error });
           setSubmitState("idle");
           return;
         }
@@ -1268,21 +897,16 @@ function B2CRegister() {
         setSubmitState("done");
         if (result.requiresEmailConfirmation) {
           toast.success("Registro exitoso — confirma tu correo", {
-            description:
-              "Hemos enviado un correo de confirmación a " + form.correo.trim().toLowerCase() + ". Revisa tu bandeja, confirma el enlace y luego inicia sesión para acceder a tu portal.",
+            description: "Hemos enviado un correo de confirmación a " + form.correo.trim().toLowerCase() + ". Revisa tu bandeja, confirma el enlace y luego inicia sesión para acceder a tu portal.",
           });
         } else {
           toast.success("¡Registro exitoso!", {
-            description:
-              "Bienvenido al portal de Neggo. Redirigiendo a tu panel financiero...",
+            description: "Bienvenido al portal de Neggo. Redirigiendo a tu panel financiero...",
           });
-          // Backend decides the route — B2C clients go to /portal
           setTimeout(() => navigate("/portal"), 2000);
         }
       } catch {
-        toast.error("Error inesperado", {
-          description: "Ocurrió un error al procesar tu registro.",
-        });
+        toast.error("Error inesperado", { description: "Ocurrió un error al procesar tu registro." });
         setSubmitState("idle");
       }
     },
@@ -1292,12 +916,10 @@ function B2CRegister() {
   if (submitState === "done") {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-500/10 border border-cyan-500/20 mb-4">
-          <CheckCircle2 className="h-8 w-8 text-cyan-400" />
+        <div className={cn("flex h-16 w-16 items-center justify-center rounded-2xl mb-4 border", theme.recoveryBg, theme.recoveryBorder)}>
+          <CheckCircle2 className={cn("h-8 w-8", theme.accent)} />
         </div>
-        <h3 className="text-lg font-bold text-foreground mb-2">
-          {resultRequiresEmailConfirmation ? "¡Registro completado!" : "¡Registro completado!"}
-        </h3>
+        <h3 className="text-lg font-bold text-foreground mb-2">¡Registro completado!</h3>
         <p className="text-sm text-muted-foreground max-w-sm">
           {resultRequiresEmailConfirmation ? (
             <>
@@ -1321,113 +943,50 @@ function B2CRegister() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 animate-fade-in">
-      {/* ── Row: Nombres + Apellidos ── */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Nombres
-          </Label>
-          <Input
-            placeholder="Ej: Jhon Edison"
-            value={form.nombres}
-            onChange={updateField("nombres")}
-            className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm"
-          />
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nombres</Label>
+          <Input placeholder="Ej: Jhon Edison" value={form.nombres} onChange={updateField("nombres")} className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm" />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Apellidos
-          </Label>
-          <Input
-            placeholder="Ej: Flórez"
-            value={form.apellidos}
-            onChange={updateField("apellidos")}
-            className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm"
-          />
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Apellidos</Label>
+          <Input placeholder="Ej: Flórez" value={form.apellidos} onChange={updateField("apellidos")} className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm" />
         </div>
       </div>
 
-      {/* ── Row: Tipo ID + Número ID ── */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Tipo de ID
-          </Label>
-          <Select
-            value={form.tipoId}
-            onValueChange={(val) => setForm((prev) => ({ ...prev, tipoId: val }))}
-          >
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo de ID</Label>
+          <Select value={form.tipoId} onValueChange={(val) => setForm((prev) => ({ ...prev, tipoId: val }))}>
             <SelectTrigger className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm">
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
             <SelectContent className="border-border/60 bg-card/95 backdrop-blur-xl">
               {ID_TYPES.map((t) => (
-                <SelectItem key={t.id} value={t.id} className="cursor-pointer">
-                  {t.label}
-                </SelectItem>
+                <SelectItem key={t.id} value={t.id} className="cursor-pointer">{t.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Número de ID
-          </Label>
-          <Input
-            placeholder="Ej: 1234567890"
-            value={form.numeroId}
-            onChange={updateField("numeroId")}
-            className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm font-mono"
-          />
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Número de ID</Label>
+          <Input placeholder="Ej: 1234567890" value={form.numeroId} onChange={updateField("numeroId")} className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm font-mono" />
         </div>
       </div>
 
-      {/* ── Correo ── */}
       <div className="space-y-2">
-        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Correo Electrónico
-        </Label>
-        <Input
-          type="email"
-          placeholder="Ej: jhon.florez@email.com"
-          value={form.correo}
-          onChange={updateField("correo")}
-          className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm"
-        />
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Correo Electrónico</Label>
+        <Input type="email" placeholder="Ej: jhon.florez@email.com" value={form.correo} onChange={updateField("correo")} className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm" />
       </div>
 
-      {/* ── Celular ── */}
       <div className="space-y-2">
-        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Celular
-        </Label>
-        <Input
-          type="tel"
-          placeholder="Ej: +57 300 123 4567"
-          value={form.celular}
-          onChange={updateField("celular")}
-          className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm font-mono"
-        />
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Celular</Label>
+        <Input type="tel" placeholder="Ej: +57 300 123 4567" value={form.celular} onChange={updateField("celular")} className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm font-mono" />
       </div>
 
-      {/* ── Password Fields ── */}
-      <PasswordField
-        id="b2c-reg-password"
-        label="Contraseña"
-        placeholder="Mínimo 8 caracteres, 1 mayúscula, 1 número"
-        value={form.password}
-        onChange={updateField("password")}
-      />
-
+      <PasswordField id="b2c-reg-password" label="Contraseña" placeholder="Mínimo 8 caracteres, 1 mayúscula, 1 número" value={form.password} onChange={updateField("password")} />
       <PasswordRequirements password={form.password} />
-
-      <PasswordField
-        id="b2c-reg-confirm"
-        label="Confirmar Contraseña"
-        placeholder="Repite tu contraseña"
-        value={form.confirmPassword}
-        onChange={updateField("confirmPassword")}
-      />
+      <PasswordField id="b2c-reg-confirm" label="Confirmar Contraseña" placeholder="Repite tu contraseña" value={form.confirmPassword} onChange={updateField("confirmPassword")} />
 
       {form.confirmPassword && !passwordsMatch && (
         <div className="flex items-center gap-2 text-[11px] text-red-400">
@@ -1439,7 +998,7 @@ function B2CRegister() {
       {/* ── Bank Matrix ── */}
       <div className="space-y-3 rounded-xl border border-border/40 bg-card/40 p-4">
         <div className="flex items-center gap-2">
-          <Landmark className="h-4 w-4 text-emerald-400" />
+          <Lock className={cn("h-4 w-4", theme.accent)} />
           <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Bancos y productos que ya tienes
           </Label>
@@ -1469,14 +1028,7 @@ function B2CRegister() {
                       isSelected ? "bg-emerald-500/10 text-emerald-400" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <div
-                      className={cn(
-                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
-                        isSelected
-                          ? "border-emerald-400 bg-emerald-500/30"
-                          : "border-border/60"
-                      )}
-                    >
+                    <div className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors", isSelected ? "border-emerald-400 bg-emerald-500/30" : "border-border/60")}>
                       {isSelected && <CheckCircle2 className="h-3 w-3 text-white" />}
                     </div>
                     {banco.name}
@@ -1516,27 +1068,18 @@ function B2CRegister() {
         )}
       </div>
 
-      {/* ── Submit ── */}
       <Button
         type="submit"
         disabled={!canSubmit}
         className={cn(
           "w-full h-11 gap-2 font-semibold text-sm rounded-xl transition-all duration-300",
-          canSubmit
-            ? "bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/20"
-            : "bg-muted text-muted-foreground cursor-not-allowed"
+          canSubmit ? theme.button : "bg-muted text-muted-foreground cursor-not-allowed"
         )}
       >
         {submitState === "loading" ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Verificando y creando cuenta...
-          </>
+          <><Loader2 className="h-4 w-4 animate-spin" /> Verificando y creando cuenta...</>
         ) : (
-          <>
-            <UserPlus className="h-4 w-4" />
-            Crear Cuenta y Acceder al Portal
-          </>
+          <><UserPlus className="h-4 w-4" /> Crear Cuenta y Acceder al Portal</>
         )}
       </Button>
 
@@ -1548,35 +1091,48 @@ function B2CRegister() {
   );
 }
 
-// ───── B2C Portal (wrapper with login/register sub-tabs) ─────
+// ═══════════════════════════════════════════════════════════════
+// AUTH PANEL — login/register tabs wrapper (themeable)
+// ═══════════════════════════════════════════════════════════════
 
-function B2CPortal() {
-  const [authMode, setAuthMode] = useState<AuthMode>("register");
+export function AuthPanel({
+  mode,
+  sector,
+  themeColor,
+  description,
+  defaultAuthMode = "register",
+}: {
+  mode: "b2b" | "b2c";
+  sector?: B2BSector;
+  themeColor: AccentColor;
+  description?: { login: string; register: string };
+  defaultAuthMode?: AuthMode;
+}) {
+  const [authMode, setAuthMode] = useState<AuthMode>(defaultAuthMode);
+  const theme = getTheme(themeColor);
+  const expectedRole = mode === "b2b" ? (sector ? getSectorConfig(sector).roleValue : undefined) : "Cliente";
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <p className="text-xs text-muted-foreground leading-relaxed">
-        {authMode === "register"
-          ? "Crea tu cuenta personal para acceder a ofertas financieras, proyectos inmobiliarios, metas de ahorro y la red de comercios aliados con Sello de Confianza Neggo."
-          : "Inicia sesión para acceder a tus metas de ahorro, ofertas personalizadas y el control de tu vida financiera."}
-      </p>
+      {description && (
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {authMode === "register" ? description.register : description.login}
+        </p>
+      )}
 
-      {/* ── Login / Register sub-tabs ── */}
       <div className="rounded-xl border border-border/40 bg-card/30 overflow-hidden">
         <div className="flex border-b border-border/30">
           <button
             onClick={() => setAuthMode("login")}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold transition-all relative",
-              authMode === "login"
-                ? "text-cyan-400"
-                : "text-muted-foreground hover:text-foreground"
+              authMode === "login" ? theme.accent : "text-muted-foreground hover:text-foreground"
             )}
           >
             <LogIn className="h-3.5 w-3.5" />
             Iniciar Sesión
             {authMode === "login" && (
-              <div className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-cyan-500 shadow-[0_0_6px_hsl(189_94%_43%/0.4)]" />
+              <div className={cn("absolute bottom-0 left-4 right-4 h-0.5 rounded-full", theme.indicator, theme.indicatorGlow)} />
             )}
           </button>
           <div className="w-px bg-border/30 my-1.5" />
@@ -1584,9 +1140,7 @@ function B2CPortal() {
             onClick={() => setAuthMode("register")}
             className={cn(
               "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold transition-all relative",
-              authMode === "register"
-                ? "text-emerald-400"
-                : "text-muted-foreground hover:text-foreground"
+              authMode === "register" ? "text-emerald-400" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <UserPlus className="h-3.5 w-3.5" />
@@ -1598,18 +1152,42 @@ function B2CPortal() {
         </div>
 
         <div className="p-5">
-          {authMode === "login" ? <B2CLogin /> : <B2CRegister />}
+          {authMode === "login"
+            ? mode === "b2b"
+              ? <B2BLogin themeColor={themeColor} expectedRole={expectedRole} />
+              : <B2CLogin themeColor={themeColor} expectedRole={expectedRole} />
+            : mode === "b2b" && sector
+              ? <B2BRegister sector={sector} />
+              : <B2CRegister themeColor={themeColor} />
+          }
         </div>
       </div>
     </div>
   );
 }
 
-// ───── Main Page ─────
+// ═══════════════════════════════════════════════════════════════
+// SECTOR PAGE LAYOUT — reusable hero + benefits + auth panel
+// ═══════════════════════════════════════════════════════════════
 
-export default function LoginEcosistema() {
-  const [activeTab, setActiveTab] = useState<LoginTab>("b2b");
-  const [b2bAuthMode, setB2bAuthMode] = useState<AuthMode>("register");
+export function SectorPageLayout({
+  sector,
+  heroTitle,
+  heroHighlight,
+  heroSubtitle,
+  benefits,
+  features,
+}: {
+  sector: B2BSector;
+  heroTitle: string;
+  heroHighlight: string;
+  heroSubtitle: string;
+  benefits: string[];
+  features: { icon: typeof Building2; title: string; description: string }[];
+}) {
+  const sectorCfg = getSectorConfig(sector);
+  const theme = getTheme(sectorCfg.themeColor);
+  const SectorIcon = sectorCfg.icon;
 
   return (
     <div className="min-h-screen bg-background">
@@ -1617,113 +1195,140 @@ export default function LoginEcosistema() {
       <header className="sticky top-0 z-50 border-b border-border/30 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto max-w-6xl flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10">
-              <Sparkles className="h-5 w-5 text-emerald-400" />
+            <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", theme.iconBg, theme.glowClass)}>
+              <SectorIcon className={cn("h-5 w-5", theme.accent)} />
             </div>
             <div>
-              <span className="text-lg font-extrabold tracking-tight text-foreground">
-                Neggo
-              </span>
-              <span className="hidden sm:inline text-[10px] uppercase tracking-[0.2em] text-emerald-400 font-semibold ml-2">
-                Acceso Seguro
+              <span className="text-lg font-extrabold tracking-tight text-foreground">Neggo</span>
+              <span className={cn("hidden sm:inline text-[10px] uppercase tracking-[0.2em] font-semibold ml-2", theme.accent)}>
+                {sectorCfg.label}
               </span>
             </div>
           </Link>
-
           <Link
             to="/"
             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Volver al inicio
+            <span className="hidden sm:inline">Volver al inicio</span>
+            <span className="sm:hidden">Volver</span>
           </Link>
         </div>
       </header>
 
-      {/* ── Main Content ── */}
-      <main className="mx-auto max-w-xl px-4 sm:px-6 py-12 lg:py-16">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1 text-[10px] font-medium text-emerald-400 mb-4">
-            <Lock className="h-3 w-3" />
-            Entorno Seguro — Cifrado de extremo a extremo
+      {/* ── Hero + Auth Grid ── */}
+      <main className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
+        {/* Background orbs */}
+        <div className={cn("absolute -top-20 -right-20 h-[400px] w-[400px] rounded-full blur-[100px]", sectorCfg.themeColor === "emerald" ? "bg-emerald-500/[0.04]" : sectorCfg.themeColor === "blue" ? "bg-blue-500/[0.04]" : "bg-amber-500/[0.04]")} />
+        <div className={cn("absolute -bottom-20 -left-20 h-[300px] w-[300px] rounded-full blur-[100px]", sectorCfg.themeColor === "emerald" ? "bg-emerald-500/[0.02]" : sectorCfg.themeColor === "blue" ? "bg-blue-500/[0.02]" : "bg-amber-500/[0.02]")} />
+
+        <div className="relative grid gap-10 lg:grid-cols-2 lg:items-start">
+          {/* ── Left: Hero + Benefits ── */}
+          <div className="space-y-8">
+            <div className="space-y-5">
+              <div className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-medium", theme.iconBg, theme.iconBorder, theme.accent)}>
+                <span className="relative flex h-2 w-2">
+                  <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", sectorCfg.themeColor === "emerald" ? "bg-emerald-400" : sectorCfg.themeColor === "blue" ? "bg-blue-400" : "bg-amber-400")} />
+                  <span className={cn("relative inline-flex h-2 w-2 rounded-full", sectorCfg.themeColor === "emerald" ? "bg-emerald-400" : sectorCfg.themeColor === "blue" ? "bg-blue-400" : "bg-amber-400")} />
+                </span>
+                Portal {sectorCfg.label} — Ecosistema Neggo
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight leading-[1.15]">
+                {heroTitle}{" "}
+                <span className={cn("text-transparent bg-clip-text bg-gradient-to-r", sectorCfg.themeColor === "emerald" ? "from-emerald-400 to-emerald-200" : sectorCfg.themeColor === "blue" ? "from-blue-400 to-blue-200" : "from-amber-400 to-amber-200")}>
+                  {heroHighlight}
+                </span>
+              </h1>
+
+              <p className="text-sm sm:text-base text-muted-foreground max-w-xl leading-relaxed">
+                {heroSubtitle}
+              </p>
+
+              <div className="flex flex-wrap gap-2.5">
+                {benefits.map((b) => (
+                  <span key={b} className={cn("inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-medium", theme.iconBg, theme.iconBorder, theme.accent)}>
+                    <CheckCircle2 className="h-3 w-3" />
+                    {b}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Feature grid ── */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              {features.map((f) => (
+                <div key={f.title} className="flex gap-3.5">
+                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", theme.iconBg)}>
+                    <f.icon className={cn("h-5 w-5", theme.accent)} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground">{f.title}</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-1">{f.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Trust bar ── */}
+            <div className="flex items-center gap-4 rounded-xl border border-border/30 bg-card/20 px-5 py-4">
+              <ShieldCheck className={cn("h-5 w-5 shrink-0", theme.accent)} />
+              <div>
+                <p className="text-xs font-semibold text-foreground">Seguridad enterprise</p>
+                <p className="text-[10px] text-muted-foreground">Cifrado de extremo a extremo · Cumplimiento normativo · ISO 27001</p>
+              </div>
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-            Acceso al Ecosistema
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-            Selecciona tu tipo de portal para acceder o registrarte en Neggo.
-          </p>
+
+          {/* ── Right: Auth Panel ── */}
+          <div className="lg:sticky lg:top-24">
+            <div className="rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-border/30">
+                <div className="flex items-center gap-2.5">
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", theme.iconBg)}>
+                    <SectorIcon className={cn("h-5 w-5", theme.accent)} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">Acceso {sectorCfg.label}</h3>
+                    <p className="text-[10px] text-muted-foreground">Portal seguro del ecosistema Neggo</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 sm:p-6">
+                <AuthPanel
+                  mode="b2b"
+                  sector={sector}
+                  themeColor={sectorCfg.themeColor}
+                  description={{
+                    login: `Inicia sesión con tu cuenta de ${sectorCfg.label.toLowerCase()} para acceder a tu panel de control.`,
+                    register: `Regístra tu ${sectorCfg.label.toLowerCase().replace(/s$/, "")} para unirte al ecosistema Neggo.`,
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* ── Admin + Client links ── */}
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <Link
+                to="/login-ecosistema"
+                className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Lock className="h-3 w-3" />
+                Iniciar sesión Admin Neggo
+              </Link>
+              <Link
+                to="/landing/clientes"
+                className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-cyan-400 transition-colors"
+              >
+                ¿Eres cliente? Acceder
+              </Link>
+            </div>
+          </div>
         </div>
 
-        {/* ── Tabs ── */}
-        <div className="rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
-          {/* Tab bar */}
-          <div className="flex border-b border-border/30">
-            <button
-              onClick={() => setActiveTab("b2b")}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold transition-all relative",
-                activeTab === "b2b"
-                  ? "text-blue-400"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Portales de Negocio B2B</span>
-              <span className="sm:hidden">B2B</span>
-              {activeTab === "b2b" && (
-                <div className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-blue-500 shadow-[0_0_8px_hsl(217_91%_60%/0.5)]" />
-              )}
-            </button>
-            <div className="w-px bg-border/30 my-2" />
-            <button
-              onClick={() => setActiveTab("b2c")}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold transition-all relative",
-                activeTab === "b2c"
-                  ? "text-cyan-400"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <UserCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Portal Clientes B2C</span>
-              <span className="sm:hidden">B2C</span>
-              {activeTab === "b2c" && (
-                <div className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-cyan-500 shadow-[0_0_8px_hsl(189_94%_43%/0.5)]" />
-              )}
-            </button>
-          </div>
-
-          {/* ── Tab Content ── */}
-          <div className="p-5 sm:p-6">
-            {activeTab === "b2b" && (
-              <B2BPortal authMode={b2bAuthMode} onAuthModeChange={setB2bAuthMode} />
-            )}
-            {activeTab === "b2c" && <B2CPortal />}
-          </div>
-        </div>
-
-        {/* ── Admin login link (routes through the same authService.login() flow) ── */}
-        <div className="mt-8 flex items-center justify-center">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("b2b");
-              setB2bAuthMode("login");
-            }}
-            className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-card/40 px-5 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-slate-500/40 hover:bg-card/60 transition-all duration-200"
-          >
-            <Crown className="h-4 w-4 text-slate-400" />
-            <span className="font-semibold">Iniciar sesión Admin Neggo</span>
-            <span className="text-[10px] text-muted-foreground/50">
-              — requiere cuenta con rol Admin
-            </span>
-          </button>
-        </div>
-
-        {/* ── Security footer ── */}
-        <div className="mt-6 flex items-center justify-center gap-2 text-[10px] text-muted-foreground/60">
+        {/* ── Footer ── */}
+        <div className="mt-12 flex items-center justify-center gap-2 text-[10px] text-muted-foreground/60">
           <ShieldCheck className="h-3 w-3" />
           <span>Conexión cifrada — ISO 27001</span>
           <span className="text-border/40">|</span>
