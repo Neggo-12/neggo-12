@@ -203,7 +203,7 @@ Hoy SolicitudesTab.tsx (los 3, de bancos/constructoras/comercios) solo muestra n
 **Sistema de alertas de conversión (Admin):**
 - Por cada negocio, calcular tasa de conversión (Vendido / Total leads recibidos).
 - Comparar contra el promedio del mismo sector/categoría (ej. si "Diseño de Sonrisa" convierte 30% en promedio y un comercio específico convierte 2%, se marca para revisión).
-- Se muestra como una pestaña "Alertas de Conversión" dentro del panel "Clientes en Espera" (sección 9.5), extendiendo el ya existente sistema de Métricas de Rechazo — no es una tabla/sistema nuevo desde cero, reutiliza datos que ya se capturan.
+- Se muestra como una pestaña "Alertas de Conversión" dentro del panel "Clientes en Espera" (sección 9.3.5), extendiendo el ya existente sistema de Métricas de Rechazo — no es una tabla/sistema nuevo desde cero, reutiliza datos que ya se capturan.
 
 **Código de confirmación de venta — degradado a opcional, no crítico:**
 El código de 6 dígitos que el cliente genera y le da al comercio para confirmar una venta se mantiene como funcionalidad opcional: si se usa, la venta queda marcada "Vendido — Verificado" (un sello de confianza extra para el negocio, útil para su reputación), pero no es requisito ni el mecanismo anti-fraude central.
@@ -212,17 +212,98 @@ El código de 6 dígitos que el cliente genera y le da al comercio para confirma
 
 **Constructoras:** usa el mecanismo ya diseñado en el documento original — cliente sube promesa de compraventa/escritura y recibe un Bono Neggo por hacerlo. No usa código ni encuesta, dado que el proceso de cierre (fiducias, bancos, tiempos largos) no tiene un momento único claro de verificación.
 
-### 9.3 Señales de interés (negocios no registrados)
-- El selector de Me Interesa (Bancos/Constructoras/Comercios) muestra la lista completa: negocios registrados + una lista curada de negocios grandes conocidos aunque no estén en la plataforma.
-- Si el negocio elegido SÍ está registrado → flujo actual sin cambios (lead real).
-- Si el negocio elegido NO está registrado → se crea una "señal de interés": tabla nueva, guarda datos completos del cliente (nombre, teléfono, categoría/producto, ciudad, negocio deseado), SIN organization_id (el negocio no existe en el sistema todavía). El cliente ve un mensaje honesto: "Registramos tu interés en [Negocio]. Te avisaremos apenas se una a Neggo." — nunca "tu solicitud fue enviada", porque sería falso.
-- Cuando el negocio finalmente se registre, Neggo puede conectar manualmente esas señales de interés acumuladas con datos completos del cliente.
+### 9.3 Señales de interés (negocios no registrados) — CERRADO E IMPLEMENTADO
 
-### 9.4 Lista curada de negocios conocidos
-- Constante o tabla con bancos/constructoras/comercios grandes de Colombia conocidos, para poblar el selector ampliado de 9.3 incluso sin registro.
+**Objetivo:** cuando un cliente busca un banco/constructora/comercio que no está en Neggo (o que no tuvo match automático), en vez de un callejón sin salida se registra su interés — dato honesto, sin pretender que hay un lead real, y acumulable para priorizar reclutamiento comercial.
 
-### 9.5 Panel "Clientes en Espera" (Admin)
-- Agrega, por sector (Bancos/Constructoras/Comercios), las señales de interés acumuladas — permite ver qué categorías/negocios tienen más demanda represada, para priorizar a quién reclutar.
+#### 9.3.1 Esquema
+
+Dos tablas nuevas (migración `supabase/migrations/20260711_senales_interes.sql`, aplicada y verificada con `pg_policies`; más una migración de ajuste `supabase/migrations/20260712_senal_interes_negocio_opcional.sql`, ver 9.3.6):
+
+**`negocios_curados`** — lo que la UI muestra como "Negocios de Interés": lista editable desde Admin de negocios grandes conocidos que aún no se han unido a Neggo. (El nombre de tabla/identificadores internos sigue siendo `negocios_curados`/`NegocioCuradoRow` — solo el texto visible para el usuario se renombró a "Negocios de Interés".)
+```sql
+CREATE TABLE negocios_curados (
+  id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  sector text NOT NULL CHECK (sector IN ('banco', 'constructora', 'comercio')),
+  nombre text NOT NULL,
+  ciudad text,
+  activo boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (sector, nombre)
+);
+```
+- `activo` es soft-delete: si Admin "quita" un Negocio de Interés (ej. porque se registró de verdad), las señales de interés viejas que ya lo referencian por nombre siguen intactas.
+- `ciudad` es nullable a nivel de esquema — la obligatoriedad para constructora/comercio se valida en el formulario de Admin (sección 9.3.5), no en la base de datos, porque los bancos sí pueden ser nacionales.
+- RLS: lectura abierta a cualquier `authenticated` (el cliente la necesita para armar el selector); escritura (insert/update) solo `is_platform_admin()`. Sin policy de DELETE — el soft-delete vía `activo` es el único mecanismo de baja.
+
+**`senales_interes`** — lo que se crea cuando un cliente elige un Negocio de Interés (no registrado) en vez de uno real, o registra interés genérico sin nombrar uno específico.
+```sql
+CREATE TABLE senales_interes (
+  id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  cliente_id text NOT NULL REFERENCES users(id),
+  cliente_nombre text NOT NULL,
+  cliente_telefono text NOT NULL,
+  sector text NOT NULL CHECK (sector IN ('banco', 'constructora', 'comercio')),
+  negocio_deseado text,               -- nullable desde 9.3.6: obligatorio solo para sector='banco'
+  producto_bancario text,
+  tipo_vivienda text,
+  categoria text,
+  subcategoria text,
+  ciudad text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+```
+- Sin `organization_id` — el negocio no existe en el sistema; es una tabla de "demanda represada", no de leads.
+- `cliente_nombre`/`cliente_telefono` se guardan como snapshot (no join a `users`) porque son los datos que se necesitan para el reclutamiento comercial futuro, independientemente de cambios posteriores en el registro del cliente.
+- RLS: el cliente inserta solo su propia señal (`cliente_id = auth.uid()::text`); SELECT es del propio cliente o de `is_platform_admin()` (para el panel de Admin).
+
+#### 9.3.2 Flujo Bancos — selector combinado
+
+`SolicitudBancoDialog` (`MeInteresaView.tsx`) carga en paralelo `fetchBancosAprobados()` (reales) y `fetchNegociosCuradosBySector('banco')` (Negocios de Interés), y los muestra como un único selector de chips. Cada Negocio de Interés lleva un badge visual "No registrado" para que el cliente sepa que no es un lead real. Internamente, cada entrada seleccionada se identifica por id (`banco.id`) o por id prefijado `curated:${negocioCurado.id}` — el prefijo es lo único que distingue ambos tipos en el estado del componente, sin duplicar un sistema de tipos paralelo. Para banco, `negocioDeseado` sigue siendo obligatorio (ver 9.3.6) — siempre se elige una entidad real o un Negocio de Interés por nombre.
+
+Al enviar: los ids sin prefijo van al flujo real (`addSolicitudBanco`, sin cambios); cada id `curated:` dispara una llamada independiente a `addSenalInteres` (una por negocio curado elegido). Es posible enviar una combinación de ambos en un solo submit — ej. 2 bancos reales + 1 curado — y el cliente ve un solo mensaje de confirmación agregando ambos conteos.
+
+#### 9.3.3 Flujo Constructoras/Comercios — fallback en 0 resultados
+
+El matching automático (`fetchProyectosMatch`/`fetchComerciosMatch`, ya existente) no cambia. La solicitud real siempre se guarda, incluso si no hay match (queda en historial con estado "Sin destinatarios disponibles" — comportamiento preexistente).
+
+Lo nuevo: si el resultado del matching automático es 0, el diálogo pasa a un estado de fallback — muestra el mensaje "No encontramos [constructoras/comercios] que hagan match. ¿Te interesa alguno de estos?" y un selector de `fetchNegociosCuradosBySector(sector)` filtrado client-side por ciudad usando `normalizeCiudad()` (`@/lib/utils`, ver 9.3.6) — un Negocio de Interés con `ciudad: null` se ofrece en cualquier ciudad (negocio nacional); uno con ciudad específica se ofrece si coincide con la ciudad elegida por el cliente ignorando tildes y mayúsculas/minúsculas. Elegir uno dispara `addSenalInteres` como una acción separada de la solicitud real ya guardada — así el historial refleja fielmente que hubo un intento real sin match, más (opcionalmente) una señal de interés adicional.
+
+Si no hay ningún Negocio de Interés que coincida con la ciudad (`curados.length === 0`), el cliente ya no se queda en un callejón sin salida: puede registrar la señal igual, sin elegir nombre — botón "Registrar interés de todas formas", que llama `addSenalInteres` con `negocioDeseado` sin definir (ver 9.3.6).
+
+No se agregó un selector manual de negocios reales para Constructoras/Comercios (a diferencia de Bancos) — el matching automático sigue siendo la única vía de conexión con negocios reales en estos dos sectores; los Negocios de Interés son solo fallback, nunca alternativa a un match real disponible.
+
+#### 9.3.4 Historial del cliente — 4ª variante
+
+`SolicitudCliente` (`usePortalStore.ts`) es una unión discriminada por `origen`; se agregó una 4ª variante `SolicitudSenalInteresCliente` (`origen: 'senal-interes'`) junto a `banco`/`constructora`/`comercio`. `hydrateSolicitudes()` combina en paralelo `fetchMeInteresaSolicitudesByCliente` (leads reales) y `fetchSenalesInteresByCliente` (señales propias), y los fusiona en un solo historial ordenado por fecha — el cliente ve todo en una sola línea de tiempo, sin sección separada.
+
+Mensaje honesto en el historial (nunca "solicitud enviada", porque sería falso): **"Interés registrado en [negocio] — Te avisaremos cuando se una a Neggo"**, con ícono (`Bell`) y badge (violeta) visualmente distintos del pipeline normal — para que quede claro que es un estado de espera, no un lead en proceso. Cuando la señal es genérica (`negocioDeseado` null, ver 9.3.6), el mensaje cae a un texto derivado de `categoria`/`tipoVivienda` en vez del nombre del negocio (ej. "Interés registrado en vivienda tipo Apartamento — Te avisaremos...").
+
+#### 9.3.5 Panel Admin "Clientes en Espera"
+
+Nueva sección del sidebar de `AdminDashboard.tsx`, con dos bloques:
+
+1. **Gestión de Negocios de Interés** — formulario (sector, nombre, ciudad) + tabla de existentes con toggle activo/inactivo (soft-delete vía `activo`). La ciudad es obligatoria en el formulario si el sector es constructora o comercio (casi siempre locales); opcional si es banco (puede ser nacional) — validación en la UI del formulario, deshabilita el botón "Agregar" si falta, sin cambio de esquema (`ciudad` ya es nullable en la tabla).
+2. **Agregación de señales de interés** — `fetchTodasLasSenalesInteres()` (todas, sin filtro por cliente — permitido solo a Admin por RLS), agrupadas client-side por sector y luego por un label derivado (`negocio_deseado` si existe; si es null, categoría/tipo de vivienda + ciudad — ver 9.3.6), ordenadas de mayor a menor volumen. Cada grupo es expandible: al hacer clic muestra la lista de clientes detrás del conteo (`clienteNombre`/`clienteTelefono`, snapshot guardado en la señal), para que Admin pueda contactarlos directamente al reclutar el negocio. Agregación client-side (no vista SQL) porque el volumen esperado es bajo por ahora — mismo criterio ya aplicado en el resto del proyecto; se difiere a una vista/materialización cuando haya evidencia real de que hace falta.
+
+Este panel es también donde eventualmente vivirá la pestaña "Alertas de Conversión" mencionada en la sección 9.2.1 (anti-fraude) — no construida todavía, solo referenciada ahí.
+
+#### 9.3.6 Ajustes posteriores al cierre — negocio_deseado opcional + normalizeCiudad + clientes visibles
+
+Tres correcciones aplicadas después del cierre inicial de la sección (migración `supabase/migrations/20260712_senal_interes_negocio_opcional.sql`):
+
+1. **`negocio_deseado` pasa a nullable**, con un CHECK que lo sigue exigiendo solo para `sector='banco'`:
+   ```sql
+   ALTER TABLE senales_interes ALTER COLUMN negocio_deseado DROP NOT NULL;
+   ALTER TABLE senales_interes
+     ADD CONSTRAINT senales_interes_negocio_deseado_banco_check
+     CHECK (sector <> 'banco' OR negocio_deseado IS NOT NULL);
+   ```
+   Motivo: para constructora/comercio, exigir que el cliente elija un Negocio de Interés específico obligaba a Admin a poblar cientos de entradas solo para no bloquear el flujo. Ahora el cliente puede registrar interés genérico (solo categoría/tipo de vivienda + ciudad) sin nombrar un negocio — sigue siendo el centro del flujo para banco, donde el selector siempre exige elegir una entidad.
+
+2. **`normalizeCiudad()`** (`web/src/lib/utils.ts`) — quita tildes/diacríticos (vía `.normalize('NFD').replace(/\p{Mn}/gu, '')`) y pasa a minúsculas. Se usa en el filtro de Negocios de Interés por ciudad en los diálogos de fallback (Constructoras/Comercios). Motivo: el campo `ciudad` de `negocios_curados` se captura con un `<Input>` de texto libre en el panel Admin (no un `<Select>` de la constante `CIUDADES`, a diferencia de todos los demás puntos donde se captura ciudad en la app), así que Admin podía escribir "medellin" mientras el cliente elige "Medellín" en su dropdown y el filtro exacto anterior los perdía. Se revisó `fetchComerciosMatch`, `fetchProyectosMatch` y `ComercioOnboarding.tsx`: en los tres, ambos lados de la comparación de ciudad se originan siempre en el mismo `<Select>` de `CIUDADES` — sin riesgo real de mismatch — así que no se tocaron.
+
+3. **Botón "Registrar interés de todas formas"** en el estado vacío (`curados.length === 0`) de los diálogos de fallback de Constructoras/Comercios — antes ese estado solo mostraba texto informativo y un botón de cerrar; ahora permite registrar la señal genérica sin negocio específico, en vez de terminar en un callejón sin salida.
 
 ### 9.6 Sello de Confianza — pago específico
 - Hoy se otorga automático y gratis al completar el onboarding de Comercio (Fase 1). Debe convertirse en un pago específico, separado de los planes Básico/Premium existentes.
@@ -264,3 +345,34 @@ Se descubrió al investigar un bug real reportado por el usuario (`Loader2 is no
 **Corrección permanente:** usar siempre `npx tsc --noEmit -p tsconfig.app.json` para cualquier verificación de tipos futura en este proyecto — nunca `-p .` (el comando raíz).
 
 **Lección:** las pruebas reales en el navegador con evidencia de base de datos siguen siendo la fuente de verdad final — fueron esas pruebas, no la verificación automática, las que dieron confianza real en el sistema durante toda la sesión.
+
+## 14. Auditoría de UPDATEs silenciosos + Sentry + causa raíz del bug de "falabella"
+
+### 14.1 Bug de los toggles en "Clientes en Espera" — causa raíz confirmada
+
+Al togglear `activo` en un Negocio de Interés (caso concreto: "falabella"/"falabella1"), el cambio no se aplicaba en la base de datos sin que la UI mostrara ningún error. Investigación:
+
+- **Causa raíz confirmada con SQL real:** no es un problema de RLS ni de la cuenta Admin — se verificó que la cuenta Admin real está correctamente vinculada (`users.id` = `auth.uid()`, `rol='Admin'`) y que `is_platform_admin()` responde `true` para esa sesión.
+- El origen real es el **"Modo Demo" del `ProfileSwitcher`** (`web/src/components/ProfileSwitcher.tsx` → `switchProfile()` en `useAuthStore.ts`): el botón "Modo Admin Neggo" pone un usuario mock (`USUARIOS_DEMO.admin`) en el store de Zustand y explícitamente `session: null` — **no pasa por `supabase.auth.signInWithPassword`**, así que no garantiza que exista un JWT real cargado en el cliente de Supabase. Si se navega al panel Admin vía este atajo de demo en vez de un login real, el `auth.uid()` que Postgres ve en cada request puede no ser el esperado (o ser nulo), y cualquier UPDATE protegido por RLS se bloquea en silencio — exactamente el síntoma observado.
+- El bug NO estaba en el diseño de RLS ni en la lógica de negocio — estaba en confundir "estar en modo demo Admin en la UI" con "tener una sesión real autenticada".
+
+### 14.2 Auditoría completa — verificación de filas afectadas en UPDATEs
+
+Se revisaron las 12 funciones de `repositories.ts` que hacen `.update(...)`. Antes de esta ronda, 2 de las 12 no verificaban cuántas filas afectó el UPDATE (`setMetaIFC` y `toggleNegocioCuradoActivo`) — un UPDATE bloqueado por RLS no lanza error de Postgres, solo afecta 0 filas silenciosamente, y sin este chequeo la app no tiene forma de distinguir "se actualizó" de "RLS lo bloqueó sin avisar".
+
+**Estado actual: las 12 ahora verifican filas afectadas** (`.select('id')` + `if (!data || data.length === 0) return { error: ... }`), siguiendo el patrón ya establecido por `updateOrganizationCiudad`: `setMetaIFC`, `updateUserStatus`, `updateOrganizationStatus`, `updateOrganizationMetadata`, `updateOrganizationTrustSeal`, `updateOrganizationCiudad`, `updateTarifaBanco`, `updatePlanComercio`, `updateOrganizationPlanNegociacion`, `toggleNegocioCuradoActivo`, `updateMeInteresaPipelineEstado`, `updateMeInteresaProximaGestion`.
+
+### 14.3 Sentry — monitoreo de errores en producción
+
+Se implementó `@sentry/react` para capturar errores reales sin depender de que un usuario reporte manualmente que algo falló:
+
+- `core/infrastructure/env.ts` — `SENTRY_DSN`/`isSentryConfigured`, mismo patrón que `isSupabaseEnvConfigured`.
+- `core/infrastructure/sentry.ts` (nuevo) — `initSentry()` (llamada una vez en `main.tsx`, antes del render) y `reportDbError()`.
+- `repositories.ts` — `errMessage()` (el único punto por el que pasan todos los errores reales de Supabase/Postgres) reporta a Sentry automáticamente; los 12 sitios de "0 filas afectadas" de la sección 14.2 pasan por un nuevo helper `noRowsError()` que hace lo mismo, preservando el mensaje visible al usuario sin cambios.
+- **Activación condicionada:** `initSentry()` es no-op si no hay `VITE_SENTRY_DSN` configurado O si no se corre en producción (`import.meta.env.PROD`) — en `npm run dev` local nunca reporta nada, para no ensuciar la cuenta de Sentry con ruido de desarrollo.
+
+**Pendiente de validar con evidencia real:** esto no se ha probado de punta a punta todavía — requiere un build de producción real (`npm run build` + deploy) para confirmar que un error efectivamente aparece en el dashboard de Sentry. Hasta que eso no se verifique con evidencia real, esta implementación se considera "aplicada pero no confirmada en producción" — mismo criterio de verificación que el resto de esta sesión.
+
+### 14.4 Nuevo pendiente en el backlog
+
+Considerar remover o etiquetar de forma mucho más visible el "Modo Demo" del `ProfileSwitcher` (sección "Módulo de Pruebas y Simulación — Modo Demo" en `AdminDashboard.tsx` y las demás vistas) — hoy es fácil entrar en modo demo sin darse cuenta de que no es una sesión real, y eso fue la causa raíz confirmada del bug de 14.1. No se ha decidido todavía si la solución es un badge visual más agresivo, restringirlo a un build de desarrollo únicamente, o remover el atajo por completo en producción.
