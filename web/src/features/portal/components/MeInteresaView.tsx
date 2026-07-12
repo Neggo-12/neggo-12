@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   Plus, Loader2, CheckCircle2, Building2, Home, Sparkles,
-  Clock, FileText, ChevronRight, Shield, AlertTriangle, Store,
+  Clock, FileText, ChevronRight, Shield, AlertTriangle, Store, Bell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,8 +21,9 @@ import {
 } from '@/components/ui/select';
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import type { SolicitudProductType, SolicitudCliente } from '@/features/portal/store/usePortalStore';
-import { cn } from '@/lib/utils';
-import { fetchBancosAprobados } from '@/core/db/repositories';
+import { cn, normalizeCiudad } from '@/lib/utils';
+import { fetchBancosAprobados, fetchNegociosCuradosBySector } from '@/core/db/repositories';
+import type { NegocioCuradoRow } from '@/core/db/repositories';
 import { COMUNAS_MEDELLIN, CIUDADES, SUBCATEGORIAS } from '@/types';
 import type { GoalCategory } from '@/types';
 
@@ -68,48 +69,67 @@ function SolicitudBancoDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { addSolicitudBanco } = usePortalStore();
+  const { addSolicitudBanco, addSenalInteres } = usePortalStore();
   const [productType, setProductType] = useState<SolicitudProductType | null>(null);
   const [bancos, setBancos] = useState<{ id: string; name: string }[]>([]);
+  const [curados, setCurados] = useState<NegocioCuradoRow[]>([]);
   const [isLoadingBancos, setIsLoadingBancos] = useState(true);
   const [loadBancosError, setLoadBancosError] = useState<string | null>(null);
-  const [selectedBancoIds, setSelectedBancoIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [submitState, setSubmitState] = useState<'idle' | 'loading' | 'done'>('idle');
 
   useEffect(() => {
     if (!open) return;
     setIsLoadingBancos(true);
     setLoadBancosError(null);
-    fetchBancosAprobados().then(({ data, error }) => {
-      if (error) {
-        setLoadBancosError(error);
-      } else {
-        setBancos(data ?? []);
-      }
-      setIsLoadingBancos(false);
-    });
+    Promise.all([fetchBancosAprobados(), fetchNegociosCuradosBySector('banco')]).then(
+      ([bancosRes, curadosRes]) => {
+        if (bancosRes.error) {
+          setLoadBancosError(bancosRes.error);
+        } else {
+          setBancos(bancosRes.data ?? []);
+        }
+        setCurados(curadosRes.data ?? []);
+        setIsLoadingBancos(false);
+      },
+    );
   }, [open]);
 
-  const toggleBank = useCallback((id: string) => {
-    setSelectedBancoIds((prev) =>
+  const toggleId = useCallback((id: string) => {
+    setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id],
     );
   }, []);
 
-  const selectedBancos = bancos.filter((b) => selectedBancoIds.includes(b.id));
-  const canSubmit = productType !== null && selectedBancoIds.length > 0 && submitState === 'idle';
+  const selectedBancos = bancos.filter((b) => selectedIds.includes(b.id));
+  const selectedCurados = curados.filter((c) => selectedIds.includes(`curated:${c.id}`));
+  const canSubmit = productType !== null && selectedIds.length > 0 && submitState === 'idle';
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || !productType) return;
     setSubmitState('loading');
 
-    const success = await addSolicitudBanco({
-      id: `SOL-${Date.now().toString(36).toUpperCase()}`,
-      productType,
-      bancos: selectedBancos.map((b) => ({ organizationId: b.id, nombre: b.name })),
-    });
+    const bancoSuccess =
+      selectedBancos.length > 0
+        ? await addSolicitudBanco({
+            id: `SOL-${Date.now().toString(36).toUpperCase()}`,
+            productType,
+            bancos: selectedBancos.map((b) => ({ organizationId: b.id, nombre: b.name })),
+          })
+        : true;
 
-    if (!success) {
+    const senalResults = await Promise.all(
+      selectedCurados.map((c, i) =>
+        addSenalInteres({
+          id: `SEN-${Date.now().toString(36).toUpperCase()}-${i}`,
+          sector: 'banco',
+          negocioDeseado: c.nombre,
+          productoBancario: productType,
+        }),
+      ),
+    );
+
+    if (!bancoSuccess || senalResults.some((ok) => !ok)) {
       setSubmitState('idle');
       return;
     }
@@ -118,10 +138,10 @@ function SolicitudBancoDialog({
     setTimeout(() => {
       setSubmitState('idle');
       setProductType(null);
-      setSelectedBancoIds([]);
+      setSelectedIds([]);
       onOpenChange(false);
     }, 1500);
-  }, [canSubmit, productType, selectedBancos, addSolicitudBanco, onOpenChange]);
+  }, [canSubmit, productType, selectedBancos, selectedCurados, addSolicitudBanco, addSenalInteres, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -143,8 +163,8 @@ function SolicitudBancoDialog({
             </div>
             <p className="text-base font-semibold text-foreground mb-1">Solicitud enviada</p>
             <p className="text-xs text-muted-foreground max-w-xs">
-              Tus datos fueron enviados a {selectedBancoIds.length} banco
-              {selectedBancoIds.length > 1 ? 's' : ''}. Un asesor te contactará pronto.
+              Tus datos fueron enviados a {selectedIds.length} banco
+              {selectedIds.length > 1 ? 's' : ''}. Un asesor te contactará pronto.
             </p>
           </div>
         ) : (
@@ -188,12 +208,12 @@ function SolicitudBancoDialog({
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {bancos.map((banco) => {
-                    const isSelected = selectedBancoIds.includes(banco.id);
+                    const isSelected = selectedIds.includes(banco.id);
                     return (
                       <button
                         key={banco.id}
                         type="button"
-                        onClick={() => toggleBank(banco.id)}
+                        onClick={() => toggleId(banco.id)}
                         className={cn(
                           'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200',
                           isSelected
@@ -207,22 +227,46 @@ function SolicitudBancoDialog({
                       </button>
                     );
                   })}
-                  {bancos.length === 0 && (
+                  {curados.map((curado) => {
+                    const id = `curated:${curado.id}`;
+                    const isSelected = selectedIds.includes(id);
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => toggleId(id)}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200',
+                          isSelected
+                            ? 'border-blue-500/40 bg-blue-500/10 text-blue-400 shadow-sm'
+                            : 'border-border/50 bg-secondary/40 text-muted-foreground hover:border-border/70 hover:text-foreground',
+                        )}
+                      >
+                        <Building2 className="h-3 w-3" />
+                        {curado.nombre}
+                        <span className="text-[9px] px-1 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          No registrado
+                        </span>
+                        {isSelected && <CheckCircle2 className="h-3 w-3 text-blue-400" />}
+                      </button>
+                    );
+                  })}
+                  {bancos.length === 0 && curados.length === 0 && (
                     <p className="text-xs text-muted-foreground">No hay bancos aprobados todavía.</p>
                   )}
                 </div>
               )}
             </div>
 
-            {productType && selectedBancoIds.length > 0 && (
+            {productType && selectedIds.length > 0 && (
               <div className="rounded-lg bg-blue-500/5 border border-blue-500/20 p-3">
                 <p className="text-xs text-blue-400 font-medium text-center">
                   Solicitarás{' '}
                   <span className="font-semibold">
                     {PRODUCT_TYPES.find((p) => p.id === productType)?.label}
                   </span>{' '}
-                  a {selectedBancoIds.length} banco{selectedBancoIds.length > 1 ? 's' : ''}:{' '}
-                  {selectedBancos.map((b) => b.name).join(', ')}
+                  a {selectedIds.length} banco{selectedIds.length > 1 ? 's' : ''}:{' '}
+                  {[...selectedBancos.map((b) => b.name), ...selectedCurados.map((c) => c.nombre)].join(', ')}
                 </p>
               </div>
             )}
@@ -265,14 +309,18 @@ function SolicitudConstructoraDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { addSolicitudConstructora } = usePortalStore();
+  const { addSolicitudConstructora, addSenalInteres } = usePortalStore();
   const [tipoVivienda, setTipoVivienda] = useState<string | null>(null);
   const [comuna, setComuna] = useState<string | null>(null);
   const [estrato, setEstrato] = useState<number | null>(null);
   const [ciudad, setCiudad] = useState<string | null>(null);
   const [presupuestoMin, setPresupuestoMin] = useState('');
   const [presupuestoMax, setPresupuestoMax] = useState('');
-  const [submitState, setSubmitState] = useState<'idle' | 'loading' | 'done'>('idle');
+  const [submitState, setSubmitState] = useState<'idle' | 'loading' | 'done' | 'fallback'>('idle');
+  const [curados, setCurados] = useState<NegocioCuradoRow[]>([]);
+  const [isLoadingCurados, setIsLoadingCurados] = useState(false);
+  const [selectedCuradoId, setSelectedCuradoId] = useState<string | null>(null);
+  const [senalSubmitState, setSenalSubmitState] = useState<'idle' | 'loading' | 'done'>('idle');
 
   const canSubmit =
     tipoVivienda !== null &&
@@ -281,12 +329,27 @@ function SolicitudConstructoraDialog({
     presupuestoMax.trim() !== '' &&
     submitState === 'idle';
 
+  const resetAndClose = useCallback(() => {
+    setSubmitState('idle');
+    setSenalSubmitState('idle');
+    setTipoVivienda(null);
+    setComuna(null);
+    setEstrato(null);
+    setCiudad(null);
+    setPresupuestoMin('');
+    setPresupuestoMax('');
+    setCurados([]);
+    setSelectedCuradoId(null);
+    onOpenChange(false);
+  }, [onOpenChange]);
+
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || !tipoVivienda || !ciudad) return;
     setSubmitState('loading');
 
+    const solicitudId = `SOL-${Date.now().toString(36).toUpperCase()}`;
     const success = await addSolicitudConstructora({
-      id: `SOL-${Date.now().toString(36).toUpperCase()}`,
+      id: solicitudId,
       tipoVivienda,
       comuna: comuna ?? undefined,
       ciudad,
@@ -300,18 +363,39 @@ function SolicitudConstructoraDialog({
       return;
     }
 
+    const creada = usePortalStore.getState().solicitudes.find((s) => s.id === solicitudId);
+    if (creada && creada.origen === 'constructora' && creada.status === 'Sin destinatarios disponibles') {
+      setSubmitState('fallback');
+      setIsLoadingCurados(true);
+      const { data } = await fetchNegociosCuradosBySector('constructora');
+      setCurados((data ?? []).filter((c) => !c.ciudad || normalizeCiudad(c.ciudad) === normalizeCiudad(ciudad)));
+      setIsLoadingCurados(false);
+      return;
+    }
+
     setSubmitState('done');
-    setTimeout(() => {
-      setSubmitState('idle');
-      setTipoVivienda(null);
-      setComuna(null);
-      setEstrato(null);
-      setCiudad(null);
-      setPresupuestoMin('');
-      setPresupuestoMax('');
-      onOpenChange(false);
-    }, 1800);
-  }, [canSubmit, tipoVivienda, comuna, ciudad, estrato, presupuestoMin, presupuestoMax, addSolicitudConstructora, onOpenChange]);
+    setTimeout(resetAndClose, 1800);
+  }, [canSubmit, tipoVivienda, comuna, ciudad, estrato, presupuestoMin, presupuestoMax, addSolicitudConstructora, resetAndClose]);
+
+  const handleSenalSubmit = useCallback(async () => {
+    if (!tipoVivienda || !ciudad) return;
+    const curado = selectedCuradoId ? curados.find((c) => c.id === selectedCuradoId) : undefined;
+    if (curados.length > 0 && !curado) return;
+    setSenalSubmitState('loading');
+    const ok = await addSenalInteres({
+      id: `SEN-${Date.now().toString(36).toUpperCase()}`,
+      sector: 'constructora',
+      negocioDeseado: curado?.nombre,
+      tipoVivienda,
+      ciudad,
+    });
+    if (!ok) {
+      setSenalSubmitState('idle');
+      return;
+    }
+    setSenalSubmitState('done');
+    setTimeout(resetAndClose, 1500);
+  }, [curados, selectedCuradoId, tipoVivienda, ciudad, addSenalInteres, resetAndClose]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -331,10 +415,98 @@ function SolicitudConstructoraDialog({
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
               <CheckCircle2 className="h-8 w-8 text-emerald-400" />
             </div>
-            <p className="text-base font-semibold text-foreground mb-1">Solicitud enviada</p>
-            <p className="text-xs text-muted-foreground max-w-xs">
-              Un asesor de las constructoras que hagan match te contactará pronto.
+            <p className="text-base font-semibold text-foreground mb-1">
+              {senalSubmitState === 'done' ? 'Interés registrado' : 'Solicitud enviada'}
             </p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              {senalSubmitState === 'done'
+                ? 'Te avisaremos cuando se una a Neggo.'
+                : 'Un asesor de las constructoras que hagan match te contactará pronto.'}
+            </p>
+          </div>
+        ) : submitState === 'fallback' ? (
+          <div className="space-y-4 animate-fade-in">
+            <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3">
+              <p className="text-xs text-amber-400 font-medium">
+                No encontramos constructoras que hagan match. ¿Te interesa alguna de estas?
+              </p>
+            </div>
+            {isLoadingCurados ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando negocios conocidos...
+              </div>
+            ) : curados.length === 0 ? (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Por ahora no tenemos ningún Negocio de Interés conocido en {ciudad}. Puedes registrar
+                  tu interés igual — te avisaremos cuando aparezca una constructora que haga match.
+                </p>
+                <Button
+                  disabled={senalSubmitState === 'loading'}
+                  onClick={handleSenalSubmit}
+                  className="w-full h-11 gap-2 font-semibold text-sm rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
+                >
+                  {senalSubmitState === 'loading' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Registrando interés...
+                    </>
+                  ) : (
+                    <>
+                      <Bell className="h-4 w-4" />
+                      Registrar interés de todas formas
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Constructoras conocidas en {ciudad}
+                </label>
+                <Select value={selectedCuradoId ?? ''} onValueChange={setSelectedCuradoId}>
+                  <SelectTrigger className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm">
+                    <SelectValue placeholder="Selecciona una constructora..." />
+                  </SelectTrigger>
+                  <SelectContent className="border-border/60 bg-card/95 backdrop-blur-xl">
+                    {curados.map((c) => (
+                      <SelectItem key={c.id} value={c.id} className="cursor-pointer text-sm">
+                        {c.nombre} <span className="text-muted-foreground">(No registrado)</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  disabled={!selectedCuradoId || senalSubmitState === 'loading'}
+                  onClick={handleSenalSubmit}
+                  className={cn(
+                    'w-full h-11 gap-2 font-semibold text-sm rounded-xl transition-all duration-300',
+                    selectedCuradoId
+                      ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
+                      : 'bg-muted text-muted-foreground cursor-not-allowed',
+                  )}
+                >
+                  {senalSubmitState === 'loading' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Registrando interés...
+                    </>
+                  ) : (
+                    <>
+                      <Bell className="h-4 w-4" />
+                      Registrar interés
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={resetAndClose}
+              className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+            >
+              No, gracias — cerrar
+            </button>
           </div>
         ) : (
           <div className="space-y-5">
@@ -467,21 +639,37 @@ function SolicitudComercioDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { addSolicitudComercio } = usePortalStore();
+  const { addSolicitudComercio, addSenalInteres } = usePortalStore();
   const [categoria, setCategoria] = useState<GoalCategory | null>(null);
   const [subcategoria, setSubcategoria] = useState<string | null>(null);
   const [ciudad, setCiudad] = useState<string | null>(null);
-  const [submitState, setSubmitState] = useState<'idle' | 'loading' | 'done'>('idle');
+  const [submitState, setSubmitState] = useState<'idle' | 'loading' | 'done' | 'fallback'>('idle');
+  const [curados, setCurados] = useState<NegocioCuradoRow[]>([]);
+  const [isLoadingCurados, setIsLoadingCurados] = useState(false);
+  const [selectedCuradoId, setSelectedCuradoId] = useState<string | null>(null);
+  const [senalSubmitState, setSenalSubmitState] = useState<'idle' | 'loading' | 'done'>('idle');
 
   const subOptions = categoria ? SUBCATEGORIAS[categoria] : [];
   const canSubmit = categoria !== null && ciudad !== null && submitState === 'idle';
+
+  const resetAndClose = useCallback(() => {
+    setSubmitState('idle');
+    setSenalSubmitState('idle');
+    setCategoria(null);
+    setSubcategoria(null);
+    setCiudad(null);
+    setCurados([]);
+    setSelectedCuradoId(null);
+    onOpenChange(false);
+  }, [onOpenChange]);
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || !categoria || !ciudad) return;
     setSubmitState('loading');
 
+    const solicitudId = `SOL-${Date.now().toString(36).toUpperCase()}`;
     const success = await addSolicitudComercio({
-      id: `SOL-${Date.now().toString(36).toUpperCase()}`,
+      id: solicitudId,
       categoria,
       subcategoria: subcategoria ?? undefined,
       ciudad,
@@ -492,15 +680,40 @@ function SolicitudComercioDialog({
       return;
     }
 
+    const creada = usePortalStore.getState().solicitudes.find((s) => s.id === solicitudId);
+    if (creada && creada.origen === 'comercio' && creada.status === 'Sin destinatarios disponibles') {
+      setSubmitState('fallback');
+      setIsLoadingCurados(true);
+      const { data } = await fetchNegociosCuradosBySector('comercio');
+      setCurados((data ?? []).filter((c) => !c.ciudad || normalizeCiudad(c.ciudad) === normalizeCiudad(ciudad)));
+      setIsLoadingCurados(false);
+      return;
+    }
+
     setSubmitState('done');
-    setTimeout(() => {
-      setSubmitState('idle');
-      setCategoria(null);
-      setSubcategoria(null);
-      setCiudad(null);
-      onOpenChange(false);
-    }, 1800);
-  }, [canSubmit, categoria, subcategoria, ciudad, addSolicitudComercio, onOpenChange]);
+    setTimeout(resetAndClose, 1800);
+  }, [canSubmit, categoria, subcategoria, ciudad, addSolicitudComercio, resetAndClose]);
+
+  const handleSenalSubmit = useCallback(async () => {
+    if (!categoria || !ciudad) return;
+    const curado = selectedCuradoId ? curados.find((c) => c.id === selectedCuradoId) : undefined;
+    if (curados.length > 0 && !curado) return;
+    setSenalSubmitState('loading');
+    const ok = await addSenalInteres({
+      id: `SEN-${Date.now().toString(36).toUpperCase()}`,
+      sector: 'comercio',
+      negocioDeseado: curado?.nombre,
+      categoria,
+      subcategoria: subcategoria ?? undefined,
+      ciudad,
+    });
+    if (!ok) {
+      setSenalSubmitState('idle');
+      return;
+    }
+    setSenalSubmitState('done');
+    setTimeout(resetAndClose, 1500);
+  }, [curados, selectedCuradoId, categoria, subcategoria, ciudad, addSenalInteres, resetAndClose]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -520,10 +733,98 @@ function SolicitudComercioDialog({
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
               <CheckCircle2 className="h-8 w-8 text-emerald-400" />
             </div>
-            <p className="text-base font-semibold text-foreground mb-1">Solicitud enviada</p>
-            <p className="text-xs text-muted-foreground max-w-xs">
-              Un asesor del comercio seleccionado te contactará pronto.
+            <p className="text-base font-semibold text-foreground mb-1">
+              {senalSubmitState === 'done' ? 'Interés registrado' : 'Solicitud enviada'}
             </p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              {senalSubmitState === 'done'
+                ? 'Te avisaremos cuando se una a Neggo.'
+                : 'Un asesor del comercio seleccionado te contactará pronto.'}
+            </p>
+          </div>
+        ) : submitState === 'fallback' ? (
+          <div className="space-y-4 animate-fade-in">
+            <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3">
+              <p className="text-xs text-amber-400 font-medium">
+                No encontramos comercios que hagan match. ¿Te interesa alguno de estos?
+              </p>
+            </div>
+            {isLoadingCurados ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando negocios conocidos...
+              </div>
+            ) : curados.length === 0 ? (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Por ahora no tenemos ningún Negocio de Interés conocido en {ciudad}. Puedes registrar
+                  tu interés igual — te avisaremos cuando aparezca un comercio que haga match.
+                </p>
+                <Button
+                  disabled={senalSubmitState === 'loading'}
+                  onClick={handleSenalSubmit}
+                  className="w-full h-11 gap-2 font-semibold text-sm rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
+                >
+                  {senalSubmitState === 'loading' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Registrando interés...
+                    </>
+                  ) : (
+                    <>
+                      <Bell className="h-4 w-4" />
+                      Registrar interés de todas formas
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Comercios conocidos en {ciudad}
+                </label>
+                <Select value={selectedCuradoId ?? ''} onValueChange={setSelectedCuradoId}>
+                  <SelectTrigger className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm">
+                    <SelectValue placeholder="Selecciona un comercio..." />
+                  </SelectTrigger>
+                  <SelectContent className="border-border/60 bg-card/95 backdrop-blur-xl">
+                    {curados.map((c) => (
+                      <SelectItem key={c.id} value={c.id} className="cursor-pointer text-sm">
+                        {c.nombre} <span className="text-muted-foreground">(No registrado)</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  disabled={!selectedCuradoId || senalSubmitState === 'loading'}
+                  onClick={handleSenalSubmit}
+                  className={cn(
+                    'w-full h-11 gap-2 font-semibold text-sm rounded-xl transition-all duration-300',
+                    selectedCuradoId
+                      ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
+                      : 'bg-muted text-muted-foreground cursor-not-allowed',
+                  )}
+                >
+                  {senalSubmitState === 'loading' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Registrando interés...
+                    </>
+                  ) : (
+                    <>
+                      <Bell className="h-4 w-4" />
+                      Registrar interés
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={resetAndClose}
+              className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+            >
+              No, gracias — cerrar
+            </button>
           </div>
         ) : (
           <div className="space-y-5">
@@ -626,6 +927,16 @@ function joinDestinatarios(destinatarios: string[]): string {
 
 function solicitudResumen(sol: SolicitudCliente): string {
   const fecha = new Date(sol.createdAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+  if (sol.origen === 'senal-interes') {
+    const destino =
+      sol.negocioDeseado ??
+      (sol.sector === 'comercio'
+        ? sol.categoria ?? 'un comercio'
+        : sol.sector === 'constructora'
+          ? (sol.tipoVivienda ? `vivienda tipo ${sol.tipoVivienda}` : 'una constructora')
+          : 'un negocio');
+    return `Interés registrado en ${destino} — Te avisaremos cuando se una a Neggo (${fecha})`;
+  }
   const destino = sol.destinatarios.length > 0 ? `a ${joinDestinatarios(sol.destinatarios)}` : 'enviada';
   if (sol.origen === 'banco') {
     return `Solicitud ${destino} — ${PRODUCT_LABELS[sol.productType]} — ${fecha}`;
@@ -774,8 +1085,10 @@ export default function MeInteresaView() {
                         <Building2 className="h-4 w-4 text-blue-400" />
                       ) : sol.origen === 'constructora' ? (
                         <Home className="h-4 w-4 text-blue-400" />
-                      ) : (
+                      ) : sol.origen === 'comercio' ? (
                         <Store className="h-4 w-4 text-blue-400" />
+                      ) : (
+                        <Bell className="h-4 w-4 text-violet-400" />
                       )}
                     </div>
                     <div className="min-w-0 space-y-0.5">
@@ -789,12 +1102,18 @@ export default function MeInteresaView() {
                     <Badge
                       className={cn(
                         'text-[10px] px-2 py-0.5 font-medium rounded-full',
-                        sol.status === 'Sin destinatarios disponibles'
-                          ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                          : 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                        sol.origen === 'senal-interes'
+                          ? 'bg-violet-500/10 text-violet-400 border-violet-500/20'
+                          : sol.status === 'Sin destinatarios disponibles'
+                            ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20',
                       )}
                     >
-                      <Clock className="h-2.5 w-2.5 mr-1" />
+                      {sol.origen === 'senal-interes' ? (
+                        <Sparkles className="h-2.5 w-2.5 mr-1" />
+                      ) : (
+                        <Clock className="h-2.5 w-2.5 mr-1" />
+                      )}
                       {sol.status}
                     </Badge>
                     <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />

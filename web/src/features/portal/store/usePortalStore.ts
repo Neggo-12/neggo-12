@@ -12,6 +12,9 @@ import {
   fetchProyectosMatch,
   fetchOrganizationIdsByUserIds,
   fetchComerciosMatch,
+  insertSenalInteres,
+  fetchSenalesInteresByCliente,
+  fetchClienteContactInfo,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -48,7 +51,7 @@ export type SolicitudProductType =
   | 'retanqueo'
   | 'tarjeta-credito';
 
-type SolicitudStatus = 'Pendiente de contacto' | 'Sin destinatarios disponibles';
+type SolicitudStatus = 'Pendiente de contacto' | 'Sin destinatarios disponibles' | 'Señal de interés registrada';
 
 export interface SolicitudBancoCliente {
   id: string;
@@ -80,11 +83,26 @@ export interface SolicitudComercioCliente {
   createdAt: string;
 }
 
-/** Unión discriminada — un solo historial, tres formas de solicitud (Fase 5/6). */
+/** Señal de interés: el cliente eligió un negocio curado (no registrado) — sin destinatarios reales. */
+export interface SolicitudSenalInteresCliente {
+  id: string;
+  origen: 'senal-interes';
+  sector: 'banco' | 'constructora' | 'comercio';
+  /** Null cuando el cliente registró interés genérico (constructora/comercio) sin elegir un Negocio de Interés específico. */
+  negocioDeseado: string | null;
+  categoria?: string;
+  tipoVivienda?: string;
+  ciudad?: string;
+  status: SolicitudStatus;
+  createdAt: string;
+}
+
+/** Unión discriminada — un solo historial, ahora 4 formas de solicitud (Fase 5/6/9.3). */
 export type SolicitudCliente =
   | SolicitudBancoCliente
   | SolicitudConstructoraCliente
-  | SolicitudComercioCliente;
+  | SolicitudComercioCliente
+  | SolicitudSenalInteresCliente;
 
 /** Input para crear una solicitud a bancos — carga el organizationId real de cada banco. */
 export interface AddSolicitudBancoInput {
@@ -110,6 +128,19 @@ export interface AddSolicitudComercioInput {
   categoria: string;
   subcategoria?: string;
   ciudad: string;
+}
+
+/** Input para registrar una señal de interés — el cliente eligió un negocio curado, no uno real. */
+export interface AddSenalInteresInput {
+  id: string;
+  sector: 'banco' | 'constructora' | 'comercio';
+  /** Obligatorio para sector='banco'; opcional para constructora/comercio. */
+  negocioDeseado?: string;
+  productoBancario?: string;
+  tipoVivienda?: string;
+  categoria?: string;
+  subcategoria?: string;
+  ciudad?: string;
 }
 
 // ───── Deterministic 6-digit security code ─────
@@ -162,6 +193,8 @@ interface PortalState {
   addSolicitudConstructora: (input: AddSolicitudConstructoraInput) => Promise<boolean>;
   /** Busca UN comercio con match real (categoría+ciudad, preferencia por especialidad/Sello) y registra la solicitud */
   addSolicitudComercio: (input: AddSolicitudComercioInput) => Promise<boolean>;
+  /** Registra una señal de interés (negocio curado, no registrado) y la persiste en la base de datos real */
+  addSenalInteres: (input: AddSenalInteresInput) => Promise<boolean>;
   /** Hidrata el historial de solicitudes del cliente desde la base de datos real */
   hydrateSolicitudes: () => Promise<void>;
   /** Hidrata las metas del cliente desde la base de datos real */
@@ -402,6 +435,52 @@ export const usePortalStore = create<PortalState>((set, get) => ({
     return true;
   },
 
+  addSenalInteres: async (input) => {
+    const clienteId = getClienteId();
+    if (!clienteId) {
+      toast.error('No se pudo identificar tu sesión', { description: 'Vuelve a iniciar sesión e intenta de nuevo.' });
+      return false;
+    }
+
+    const { data: contacto, error: contactoError } = await fetchClienteContactInfo(clienteId);
+    if (contactoError || !contacto) {
+      toast.error('No se pudo registrar tu interés', { description: contactoError ?? 'No se pudo obtener tu información de contacto.' });
+      return false;
+    }
+
+    const solicitud: SolicitudCliente = {
+      id: input.id,
+      origen: 'senal-interes',
+      sector: input.sector,
+      negocioDeseado: input.negocioDeseado ?? null,
+      categoria: input.categoria,
+      tipoVivienda: input.tipoVivienda,
+      ciudad: input.ciudad,
+      status: 'Señal de interés registrada',
+      createdAt: new Date().toISOString(),
+    };
+    set((state) => ({ solicitudes: [solicitud, ...state.solicitudes] }));
+
+    const { error } = await insertSenalInteres({
+      clienteId,
+      clienteNombre: contacto.nombre,
+      clienteTelefono: contacto.telefono,
+      sector: input.sector,
+      negocioDeseado: input.negocioDeseado,
+      productoBancario: input.productoBancario,
+      tipoVivienda: input.tipoVivienda,
+      categoria: input.categoria,
+      subcategoria: input.subcategoria,
+      ciudad: input.ciudad,
+    });
+    if (error) {
+      set({ dbError: error });
+      toast.error('No se pudo registrar tu interés', { description: error });
+      return false;
+    }
+    return true;
+  },
+
   hydrateSolicitudes: async () => {
     if (get().isSolicitudesHydrated || get().isSolicitudesLoading) return;
     const clienteId = getClienteId();
@@ -410,46 +489,63 @@ export const usePortalStore = create<PortalState>((set, get) => ({
       return;
     }
     set({ isSolicitudesLoading: true });
-    const { data, error } = await fetchMeInteresaSolicitudesByCliente(clienteId);
+    const [{ data, error }, { data: senales, error: senalesError }] = await Promise.all([
+      fetchMeInteresaSolicitudesByCliente(clienteId),
+      fetchSenalesInteresByCliente(clienteId),
+    ]);
     if (error || !data) {
       set({ isSolicitudesLoading: false, isSolicitudesHydrated: true });
       return;
     }
-    set({
-      solicitudes: data.map((s): SolicitudCliente => {
-        const status: SolicitudStatus =
-          s.destinatarios.length > 0 ? 'Pendiente de contacto' : 'Sin destinatarios disponibles';
-        if (s.origen === 'constructora') {
-          return {
-            id: s.id,
-            origen: 'constructora',
-            tipoVivienda: s.tipoVivienda ?? '',
-            ciudad: s.ciudad ?? '',
-            destinatarios: s.destinatarios,
-            status,
-            createdAt: s.createdAt,
-          };
-        }
-        if (s.origen === 'comercio') {
-          return {
-            id: s.id,
-            origen: 'comercio',
-            categoria: s.categoria ?? '',
-            subcategoria: s.subcategoria ?? undefined,
-            destinatarios: s.destinatarios,
-            status,
-            createdAt: s.createdAt,
-          };
-        }
+    const solicitudesReales: SolicitudCliente[] = data.map((s): SolicitudCliente => {
+      const status: SolicitudStatus =
+        s.destinatarios.length > 0 ? 'Pendiente de contacto' : 'Sin destinatarios disponibles';
+      if (s.origen === 'constructora') {
         return {
           id: s.id,
-          origen: 'banco',
-          productType: (s.productoBancario ?? 'compra-cartera') as SolicitudProductType,
+          origen: 'constructora',
+          tipoVivienda: s.tipoVivienda ?? '',
+          ciudad: s.ciudad ?? '',
           destinatarios: s.destinatarios,
           status,
           createdAt: s.createdAt,
         };
-      }),
+      }
+      if (s.origen === 'comercio') {
+        return {
+          id: s.id,
+          origen: 'comercio',
+          categoria: s.categoria ?? '',
+          subcategoria: s.subcategoria ?? undefined,
+          destinatarios: s.destinatarios,
+          status,
+          createdAt: s.createdAt,
+        };
+      }
+      return {
+        id: s.id,
+        origen: 'banco',
+        productType: (s.productoBancario ?? 'compra-cartera') as SolicitudProductType,
+        destinatarios: s.destinatarios,
+        status,
+        createdAt: s.createdAt,
+      };
+    });
+    const solicitudesSenales: SolicitudCliente[] = (senalesError ? [] : senales ?? []).map((s): SolicitudCliente => ({
+      id: s.id,
+      origen: 'senal-interes',
+      sector: s.sector,
+      negocioDeseado: s.negocioDeseado,
+      categoria: s.categoria ?? undefined,
+      tipoVivienda: s.tipoVivienda ?? undefined,
+      ciudad: s.ciudad ?? undefined,
+      status: 'Señal de interés registrada',
+      createdAt: s.createdAt,
+    }));
+    set({
+      solicitudes: [...solicitudesReales, ...solicitudesSenales].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
       isSolicitudesLoading: false,
       isSolicitudesHydrated: true,
     });

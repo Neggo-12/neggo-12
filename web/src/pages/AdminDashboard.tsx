@@ -29,6 +29,8 @@ import {
   Search,
   ClipboardCheck,
   Loader2,
+  Plus,
+  Bell,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Fragment, useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -37,6 +39,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { isDbConfigured } from '@/core/db/dbClient';
@@ -47,8 +50,11 @@ import {
   fetchFacturasResumenPorNegocio, fetchFacturasTotalesGlobales, fetchFacturasLedgerByOrganization,
   fetchBancosAprobados, fetchTarifasBancoOrganizacion, upsertTarifaBancoOrganizacion,
   fetchTodasLasFacturasMensuales, confirmarPagoFactura,
+  fetchTodosLosNegociosCurados, insertNegocioCurado, toggleNegocioCuradoActivo,
+  fetchTodasLasSenalesInteres,
   type TarifaBancoRow, type PlanComercioRow, type FacturaResumenNegocio, type FacturaLedgerRow,
   type TarifaBancoTipo, type FacturaMensualAdminRow,
+  type NegocioCuradoAdminRow, type SenalInteresDisplay,
 } from '@/core/db/repositories';
 
 // ───── Sidebar sections ─────
@@ -63,6 +69,7 @@ const adminSections = [
   { key: 'facturacion' as const, label: 'Facturación Ecosistema', icon: Receipt },
   { key: 'tarifas' as const, label: 'Tarifas y Planes', icon: SlidersHorizontal },
   { key: 'conciliacion' as const, label: 'Conciliación de Pagos', icon: ClipboardCheck },
+  { key: 'senales-interes' as const, label: 'Clientes en Espera', icon: Bell },
 ] as const;
 
 // ───── helpers ─────
@@ -260,6 +267,8 @@ export default function AdminDashboard() {
           {activeSection === 'tarifas' && <TarifasYPlanes />}
 
           {activeSection === 'conciliacion' && <ConciliacionPagos />}
+
+          {activeSection === 'senales-interes' && <ClientesEnEsperaPanel />}
 
           {activeSection === 'analitica' && <AlgorithmMonitor />}
 
@@ -1019,6 +1028,303 @@ function ConciliacionPagos() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+const SECTOR_LABELS: Record<'banco' | 'constructora' | 'comercio', string> = {
+  banco: 'Banco',
+  constructora: 'Constructora',
+  comercio: 'Comercio',
+};
+const SECTOR_LABELS_PLURAL: Record<'banco' | 'constructora' | 'comercio', string> = {
+  banco: 'Bancos',
+  constructora: 'Constructoras',
+  comercio: 'Comercios',
+};
+const SECTOR_ORDER: ('banco' | 'constructora' | 'comercio')[] = ['banco', 'constructora', 'comercio'];
+
+function sectorIcon(sector: string) {
+  if (sector === 'banco') return <Building2 className="h-3.5 w-3.5 text-blue-400" />;
+  if (sector === 'constructora') return <Home className="h-3.5 w-3.5 text-blue-400" />;
+  return <Store className="h-3.5 w-3.5 text-blue-400" />;
+}
+
+function senalGroupLabel(s: SenalInteresDisplay): string {
+  if (s.negocioDeseado) return s.negocioDeseado;
+  if (s.sector === 'comercio') {
+    const cat = s.categoria ?? 'Sin categoría';
+    return s.ciudad ? `${cat} — ${s.ciudad} (sin negocio específico)` : `${cat} (sin negocio específico)`;
+  }
+  if (s.sector === 'constructora') {
+    const tipo = s.tipoVivienda ?? 'Vivienda';
+    return s.ciudad ? `${tipo} — ${s.ciudad} (sin negocio específico)` : `${tipo} (sin negocio específico)`;
+  }
+  return 'Sin negocio específico';
+}
+
+function ClientesEnEsperaPanel() {
+  const [curados, setCurados] = useState<NegocioCuradoAdminRow[]>([]);
+  const [isLoadingCurados, setIsLoadingCurados] = useState(true);
+  const [senales, setSenales] = useState<SenalInteresDisplay[]>([]);
+  const [isLoadingSenales, setIsLoadingSenales] = useState(true);
+
+  const [formSector, setFormSector] = useState<'banco' | 'constructora' | 'comercio'>('banco');
+  const [formNombre, setFormNombre] = useState('');
+  const [formCiudad, setFormCiudad] = useState('');
+  const [isSubmittingCurado, setIsSubmittingCurado] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const loadCurados = useCallback(async () => {
+    setIsLoadingCurados(true);
+    const { data, error } = await fetchTodosLosNegociosCurados();
+    if (error) toast.error('No se pudieron cargar los Negocios de Interés', { description: error });
+    else setCurados(data ?? []);
+    setIsLoadingCurados(false);
+  }, []);
+
+  const loadSenales = useCallback(async () => {
+    setIsLoadingSenales(true);
+    const { data, error } = await fetchTodasLasSenalesInteres();
+    if (error) toast.error('No se pudieron cargar las señales de interés', { description: error });
+    else setSenales(data ?? []);
+    setIsLoadingSenales(false);
+  }, []);
+
+  useEffect(() => {
+    loadCurados();
+    loadSenales();
+  }, [loadCurados, loadSenales]);
+
+  const ciudadRequerida = formSector !== 'banco';
+  const canSubmitCurado =
+    formNombre.trim() !== '' && (!ciudadRequerida || formCiudad.trim() !== '') && !isSubmittingCurado;
+
+  const handleAddCurado = useCallback(async () => {
+    if (!canSubmitCurado) return;
+    setIsSubmittingCurado(true);
+    const { error } = await insertNegocioCurado({
+      sector: formSector,
+      nombre: formNombre.trim(),
+      ciudad: formCiudad.trim() || undefined,
+    });
+    if (error) {
+      toast.error('No se pudo agregar el negocio', { description: error });
+      setIsSubmittingCurado(false);
+      return;
+    }
+    toast.success('Negocio de Interés agregado');
+    setFormNombre('');
+    setFormCiudad('');
+    setIsSubmittingCurado(false);
+    loadCurados();
+  }, [canSubmitCurado, formSector, formNombre, formCiudad, loadCurados]);
+
+  const handleToggle = useCallback(async (id: string, nextActivo: boolean) => {
+    setTogglingId(id);
+    setCurados((prev) => prev.map((c) => (c.id === id ? { ...c, activo: nextActivo } : c)));
+    const { error } = await toggleNegocioCuradoActivo(id, nextActivo);
+    if (error) {
+      setCurados((prev) => prev.map((c) => (c.id === id ? { ...c, activo: !nextActivo } : c)));
+      toast.error('No se pudo actualizar el negocio', { description: error });
+    }
+    setTogglingId(null);
+  }, []);
+
+  const toggleGroup = useCallback((key: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const senalesAgrupadas = useMemo(() => {
+    const bySector = new Map<string, Map<string, SenalInteresDisplay[]>>();
+    for (const s of senales) {
+      if (!bySector.has(s.sector)) bySector.set(s.sector, new Map());
+      const porGrupo = bySector.get(s.sector)!;
+      const label = senalGroupLabel(s);
+      if (!porGrupo.has(label)) porGrupo.set(label, []);
+      porGrupo.get(label)!.push(s);
+    }
+    return SECTOR_ORDER.filter((sector) => bySector.has(sector)).map((sector) => ({
+      sector,
+      items: Array.from(bySector.get(sector)!.entries())
+        .map(([negocio, clientes]) => ({ negocio, clientes, count: clientes.length }))
+        .sort((a, b) => b.count - a.count),
+    }));
+  }, [senales]);
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      <div>
+        <h2 className="text-lg font-bold tracking-tight text-foreground">Clientes en Espera</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Negocios no registrados que los clientes están pidiendo, y la lista de Negocios de Interés que se les ofrece.
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-border/40 bg-card/40 overflow-hidden">
+        <div className="px-4 py-3 border-b border-border/40 bg-card/60">
+          <h3 className="text-sm font-semibold text-foreground">Negocios de Interés</h3>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Negocios grandes conocidos que aún no se han unido — se ofrecen como alternativa cuando no hay match real.
+          </p>
+        </div>
+
+        <div className="p-4 border-b border-border/40 flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="flex-1 min-w-[140px] space-y-1">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Sector</Label>
+            <Select
+              value={formSector}
+              onValueChange={(v) => {
+                setFormSector(v as typeof formSector);
+                setFormCiudad('');
+              }}
+            >
+              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="banco" className="text-xs">Banco</SelectItem>
+                <SelectItem value="constructora" className="text-xs">Constructora</SelectItem>
+                <SelectItem value="comercio" className="text-xs">Comercio</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1 min-w-[160px] space-y-1">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Nombre</Label>
+            <Input
+              placeholder="Nombre del negocio"
+              value={formNombre}
+              onChange={(e) => setFormNombre(e.target.value)}
+              className="h-9 text-xs"
+            />
+          </div>
+          <div className="flex-1 min-w-[160px] space-y-1">
+            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Ciudad {ciudadRequerida ? '' : '(opcional)'}
+            </Label>
+            <Input
+              placeholder={ciudadRequerida ? 'Obligatoria para este sector' : 'Nacional si se deja vacío'}
+              value={formCiudad}
+              onChange={(e) => setFormCiudad(e.target.value)}
+              className="h-9 text-xs"
+            />
+          </div>
+          <Button
+            onClick={handleAddCurado}
+            disabled={!canSubmitCurado}
+            className="h-9 text-xs gap-1.5 bg-blue-600 hover:bg-blue-500 shrink-0"
+          >
+            {isSubmittingCurado ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+            Agregar
+          </Button>
+        </div>
+
+        {isLoadingCurados ? (
+          <div className="flex items-center justify-center py-10"><Loader2 className="h-6 w-6 text-muted-foreground animate-spin" /></div>
+        ) : curados.length === 0 ? (
+          <p className="px-4 py-8 text-center text-xs text-muted-foreground">No hay Negocios de Interés todavía.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/40">
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nombre</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sector</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ciudad</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Activo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {curados.map((c) => (
+                  <tr key={c.id} className="border-b border-border/30 last:border-0">
+                    <td className="px-4 py-2.5 text-xs font-medium text-foreground">{c.nombre}</td>
+                    <td className="px-4 py-2.5">
+                      <Badge variant="outline" className="text-[10px] border-border/40 bg-secondary/40">
+                        {SECTOR_LABELS[c.sector]}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">{c.ciudad ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <Switch
+                        checked={c.activo}
+                        disabled={togglingId === c.id}
+                        onCheckedChange={(checked) => handleToggle(c.id, checked)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border/40 bg-card/40 overflow-hidden">
+        <div className="px-4 py-3 border-b border-border/40 bg-card/60">
+          <h3 className="text-sm font-semibold text-foreground">Señales de interés ({senales.length})</h3>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Volumen de clientes esperando por cada negocio — úsalo para priorizar a quién reclutar.
+          </p>
+        </div>
+
+        {isLoadingSenales ? (
+          <div className="flex items-center justify-center py-10"><Loader2 className="h-6 w-6 text-muted-foreground animate-spin" /></div>
+        ) : senales.length === 0 ? (
+          <p className="px-4 py-8 text-center text-xs text-muted-foreground">Aún no hay señales de interés registradas.</p>
+        ) : (
+          <div className="divide-y divide-border/30">
+            {senalesAgrupadas.map(({ sector, items }) => (
+              <div key={sector} className="p-4 space-y-2">
+                <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  {sectorIcon(sector)}
+                  {SECTOR_LABELS_PLURAL[sector as 'banco' | 'constructora' | 'comercio']}
+                </h4>
+                <div className="space-y-1.5">
+                  {items.map(({ negocio, clientes, count }) => {
+                    const key = `${sector}:${negocio}`;
+                    const isExpanded = expandedGroups.has(key);
+                    return (
+                      <div key={key} className="rounded-lg bg-secondary/30 overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => toggleGroup(key)}
+                          className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left hover:bg-secondary/50 transition-colors"
+                        >
+                          <span className="text-xs text-foreground">{negocio}</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge className="text-[10px] bg-violet-500/10 text-violet-400 border-violet-500/20">
+                              {count} cliente{count > 1 ? 's' : ''}
+                            </Badge>
+                            {isExpanded ? (
+                              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                            )}
+                          </div>
+                        </button>
+                        {isExpanded && (
+                          <div className="px-3 pb-2 pt-2 space-y-1 border-t border-border/20">
+                            {clientes.map((c) => (
+                              <div key={c.id} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                <span>{c.clienteNombre}</span>
+                                <span className="font-mono">{c.clienteTelefono}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
