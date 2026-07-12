@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
 import { insertOfertaComercio, fetchOrganizationMetadata, updateOrganizationMetadata, fetchOrganizationTrustSeal, updateOrganizationTrustSeal, updateOrganizationCiudad, fetchOrganizationCore } from '@/core/db/repositories';
+import type { Json } from '@/integrations/supabase/types';
 import { useAuthStore } from '@/store/useAuthStore';
 import type {
   Comercio,
@@ -211,7 +212,7 @@ export const useComercioStore = create<ComercioState>((set, get) => ({
       onboardingComplete: true,
     };
     const [metadataResult, trustSealResult, ciudadResult] = await Promise.all([
-      updateOrganizationMetadata(organizationId, metadata),
+      updateOrganizationMetadata(organizationId, metadata as unknown as Json),
       updateOrganizationTrustSeal(organizationId, true),
       updateOrganizationCiudad(organizationId, comercio.ciudad),
     ]);
@@ -241,7 +242,7 @@ export const useComercioStore = create<ComercioState>((set, get) => ({
       plan,
       onboardingComplete: true,
     };
-    const { error } = await updateOrganizationMetadata(organizationId, metadata);
+    const { error } = await updateOrganizationMetadata(organizationId, metadata as unknown as Json);
     if (error) {
       toast.error('No se pudo cambiar el plan', { description: error });
       return false;

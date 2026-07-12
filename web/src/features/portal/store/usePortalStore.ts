@@ -44,7 +44,9 @@ export type SolicitudProductType =
   | 'compra-cartera'
   | 'credito-hipotecario'
   | 'cdt'
-  | 'libre-inversion';
+  | 'libre-inversion'
+  | 'retanqueo'
+  | 'tarjeta-credito';
 
 type SolicitudStatus = 'Pendiente de contacto' | 'Sin destinatarios disponibles';
 

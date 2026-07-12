@@ -23,15 +23,33 @@ import {
   CheckCircle2,
   XCircle,
   FlaskConical,
+  SlidersHorizontal,
+  ChevronRight,
+  ChevronDown,
+  Search,
+  ClipboardCheck,
+  Loader2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useState, useCallback, useEffect } from 'react';
+import { Fragment, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { isDbConfigured } from '@/core/db/dbClient';
 import type { OnboardingRequest, EcosistemaMetrics, ComercioAdmin } from '@/types';
+import {
+  fetchTarifasBancos, updateTarifaBanco, fetchPlanesComercio, updatePlanComercio,
+  fetchOrganizationIdsByUserIds, fetchOrganizationsByIds, updateOrganizationPlanNegociacion,
+  fetchFacturasResumenPorNegocio, fetchFacturasTotalesGlobales, fetchFacturasLedgerByOrganization,
+  fetchBancosAprobados, fetchTarifasBancoOrganizacion, upsertTarifaBancoOrganizacion,
+  fetchTodasLasFacturasMensuales, confirmarPagoFactura,
+  type TarifaBancoRow, type PlanComercioRow, type FacturaResumenNegocio, type FacturaLedgerRow,
+  type TarifaBancoTipo, type FacturaMensualAdminRow,
+} from '@/core/db/repositories';
 
 // ───── Sidebar sections ─────
 
@@ -43,6 +61,8 @@ const adminSections = [
   { key: 'comercios' as const, label: 'Comercios', icon: ShoppingBag },
   { key: 'analitica' as const, label: 'Analítica IFC', icon: BarChart3 },
   { key: 'facturacion' as const, label: 'Facturación Ecosistema', icon: Receipt },
+  { key: 'tarifas' as const, label: 'Tarifas y Planes', icon: SlidersHorizontal },
+  { key: 'conciliacion' as const, label: 'Conciliación de Pagos', icon: ClipboardCheck },
 ] as const;
 
 // ───── helpers ─────
@@ -236,6 +256,10 @@ export default function AdminDashboard() {
           {activeSection === 'comercios' && <ComerciosAdminPanel />}
 
           {activeSection === 'facturacion' && <FacturacionLedger />}
+
+          {activeSection === 'tarifas' && <TarifasYPlanes />}
+
+          {activeSection === 'conciliacion' && <ConciliacionPagos />}
 
           {activeSection === 'analitica' && <AlgorithmMonitor />}
 
@@ -542,24 +566,37 @@ function EntityView({
 
 function ComerciosAdminPanel() {
   const { onboardingRequests } = useAdminStore();
-  const comercios: ComercioAdmin[] = onboardingRequests
-    .filter((r) => r.entityType === 'comercio')
-    .map((r) => ({
-      id: r.id,
-      nombre: r.name,
-      nit: r.nit ?? '',
-      ciudad: r.city,
-      categoria: 'General' as ComercioAdmin['categoria'],
-      plan: 'basico' as const,
-      hasTrustSeal: r.status === 'autorizado',
-      tasaComisionB2B: 2.0,
-      estado: r.status === 'autorizado' ? 'autorizado' as const : r.status === 'rechazado' ? 'rechazado' as const : 'pendiente' as const,
-      fechaRegistro: r.submittedAt,
-      leadsRecibidos: 0,
-      propuestasEnviadas: 0,
-    }));
-  const [editingRate, setEditingRate] = useState<string | null>(null);
-  const [rateValue, setRateValue] = useState('');
+  const [comercios, setComercios] = useState<ComercioAdmin[]>([]);
+  const rawComercios = useMemo(() => onboardingRequests.filter((r) => r.entityType === 'comercio'), [onboardingRequests]);
+
+  useEffect(() => {
+    if (rawComercios.length === 0) { setComercios([]); return; }
+    fetchOrganizationIdsByUserIds(rawComercios.map((r) => r.id)).then(async ({ data: orgIdMap }) => {
+      if (!orgIdMap) return;
+      const orgIds = Array.from(orgIdMap.values());
+      const { data: orgs } = await fetchOrganizationsByIds(orgIds);
+      const orgById = new Map((orgs ?? []).map((o) => [o.id, o]));
+      setComercios(rawComercios.map((r) => {
+        const organizationId = orgIdMap.get(r.id) ?? '';
+        const org = orgById.get(organizationId);
+        return {
+          id: r.id,
+          organizationId,
+          nombre: r.name,
+          nit: r.nit ?? '',
+          ciudad: r.city,
+          categoria: 'General' as ComercioAdmin['categoria'],
+          plan: 'basico' as const,
+          hasTrustSeal: r.status === 'autorizado',
+          planNegociacion: (org?.planNegociacion as ComercioAdmin['planNegociacion']) ?? 'balanceado',
+          estado: r.status === 'autorizado' ? 'autorizado' as const : r.status === 'rechazado' ? 'rechazado' as const : 'pendiente' as const,
+          fechaRegistro: r.submittedAt,
+          leadsRecibidos: 0,
+          propuestasEnviadas: 0,
+        };
+      }));
+    });
+  }, [rawComercios]);
 
   const handleEmitirSello = useCallback(async (id: string) => {
     const { updateUserStatus } = await import('@/core/db/repositories');
@@ -571,13 +608,14 @@ function ComerciosAdminPanel() {
     }
   }, []);
 
-  const handleSaveRate = useCallback((id: string) => {
-    const rate = Number(rateValue);
-    if (isNaN(rate) || rate < 0 || rate > 100) return;
-    setEditingRate(null);
-    setRateValue('');
-    toast.success(`Tasa de comisión actualizada a ${rate}%`, { description: 'El cambio se reflejará en la próxima facturación.' });
-  }, [rateValue]);
+  const handleChangePlan = useCallback(async (organizationId: string, plan: string) => {
+    const { error } = await updateOrganizationPlanNegociacion(organizationId, plan);
+    if (error) {
+      toast.error('No se pudo actualizar el plan', { description: error });
+      return;
+    }
+    setComercios((prev) => prev.map((c) => (c.organizationId === organizationId ? { ...c, planNegociacion: plan as ComercioAdmin['planNegociacion'] } : c)));
+  }, []);
 
   const totalComercios = comercios.length;
   const conSello = comercios.filter((c) => c.hasTrustSeal).length;
@@ -618,7 +656,7 @@ function ComerciosAdminPanel() {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Comercio</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">NIT</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categoría</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Comisión B2B</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Plan de Negociación</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sello</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acciones</th>
               </tr>
@@ -644,33 +682,16 @@ function ComerciosAdminPanel() {
                     <Badge variant="outline" className="text-[10px] border-border/40 bg-secondary/40">{c.categoria}</Badge>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {editingRate === c.id ? (
-                      <div className="flex items-center gap-1 justify-center">
-                        <Input
-                          type="number"
-                          value={rateValue}
-                          onChange={(e) => setRateValue(e.target.value)}
-                          className="w-16 h-7 text-xs text-center font-mono"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveRate(c.id);
-                            if (e.key === 'Escape') setEditingRate(null);
-                          }}
-                        />
-                        <span className="text-[10px] text-muted-foreground">%</span>
-                        <button onClick={() => handleSaveRate(c.id)} className="text-emerald-400 hover:text-emerald-300">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => { setEditingRate(c.id); setRateValue(String(c.tasaComisionB2B)); }}
-                        className="flex items-center gap-1 font-mono text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
-                      >
-                        <Percent className="h-3 w-3" />
-                        {c.tasaComisionB2B}%
-                      </button>
-                    )}
+                    <Select value={c.planNegociacion} onValueChange={(v) => handleChangePlan(c.organizationId, v)}>
+                      <SelectTrigger className="h-7 w-36 text-[10px] mx-auto">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="solo_pauta" className="text-xs">Solo Pauta</SelectItem>
+                        <SelectItem value="balanceado" className="text-xs">Balanceado</SelectItem>
+                        <SelectItem value="solo_resultados" className="text-xs">Solo Resultados</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="px-4 py-3 text-center">
                     {c.hasTrustSeal ? (
@@ -700,20 +721,530 @@ function ComerciosAdminPanel() {
   );
 }
 
+// ───── Tarifas y Planes (configuración editable de cargos) ─────
+
+interface BancoTarifaEditable {
+  clave: string;
+  label: string;
+  tipoTarifa: TarifaBancoTipo;
+  valor: string;
+  isOverride: boolean;
+}
+
+function AsignarBancoDialog({
+  open, onOpenChange, tarifasGlobales,
+}: { open: boolean; onOpenChange: (open: boolean) => void; tarifasGlobales: TarifaBancoRow[] }) {
+  const [bancos, setBancos] = useState<{ id: string; name: string }[]>([]);
+  const [selectedBancoId, setSelectedBancoId] = useState('');
+  const [filas, setFilas] = useState<BancoTarifaEditable[]>([]);
+  const [dirtyClaves, setDirtyClaves] = useState<Set<string>>(new Set());
+  const [isLoadingBanco, setIsLoadingBanco] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    fetchBancosAprobados().then(({ data }) => setBancos(data ?? []));
+  }, [open]);
+
+  const handleSelectBanco = useCallback(async (bancoId: string) => {
+    setSelectedBancoId(bancoId);
+    setDirtyClaves(new Set());
+    setIsLoadingBanco(true);
+    const { data: overrides } = await fetchTarifasBancoOrganizacion(bancoId);
+    const overrideByClave = new Map((overrides ?? []).map((o) => [o.clave, o]));
+    setFilas(tarifasGlobales.map((g) => {
+      const override = overrideByClave.get(g.clave);
+      return {
+        clave: g.clave,
+        label: g.label,
+        tipoTarifa: override?.tipoTarifa ?? g.tipoTarifa,
+        valor: String(override?.valor ?? g.valor),
+        isOverride: !!override,
+      };
+    }));
+    setIsLoadingBanco(false);
+  }, [tarifasGlobales]);
+
+  const handleChangeValor = useCallback((clave: string, valor: string) => {
+    setFilas((prev) => prev.map((f) => (f.clave === clave ? { ...f, valor } : f)));
+    setDirtyClaves((prev) => new Set(prev).add(clave));
+  }, []);
+
+  const handleGuardar = useCallback(async () => {
+    if (!selectedBancoId || dirtyClaves.size === 0) { onOpenChange(false); return; }
+    const filasDirty = filas.filter((f) => dirtyClaves.has(f.clave));
+
+    const invalida = filasDirty.find((f) => {
+      const n = Number(f.valor);
+      return isNaN(n) || n <= 0;
+    });
+    if (invalida) {
+      toast.error('Valor inválido', { description: `"${invalida.label}" debe ser un número mayor a 0.` });
+      return;
+    }
+
+    setIsSaving(true);
+    const results = await Promise.all(
+      filasDirty.map((f) => upsertTarifaBancoOrganizacion(selectedBancoId, f.clave, f.tipoTarifa, Number(f.valor))),
+    );
+    const firstError = results.find((r) => r.error)?.error;
+    setIsSaving(false);
+    if (firstError) {
+      toast.error('No se pudo guardar alguna tarifa', { description: firstError });
+      return;
+    }
+    toast.success('Tarifas asignadas', { description: `${filasDirty.length} tarifa(s) actualizadas.` });
+    onOpenChange(false);
+  }, [selectedBancoId, dirtyClaves, filas, onOpenChange]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg border-border/60 bg-card/95 backdrop-blur-xl">
+        <DialogHeader>
+          <DialogTitle className="text-base font-semibold">Asignar tarifas a un banco</DialogTitle>
+          <DialogDescription className="text-xs">
+            Sobrescribe la tarifa global para un banco específico. Aplica desde este mes en adelante.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Banco</Label>
+          <Select value={selectedBancoId} onValueChange={handleSelectBanco}>
+            <SelectTrigger className="h-10 text-sm">
+              <SelectValue placeholder="Selecciona un banco..." />
+            </SelectTrigger>
+            <SelectContent>
+              {bancos.map((b) => (<SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {selectedBancoId && (
+          isLoadingBanco ? (
+            <p className="text-xs text-muted-foreground py-4">Cargando tarifas...</p>
+          ) : (
+            <div className="rounded-lg border border-border/40 overflow-hidden">
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-border/30">
+                  {filas.map((f) => (
+                    <tr key={f.clave}>
+                      <td className="px-3 py-2 text-xs text-foreground">
+                        {f.label}
+                        {f.isOverride && <span className="ml-1.5 text-[9px] text-cyan-400">(personalizada)</span>}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <Input type="number" value={f.valor} onChange={(e) => handleChangeValor(f.clave, e.target.value)} className="w-28 h-7 text-xs text-right font-mono ml-auto" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button size="sm" disabled={!selectedBancoId || isSaving} onClick={handleGuardar} className="bg-emerald-600 hover:bg-emerald-500">
+            {isSaving ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ───── Conciliación de Pagos (facturas mensuales — Admin) ─────
+
+type ConciliacionEstadoFilter = 'todas' | 'pendiente_pago' | 'reportado_por_negocio' | 'confirmado_pagado';
+
+const CONCILIACION_ESTADO_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
+  pendiente_pago: { label: 'Pendiente de pago', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
+  reportado_por_negocio: { label: 'Reportado', bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20' },
+  confirmado_pagado: { label: 'Pagado', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+};
+
+function ConciliacionPagos() {
+  const [facturas, setFacturas] = useState<FacturaMensualAdminRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [estadoFilter, setEstadoFilter] = useState<ConciliacionEstadoFilter>('todas');
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const loadFacturas = useCallback(async () => {
+    setIsLoading(true);
+    const { data, error } = await fetchTodasLasFacturasMensuales();
+    if (error) toast.error('No se pudieron cargar las facturas', { description: error });
+    else setFacturas(data ?? []);
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => { loadFacturas(); }, [loadFacturas]);
+
+  const handleConfirmar = useCallback(async (facturaId: string) => {
+    setConfirmingId(facturaId);
+    const { error } = await confirmarPagoFactura(facturaId);
+    if (error) {
+      toast.error('No se pudo confirmar el pago', { description: error });
+    } else {
+      setFacturas((prev) => prev.map((f) => (f.id === facturaId ? { ...f, estado: 'confirmado_pagado', confirmadoAt: new Date().toISOString() } : f)));
+      toast.success('Pago confirmado');
+    }
+    setConfirmingId(null);
+  }, []);
+
+  const esperandoConfirmacion = facturas.filter((f) => f.estado === 'reportado_por_negocio');
+
+  const filtradas = facturas.filter((f) => {
+    if (estadoFilter !== 'todas' && f.estado !== estadoFilter) return false;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return f.organizationName.toLowerCase().includes(q) || (f.organizationNit ?? '').toLowerCase().includes(q);
+  });
+
+  const renderRow = (f: FacturaMensualAdminRow, showConfirmButton: boolean) => {
+    const cfg = CONCILIACION_ESTADO_CONFIG[f.estado];
+    return (
+      <tr key={f.id} className="border-b border-border/30 last:border-0">
+        <td className="px-4 py-2.5 text-xs font-medium text-foreground">{f.organizationName}</td>
+        <td className="px-4 py-2.5">
+          <Badge variant="outline" className="text-[10px] border-border/40 bg-secondary/40">
+            {{ banco: 'Banco', constructora: 'Constructora', comercio: 'Comercio' }[f.organizationType]}
+          </Badge>
+        </td>
+        <td className="px-4 py-2.5 text-xs text-muted-foreground font-mono">{f.organizationNit ?? '—'}</td>
+        <td className="px-4 py-2.5 text-xs text-muted-foreground">{f.periodo}</td>
+        <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold text-foreground">{formatCOP(f.montoTotal)}</td>
+        <td className="px-4 py-2.5 text-xs text-muted-foreground">{new Date(f.fechaLimitePago).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}</td>
+        <td className="px-4 py-2.5 text-center">
+          <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium', cfg.bg, cfg.text, cfg.border)}>
+            {cfg.label}
+          </span>
+        </td>
+        <td className="px-4 py-2.5 text-right">
+          {showConfirmButton && (
+            <Button
+              size="sm"
+              onClick={() => handleConfirmar(f.id)}
+              disabled={confirmingId === f.id}
+              className="h-7 text-[10px] gap-1 bg-emerald-600 hover:bg-emerald-500"
+            >
+              {confirmingId === f.id ? 'Confirmando...' : 'Confirmar Pago Recibido'}
+            </Button>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h2 className="text-lg font-bold tracking-tight text-foreground">Conciliación de Pagos</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">Facturas mensuales reportadas como pagadas por los negocios, pendientes de tu confirmación</p>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 text-muted-foreground animate-spin" /></div>
+      ) : (
+        <>
+          {esperandoConfirmacion.length > 0 && (
+            <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 overflow-hidden">
+              <div className="px-4 py-3 border-b border-blue-500/20 bg-blue-500/10">
+                <h3 className="text-sm font-semibold text-blue-400">Esperando tu confirmación ({esperandoConfirmacion.length})</h3>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/40">
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Negocio</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sector</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">NIT</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Período</th>
+                    <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Monto</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vence</th>
+                    <th className="px-4 py-2 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Estado</th>
+                    <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>{esperandoConfirmacion.map((f) => renderRow(f, true))}</tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-border/40 bg-card/40 overflow-hidden">
+            <div className="px-4 py-3 border-b border-border/40 bg-card/60 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Todas las facturas</h3>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nombre o NIT..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-8 h-8 text-xs w-full sm:w-56"
+                  />
+                </div>
+                <Select value={estadoFilter} onValueChange={(v) => setEstadoFilter(v as ConciliacionEstadoFilter)}>
+                  <SelectTrigger className="h-8 text-xs w-full sm:w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas" className="text-xs">Todos los estados</SelectItem>
+                    <SelectItem value="pendiente_pago" className="text-xs">Pendiente de pago</SelectItem>
+                    <SelectItem value="reportado_por_negocio" className="text-xs">Reportado</SelectItem>
+                    <SelectItem value="confirmado_pagado" className="text-xs">Pagado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {filtradas.length === 0 ? (
+              <p className="px-4 py-10 text-center text-xs text-muted-foreground">No hay facturas que coincidan.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/40">
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Negocio</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sector</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">NIT</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Período</th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Monto</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vence</th>
+                      <th className="px-4 py-2 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Estado</th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>{filtradas.map((f) => renderRow(f, false))}</tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function TarifasYPlanes() {
+  const [tarifas, setTarifas] = useState<TarifaBancoRow[]>([]);
+  const [planes, setPlanes] = useState<PlanComercioRow[]>([]);
+  const [editingTarifa, setEditingTarifa] = useState<string | null>(null);
+  const [tarifaValue, setTarifaValue] = useState('');
+  const [editingPlan, setEditingPlan] = useState<string | null>(null);
+  const [planCpl, setPlanCpl] = useState('');
+  const [planComision, setPlanComision] = useState('');
+  const [assignBancoOpen, setAssignBancoOpen] = useState(false);
+
+  useEffect(() => {
+    fetchTarifasBancos().then(({ data }) => setTarifas(data ?? []));
+    fetchPlanesComercio().then(({ data }) => setPlanes(data ?? []));
+  }, []);
+
+  const handleSaveTarifa = useCallback(async (clave: string) => {
+    const valor = Number(tarifaValue);
+    if (isNaN(valor) || valor < 0) return;
+    const { error } = await updateTarifaBanco(clave, valor);
+    if (error) { toast.error('No se pudo actualizar', { description: error }); return; }
+    setTarifas((prev) => prev.map((t) => (t.clave === clave ? { ...t, valor } : t)));
+    setEditingTarifa(null);
+  }, [tarifaValue]);
+
+  const handleSavePlan = useCallback(async (clave: string) => {
+    const cpl = Number(planCpl);
+    const comision = Number(planComision);
+    if (isNaN(cpl) || isNaN(comision) || cpl < 0 || comision < 0) return;
+    const { error } = await updatePlanComercio(clave, cpl, comision);
+    if (error) { toast.error('No se pudo actualizar', { description: error }); return; }
+    setPlanes((prev) => prev.map((p) => (p.clave === clave ? { ...p, cpl, comisionPct: comision } : p)));
+    setEditingPlan(null);
+  }, [planCpl, planComision]);
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      <div>
+        <h2 className="text-lg font-bold tracking-tight text-foreground">Tarifas y Planes</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">Configuración editable de los cargos automáticos del ecosistema</p>
+      </div>
+
+      <div className="rounded-xl border border-border/40 bg-card/40 overflow-hidden">
+        <div className="px-4 py-3 border-b border-border/40 bg-card/60 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground">Tarifas de Bancos (Success Fee al desembolso)</h3>
+          <Button size="sm" variant="outline" onClick={() => setAssignBancoOpen(true)} className="h-7 text-xs gap-1.5">
+            <Building2 className="h-3.5 w-3.5" /> Asignar Banco
+          </Button>
+        </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border/40">
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Producto</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tipo</th>
+              <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valor</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/30">
+            {tarifas.map((t) => (
+              <tr key={t.clave}>
+                <td className="px-4 py-2.5 text-xs font-medium text-foreground">{t.label}</td>
+                <td className="px-4 py-2.5 text-xs text-muted-foreground">{t.tipoTarifa === 'por_millon_desembolsado' ? 'Por millón desembolsado' : 'Monto fijo'}</td>
+                <td className="px-4 py-2.5 text-right">
+                  {editingTarifa === t.clave ? (
+                    <div className="flex items-center gap-1 justify-end">
+                      <Input type="number" value={tarifaValue} onChange={(e) => setTarifaValue(e.target.value)} className="w-28 h-7 text-xs text-right font-mono" autoFocus
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTarifa(t.clave); if (e.key === 'Escape') setEditingTarifa(null); }} />
+                      <button onClick={() => handleSaveTarifa(t.clave)} className="text-emerald-400 hover:text-emerald-300"><CheckCircle2 className="h-3.5 w-3.5" /></button>
+                    </div>
+                  ) : (
+                    <button onClick={() => { setEditingTarifa(t.clave); setTarifaValue(String(t.valor)); }} className="font-mono text-xs text-cyan-400 hover:text-cyan-300">
+                      {formatCOP(t.valor)}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="rounded-xl border border-border/40 bg-card/40 overflow-hidden">
+        <div className="px-4 py-3 border-b border-border/40 bg-card/60">
+          <h3 className="text-sm font-semibold text-foreground">Planes de Negociación — Comercios</h3>
+        </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border/40">
+              <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Plan</th>
+              <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">CPL</th>
+              <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Comisión</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/30">
+            {planes.map((p) => (
+              <tr key={p.clave}>
+                <td className="px-4 py-2.5 text-xs font-medium text-foreground">{p.label}</td>
+                <td className="px-4 py-2.5 text-right">
+                  {editingPlan === p.clave ? (
+                    <Input type="number" value={planCpl} onChange={(e) => setPlanCpl(e.target.value)} className="w-24 h-7 text-xs text-right font-mono" />
+                  ) : (
+                    <span className="font-mono text-xs text-foreground">{formatCOP(p.cpl)}</span>
+                  )}
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  {editingPlan === p.clave ? (
+                    <div className="flex items-center gap-1 justify-end">
+                      <Input type="number" value={planComision} onChange={(e) => setPlanComision(e.target.value)} className="w-16 h-7 text-xs text-right font-mono" />
+                      <span className="text-[10px] text-muted-foreground">%</span>
+                      <button onClick={() => handleSavePlan(p.clave)} className="text-emerald-400 hover:text-emerald-300"><CheckCircle2 className="h-3.5 w-3.5" /></button>
+                    </div>
+                  ) : (
+                    <button onClick={() => { setEditingPlan(p.clave); setPlanCpl(String(p.cpl)); setPlanComision(String(p.comisionPct)); }} className="font-mono text-xs text-cyan-400 hover:text-cyan-300">
+                      {p.comisionPct}%
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <AsignarBancoDialog open={assignBancoOpen} onOpenChange={setAssignBancoOpen} tarifasGlobales={tarifas} />
+    </div>
+  );
+}
+
 // ───── Facturación / Ledger de Cobros ─────
 
+const FACTURAS_PAGE_SIZE = 25;
+
+function EstadoPagoBadge({ estado }: { estado: string }) {
+  return (
+    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border',
+      estado === 'Facturado' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : estado === 'Pagado' ? 'text-blue-400 bg-blue-500/10 border-blue-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20')}>
+      {estado}
+    </span>
+  );
+}
+
 function FacturacionLedger() {
-  const { facturas, hydrateFacturas } = useAdminStore();
+  const [resumenes, setResumenes] = useState<FacturaResumenNegocio[]>([]);
+  const [totales, setTotales] = useState({ totalCpl: 0, totalSuccessFee: 0, totalFacturado: 0, totalPendiente: 0 });
+  const [search, setSearch] = useState('');
+  const [orderBy, setOrderBy] = useState<'organization_name' | 'total_pendiente'>('organization_name');
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [expandedOrgId, setExpandedOrgId] = useState<string | null>(null);
+  const [detalleCache, setDetalleCache] = useState<Map<string, FacturaLedgerRow[]>>(new Map());
+  const [loadingDetalleId, setLoadingDetalleId] = useState<string | null>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Hidrata el ledger desde la base de datos real al abrir la sección
   useEffect(() => {
-    void hydrateFacturas();
-  }, [hydrateFacturas]);
+    fetchFacturasTotalesGlobales().then(({ data }) => {
+      if (data) setTotales(data);
+    });
+  }, []);
 
-  const totalCPL = facturas.filter((f) => f.concepto === 'CPL').reduce((s, f) => s + f.totalAcumulado, 0);
-  const totalSuccess = facturas.filter((f) => f.concepto === 'Success Fee').reduce((s, f) => s + f.totalAcumulado, 0);
-  const totalFacturado = facturas.filter((f) => f.estado === 'Facturado').reduce((s, f) => s + f.totalAcumulado, 0);
-  const totalPendiente = facturas.filter((f) => f.estado === 'Pendiente de conciliación').reduce((s, f) => s + f.totalAcumulado, 0);
+  const loadPage = useCallback(async (reset: boolean, searchValue: string, orderByValue: typeof orderBy) => {
+    const nextOffset = reset ? 0 : offset;
+    if (reset) { setIsLoading(true); } else { setIsLoadingMore(true); }
+    const { data, error } = await fetchFacturasResumenPorNegocio({
+      search: searchValue || undefined,
+      orderBy: orderByValue,
+      offset: nextOffset,
+      limit: FACTURAS_PAGE_SIZE,
+    });
+    if (error) {
+      toast.error('No se pudo cargar la facturación', { description: error });
+    } else {
+      const page = data ?? [];
+      setResumenes((prev) => (reset ? page : [...prev, ...page]));
+      setOffset(nextOffset + page.length);
+      setHasMore(page.length === FACTURAS_PAGE_SIZE);
+    }
+    setIsLoading(false);
+    setIsLoadingMore(false);
+  }, [offset]);
+
+  // Carga inicial
+  useEffect(() => {
+    loadPage(true, '', 'organization_name');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Búsqueda con debounce — resetea la página cada vez que cambia
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      loadPage(true, search, orderBy);
+    }, 300);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  const handleTogglePendienteSort = useCallback(() => {
+    const next = orderBy === 'total_pendiente' ? 'organization_name' : 'total_pendiente';
+    setOrderBy(next);
+    loadPage(true, search, next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderBy, search]);
+
+  const handleExpand = useCallback(async (organizationId: string) => {
+    if (expandedOrgId === organizationId) {
+      setExpandedOrgId(null);
+      return;
+    }
+    setExpandedOrgId(organizationId);
+    if (detalleCache.has(organizationId)) return;
+    setLoadingDetalleId(organizationId);
+    const { data, error } = await fetchFacturasLedgerByOrganization(organizationId);
+    if (error) {
+      toast.error('No se pudo cargar el detalle', { description: error });
+    } else {
+      setDetalleCache((prev) => new Map(prev).set(organizationId, data ?? []));
+    }
+    setLoadingDetalleId(null);
+  }, [expandedOrgId, detalleCache]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -726,19 +1257,42 @@ function FacturacionLedger() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Total CPL acumulado', value: formatCOP(totalCPL), icon: DollarSign, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-          { label: 'Total Success Fee', value: formatCOP(totalSuccess), icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-          { label: 'Facturado', value: formatCOP(totalFacturado), icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-          { label: 'Pendiente conciliación', value: formatCOP(totalPendiente), icon: Receipt, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+          { label: 'Total CPL acumulado', value: formatCOP(totales.totalCpl), icon: DollarSign, color: 'text-blue-400', bg: 'bg-blue-500/10', onClick: undefined },
+          { label: 'Total Success Fee', value: formatCOP(totales.totalSuccessFee), icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-500/10', onClick: undefined },
+          { label: 'Facturado', value: formatCOP(totales.totalFacturado), icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10', onClick: undefined },
+          { label: 'Pendiente conciliación', value: formatCOP(totales.totalPendiente), icon: Receipt, color: 'text-amber-400', bg: 'bg-amber-500/10', onClick: handleTogglePendienteSort },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-border/40 bg-card/50 p-4">
+          <button
+            key={stat.label}
+            type="button"
+            onClick={stat.onClick}
+            className={cn(
+              'text-left rounded-xl border p-4 transition-colors',
+              stat.onClick ? 'cursor-pointer hover:border-border/70' : 'cursor-default',
+              orderBy === 'total_pendiente' && stat.label === 'Pendiente conciliación'
+                ? 'border-amber-500/50 bg-amber-500/10'
+                : 'border-border/40 bg-card/50',
+            )}
+          >
             <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg mb-2', stat.bg)}>
               <stat.icon className={cn('h-4 w-4', stat.color)} />
             </div>
             <div className="text-2xl font-bold text-foreground font-mono">{stat.value}</div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{stat.label}</div>
-          </div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+              {stat.label}{stat.onClick && (orderBy === 'total_pendiente' ? ' · ordenado ✓' : ' · clic para ordenar')}
+            </div>
+          </button>
         ))}
+      </div>
+
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nombre de negocio..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9 bg-card/60 border-border/40 text-sm"
+        />
       </div>
 
       <div className="rounded-xl border border-border/40 bg-card/40 overflow-hidden">
@@ -746,37 +1300,95 @@ function FacturacionLedger() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/40 bg-card/60">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Constructora</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Concepto</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Monto Unitario</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cantidad</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Acumulado</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Estado</th>
+                <th className="w-8 px-2 py-3"></th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Negocio</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sector</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground"># Cargos</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pendiente</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Facturado</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pagado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
-              {facturas.map((f) => (
-                <tr key={f.id} className="group transition-colors hover:bg-card/60">
-                  <td className="px-4 py-3"><span className="text-xs font-medium text-foreground">{f.constructoraName}</span></td>
-                  <td className="px-4 py-3">
-                    <Badge variant="outline" className={cn('text-[10px] font-medium', f.concepto === 'CPL' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20')}>
-                      {f.concepto}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right"><span className="font-mono text-xs text-foreground">{formatCOP(f.montoUnitario)}</span></td>
-                  <td className="px-4 py-3 text-center"><span className="font-mono text-xs text-muted-foreground">{f.cantidad}</span></td>
-                  <td className="px-4 py-3 text-right"><span className="font-mono text-xs font-semibold text-foreground">{formatCOP(f.totalAcumulado)}</span></td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border',
-                      f.estado === 'Facturado' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : f.estado === 'Pagado' ? 'text-blue-400 bg-blue-500/10 border-blue-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20')}>
-                      {f.estado}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {isLoading ? (
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-xs text-muted-foreground">Cargando...</td></tr>
+              ) : resumenes.length === 0 ? (
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-xs text-muted-foreground">
+                  {search ? 'No se encontraron negocios con ese nombre.' : 'Todavía no hay cargos registrados.'}
+                </td></tr>
+              ) : (
+                resumenes.map((r) => {
+                  const isExpanded = expandedOrgId === r.organizationId;
+                  const detalle = detalleCache.get(r.organizationId);
+                  return (
+                    <Fragment key={r.organizationId}>
+                      <tr className="group transition-colors hover:bg-card/60 cursor-pointer" onClick={() => handleExpand(r.organizationId)}>
+                        <td className="px-2 py-3">
+                          <span className="text-muted-foreground">
+                            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3"><span className="text-xs font-medium text-foreground">{r.organizationName}</span></td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className="text-[10px] border-border/40 bg-secondary/40">
+                            {{ banco: 'Banco', constructora: 'Constructora', comercio: 'Comercio' }[r.organizationType]}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-center"><span className="font-mono text-xs text-muted-foreground">{r.cantidadCargos}</span></td>
+                        <td className="px-4 py-3 text-right"><span className="font-mono text-xs font-semibold text-amber-400">{formatCOP(r.totalPendiente)}</span></td>
+                        <td className="px-4 py-3 text-right"><span className="font-mono text-xs text-emerald-400">{formatCOP(r.totalFacturado)}</span></td>
+                        <td className="px-4 py-3 text-right"><span className="font-mono text-xs text-blue-400">{formatCOP(r.totalPagado)}</span></td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="bg-card/20">
+                          <td colSpan={7} className="border-t border-border/30 p-4">
+                            {loadingDetalleId === r.organizationId ? (
+                              <p className="text-xs text-muted-foreground">Cargando detalle...</p>
+                            ) : !detalle || detalle.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">Sin cargos individuales.</p>
+                            ) : (
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="text-left text-muted-foreground">
+                                    <th className="pb-2 font-medium">Concepto</th>
+                                    <th className="pb-2 font-medium text-right">Monto</th>
+                                    <th className="pb-2 font-medium">Fecha</th>
+                                    <th className="pb-2 font-medium text-center">Estado</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border/20">
+                                  {detalle.map((d) => (
+                                    <tr key={d.id}>
+                                      <td className="py-2">
+                                        <Badge variant="outline" className={cn('text-[10px] font-medium', d.concepto === 'CPL' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20')}>
+                                          {d.concepto}
+                                        </Badge>
+                                      </td>
+                                      <td className="py-2 text-right font-mono text-foreground">{formatCOP(Number(d.monto))}</td>
+                                      <td className="py-2 text-muted-foreground">{new Date(d.fecha).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                      <td className="py-2 text-center"><EstadoPagoBadge estado={d.estado_pago} /></td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
+        {!isLoading && hasMore && (
+          <div className="p-3 border-t border-border/30 flex justify-center">
+            <Button variant="outline" size="sm" onClick={() => loadPage(false, search, orderBy)} disabled={isLoadingMore}>
+              {isLoadingMore ? 'Cargando...' : 'Cargar más'}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

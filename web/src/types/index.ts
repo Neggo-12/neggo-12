@@ -445,25 +445,26 @@ export interface UsuarioDB {
 
 export interface FacturaLedger {
   id: string;
-  constructoraId: string;
-  constructoraName: string;
-  concepto: 'CPL' | 'Success Fee';
-  montoUnitario: number;
-  cantidad: number;
-  totalAcumulado: number;
+  organizationId: string;
+  organizationName: string;
+  organizationType: 'banco' | 'constructora' | 'comercio';
+  concepto: 'CPL' | 'Success Fee' | 'Sello de Confianza';
+  monto: number;
   estado: 'Pendiente de conciliación' | 'Facturado' | 'Pagado';
   periodo: string;
+  fecha: string;
 }
 
 export interface ComercioAdmin {
   id: string;
+  organizationId: string;
   nombre: string;
   nit: string;
   ciudad: string;
   categoria: ComercioCategory;
   plan: SubscriptionTier;
   hasTrustSeal: boolean;
-  tasaComisionB2B: number;
+  planNegociacion: 'solo_pauta' | 'balanceado' | 'solo_resultados';
   estado: AuthorizationStatus;
   fechaRegistro: string;
   leadsRecibidos: number;

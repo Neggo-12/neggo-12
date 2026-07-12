@@ -50,47 +50,168 @@ export type Database = {
       }
       facturas_ledger: {
         Row: {
-          cantidad: number
-          concepto: string
-          constructora_id: string | null
-          constructora_nombre: string
-          estado_pago: string
-          fecha: string
           id: string
-          monto_unitario: number
-          periodo: string | null
-          total_acumulado: number
+          organization_id: string
+          concepto: string
+          monto: number
+          destinatario_id: string | null
+          detalle: Json | null
+          estado_pago: string
+          periodo: string
+          fecha: string
+          factura_mensual_id: string | null
         }
         Insert: {
-          cantidad?: number
+          id?: string
+          organization_id: string
           concepto: string
-          constructora_id?: string | null
-          constructora_nombre: string
+          monto: number
+          destinatario_id?: string | null
+          detalle?: Json | null
           estado_pago?: string
+          periodo: string
           fecha?: string
-          id: string
-          monto_unitario?: number
-          periodo?: string | null
-          total_acumulado?: number
+          factura_mensual_id?: string | null
         }
         Update: {
-          cantidad?: number
-          concepto?: string
-          constructora_id?: string | null
-          constructora_nombre?: string
-          estado_pago?: string
-          fecha?: string
           id?: string
-          monto_unitario?: number
-          periodo?: string | null
-          total_acumulado?: number
+          organization_id?: string
+          concepto?: string
+          monto?: number
+          destinatario_id?: string | null
+          detalle?: Json | null
+          estado_pago?: string
+          periodo?: string
+          fecha?: string
+          factura_mensual_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "facturas_ledger_constructora_id_fkey"
-            columns: ["constructora_id"]
+            foreignKeyName: "facturas_ledger_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_ledger_destinatario_id_fkey"
+            columns: ["destinatario_id"]
+            isOneToOne: false
+            referencedRelation: "me_interesa_destinatarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_ledger_factura_mensual_id_fkey"
+            columns: ["factura_mensual_id"]
+            isOneToOne: false
+            referencedRelation: "facturas_mensuales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facturas_mensuales: {
+        Row: {
+          id: string
+          organization_id: string
+          periodo: string
+          monto_total: number
+          fecha_limite_pago: string
+          estado: string
+          tarifas_snapshot: Json | null
+          reportado_at: string | null
+          confirmado_at: string | null
+          confirmado_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          periodo: string
+          monto_total?: number
+          fecha_limite_pago: string
+          estado?: string
+          tarifas_snapshot?: Json | null
+          reportado_at?: string | null
+          confirmado_at?: string | null
+          confirmado_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          periodo?: string
+          monto_total?: number
+          fecha_limite_pago?: string
+          estado?: string
+          tarifas_snapshot?: Json | null
+          reportado_at?: string | null
+          confirmado_at?: string | null
+          confirmado_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_mensuales_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_mensuales_confirmado_by_fkey"
+            columns: ["confirmado_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarifas_bancos: {
+        Row: { id: string; clave: string; label: string; tipo_tarifa: string; valor: number; updated_at: string }
+        Insert: { id: string; clave: string; label: string; tipo_tarifa: string; valor: number; updated_at?: string }
+        Update: { id?: string; clave?: string; label?: string; tipo_tarifa?: string; valor?: number; updated_at?: string }
+        Relationships: []
+      }
+      planes_comercio: {
+        Row: { id: string; clave: string; label: string; cpl: number; comision_pct: number; updated_at: string }
+        Insert: { id: string; clave: string; label: string; cpl: number; comision_pct: number; updated_at?: string }
+        Update: { id?: string; clave?: string; label?: string; cpl?: number; comision_pct?: number; updated_at?: string }
+        Relationships: []
+      }
+      tarifas_bancos_por_organizacion: {
+        Row: {
+          id: string
+          banco_organization_id: string
+          clave: string
+          tipo_tarifa: string
+          valor: number
+          periodo_vigente_desde: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          banco_organization_id: string
+          clave: string
+          tipo_tarifa: string
+          valor: number
+          periodo_vigente_desde: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          banco_organization_id?: string
+          clave?: string
+          tipo_tarifa?: string
+          valor?: number
+          periodo_vigente_desde?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarifas_bancos_por_organizacion_banco_organization_id_fkey"
+            columns: ["banco_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -234,6 +355,8 @@ export type Database = {
           contactado_at: string | null
           estado_pipeline: string
           proxima_gestion_at: string | null
+          monto_cierre: number | null
+          franquicia_tarjeta: string | null
           created_at: string
         }
         Insert: {
@@ -245,6 +368,8 @@ export type Database = {
           contactado_at?: string | null
           estado_pipeline?: string
           proxima_gestion_at?: string | null
+          monto_cierre?: number | null
+          franquicia_tarjeta?: string | null
           created_at?: string
         }
         Update: {
@@ -256,6 +381,8 @@ export type Database = {
           contactado_at?: string | null
           estado_pipeline?: string
           proxima_gestion_at?: string | null
+          monto_cierre?: number | null
+          franquicia_tarjeta?: string | null
           created_at?: string
         }
         Relationships: [
@@ -521,6 +648,7 @@ export type Database = {
           metadata: Json | null
           name: string
           nit: string | null
+          plan_negociacion: string | null
           representante_legal: string | null
           status: string
           telefono: string | null
@@ -536,6 +664,7 @@ export type Database = {
           metadata?: Json | null
           name: string
           nit?: string | null
+          plan_negociacion?: string | null
           representante_legal?: string | null
           status?: string
           telefono?: string | null
@@ -551,6 +680,7 @@ export type Database = {
           metadata?: Json | null
           name?: string
           nit?: string | null
+          plan_negociacion?: string | null
           representante_legal?: string | null
           status?: string
           telefono?: string | null
@@ -751,12 +881,48 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      facturas_resumen_por_negocio: {
+        Row: {
+          organization_id: string
+          organization_name: string
+          organization_type: string
+          cantidad_cargos: number
+          total_pendiente: number
+          total_facturado: number
+          total_pagado: number
+        }
+        Relationships: []
+      }
+      facturas_totales_globales: {
+        Row: {
+          total_cpl: number
+          total_success_fee: number
+          total_facturado: number
+          total_pendiente: number
+        }
+        Relationships: []
+      }
     }
     Functions: {
       resolve_organization_ids_for_users: {
         Args: { p_user_ids: string[] }
         Returns: { user_id: string; organization_id: string }[]
+      }
+      registrar_cargo_cpl: {
+        Args: { p_destinatario_id: string }
+        Returns: undefined
+      }
+      registrar_cierre_lead: {
+        Args: { p_destinatario_id: string; p_monto_cierre: number; p_franquicia_tarjeta: string | null }
+        Returns: undefined
+      }
+      reportar_pago_factura: {
+        Args: { p_factura_id: string }
+        Returns: undefined
+      }
+      confirmar_pago_factura: {
+        Args: { p_factura_id: string }
+        Returns: undefined
       }
     }
     Enums: {

@@ -7,13 +7,14 @@ import SolicitudesTab from '@/components/bank/SolicitudesTab';
 import CampanasTab from '@/components/bank/CampanasTab';
 import AnalyticsTab from '@/components/bank/AnalyticsTab';
 import FeedbackTab from '@/components/bank/FeedbackTab';
+import MiFacturacionTab from '@/components/facturacion/MiFacturacionTab';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Building2, BarChart3, Megaphone, MessageSquareText, FileText, TrendingDown, AlertTriangle, Loader2 } from 'lucide-react';
+import { Building2, BarChart3, Megaphone, MessageSquareText, FileText, TrendingDown, AlertTriangle, Loader2, Receipt } from 'lucide-react';
 import { useOrganizationName } from '@/hooks/useOrganizationName';
 
-type BankTab = 'solicitudes' | 'campanas' | 'analytics' | 'feedback' | 'metricas-rechazo';
+type BankTab = 'solicitudes' | 'campanas' | 'mi-facturacion' | 'analytics' | 'feedback' | 'metricas-rechazo';
 
 /** Extrae el nombre de entidad bancaria real desde el nombre compuesto del usuario demo */
 function extractBankIdentity(userName: string): { displayName: string; primaryBankName: string } {
@@ -67,6 +68,7 @@ export default function BankDashboard() {
   const BANK_SECTIONS: SidebarNavItem[] = [
     { key: 'solicitudes', label: 'Solicitudes', icon: FileText },
     { key: 'campanas', label: 'Campañas', icon: Megaphone },
+    { key: 'mi-facturacion', label: 'Mi Facturación', icon: Receipt },
     { key: 'analytics', label: 'Analítica', icon: BarChart3 },
     { key: 'feedback', label: 'Feedback', icon: MessageSquareText },
     { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: TrendingDown },
@@ -93,6 +95,7 @@ export default function BankDashboard() {
               {[
                 { id: 'solicitudes', label: 'Solicitudes', icon: FileText },
                 { id: 'campanas', label: 'Campañas', icon: Megaphone },
+                { id: 'mi-facturacion', label: 'Mi Facturación', icon: Receipt },
                 { id: 'analytics', label: 'Analítica', icon: BarChart3 },
                 { id: 'feedback', label: 'Feedback', icon: MessageSquareText },
               ].map((tab) => (
@@ -112,6 +115,9 @@ export default function BankDashboard() {
             </TabsContent>
             <TabsContent value="campanas" className="mt-0 animate-slide-up">
               <CampanasTab bankName={bankIdentity.primaryBankName} />
+            </TabsContent>
+            <TabsContent value="mi-facturacion" className="mt-0 animate-slide-up">
+              <MiFacturacionTab organizationId={organizationId} />
             </TabsContent>
             <TabsContent value="analytics" className="mt-0 animate-slide-up">
               <AnalyticsTab bankName={bankIdentity.primaryBankName} />

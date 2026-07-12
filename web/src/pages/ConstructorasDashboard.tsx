@@ -28,6 +28,7 @@ import PriorityBadge from '@/components/PriorityBadge';
 import LeadStatusBadge from '@/components/LeadStatusBadge';
 import CrearProyectoDialog from '@/components/CrearProyectoDialog';
 import ConstructoraSolicitudesTab from '@/components/constructora/SolicitudesTab';
+import MiFacturacionTab from '@/components/facturacion/MiFacturacionTab';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
@@ -45,15 +46,16 @@ import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useOrganizationName } from '@/hooks/useOrganizationName';
 import type { LeadInmobiliario, ProyectoConstructora, LeadStatus } from '@/types';
-import { MessageSquareText, TrendingDown } from 'lucide-react';
+import { MessageSquareText, TrendingDown, Receipt } from 'lucide-react';
 
-type ConstTab = 'proyectos' | 'leads' | 'solicitudes' | 'matching' | 'analitica' | 'feedback' | 'metricas-rechazo';
+type ConstTab = 'proyectos' | 'leads' | 'solicitudes' | 'matching' | 'mi-facturacion' | 'analitica' | 'feedback' | 'metricas-rechazo';
 
 const CONST_SECTIONS: SidebarNavItem[] = [
   { key: 'proyectos', label: 'Proyectos', icon: Building2 },
   { key: 'leads', label: 'Leads Inmobiliarios', icon: Users },
   { key: 'solicitudes', label: 'Solicitudes (Me Interesa)', icon: Inbox },
   { key: 'matching', label: 'Matching', icon: Target },
+  { key: 'mi-facturacion', label: 'Mi Facturación', icon: Receipt },
   { key: 'analitica', label: 'Analítica', icon: TrendingUp },
   { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText },
   { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: BarChart3 },
@@ -559,6 +561,10 @@ export default function ConstructorasDashboard() {
               constructoraUser={currentUser}
               organizationId={organizationId}
             />
+          )}
+
+          {activeSection === 'mi-facturacion' && (
+            <MiFacturacionTab organizationId={organizationId} />
           )}
 
           {/* Section: Matching placeholder */}

@@ -4,25 +4,27 @@ import ComercioOnboarding from '@/features/comercios/components/ComercioOnboardi
 import OportunidadesFeed from '@/features/comercios/components/OportunidadesFeed';
 import ComercioSolicitudesTab from '@/components/comercio/SolicitudesTab';
 import ComercioSuscripcionTab from '@/components/comercio/SuscripcionTab';
+import MiFacturacionTab from '@/components/facturacion/MiFacturacionTab';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import KPICard from '@/components/KPICard';
-import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText, TrendingDown, AlertTriangle, Loader2, Inbox } from 'lucide-react';
+import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText, TrendingDown, AlertTriangle, Loader2, Inbox, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchOfertasComercios, type OfertaComercioRow } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useOrganizationName } from '@/hooks/useOrganizationName';
 
-type ComercioSection = 'dashboard' | 'oportunidades' | 'suscripcion' | 'solicitudes' | 'feedback' | 'metricas-rechazo';
+type ComercioSection = 'dashboard' | 'oportunidades' | 'suscripcion' | 'solicitudes' | 'mi-facturacion' | 'feedback' | 'metricas-rechazo';
 
 const COMERCIO_SECTIONS: SidebarNavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: Store },
   { key: 'oportunidades', label: 'Oportunidades IFC', icon: Radio, badge: 3 },
   { key: 'suscripcion', label: 'Suscripción', icon: CreditCard },
   { key: 'solicitudes', label: 'Solicitudes (Me Interesa)', icon: Inbox },
+  { key: 'mi-facturacion', label: 'Mi Facturación', icon: Receipt },
   { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText, badge: 5 },
   { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: TrendingDown },
 ];
@@ -243,6 +245,10 @@ export default function ComerciosDashboard() {
               comercioCiudad={currentComercio.ciudad}
               organizationId={session?.organizationId ?? null}
             />
+          )}
+
+          {activeSection === 'mi-facturacion' && (
+            <MiFacturacionTab organizationId={session?.organizationId ?? null} />
           )}
 
           {activeSection === 'feedback' && (

@@ -33,6 +33,8 @@ const PRODUCT_TYPES: { id: SolicitudProductType; label: string }[] = [
   { id: 'credito-hipotecario', label: 'Crédito Hipotecario' },
   { id: 'cdt', label: 'CDT' },
   { id: 'libre-inversion', label: 'Libre Inversión' },
+  { id: 'retanqueo', label: 'Retanqueo' },
+  { id: 'tarjeta-credito', label: 'Tarjeta de Crédito' },
 ];
 
 const PRODUCT_LABELS: Record<SolicitudProductType, string> = {
@@ -40,6 +42,8 @@ const PRODUCT_LABELS: Record<SolicitudProductType, string> = {
   'credito-hipotecario': 'Crédito Hipotecario',
   cdt: 'CDT',
   'libre-inversion': 'Libre Inversión',
+  retanqueo: 'Retanqueo',
+  'tarjeta-credito': 'Tarjeta de Crédito',
 };
 
 const TIPO_VIVIENDA_OPTIONS: { value: string; label: string }[] = [

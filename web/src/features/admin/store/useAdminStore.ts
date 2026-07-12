@@ -7,10 +7,8 @@ import type {
   IFCTransaction,
   EcosistemaMetrics,
   AlgorithmEquity,
-  FacturaLedger,
 } from '@/types';
 import {
-  fetchFacturasLedger,
   fetchUsersByStatus,
   fetchAllUsers,
   updateUserStatus,
@@ -91,11 +89,7 @@ interface AdminState {
   /** Current algorithm equity distribution */
   algorithmEquity: AlgorithmEquity;
   /** Active admin sidebar section */
-  activeSection: 'resumen' | 'autorizaciones' | 'bancos' | 'constructoras' | 'comercios' | 'analitica' | 'facturacion';
-  /** Ledger de cobros CPL + Success Fee (hidratado desde la base de datos real) */
-  facturas: FacturaLedger[];
-  /** true después del primer intento de hidratación del ledger */
-  isFacturasHydrated: boolean;
+  activeSection: 'resumen' | 'autorizaciones' | 'bancos' | 'constructoras' | 'comercios' | 'analitica' | 'facturacion' | 'tarifas' | 'conciliacion';
 
   setActiveSection: (section: AdminState['activeSection']) => void;
   /** Carga usuarios desde Supabase — re-fetch en cada montaje para datos frescos */
@@ -107,8 +101,6 @@ interface AdminState {
   /** Rechaza un usuario: cambia status a 'rejected' en Supabase */
   rejectEntity: (requestId: string) => Promise<void>;
   issueTrustSeal: (requestId: string) => void;
-  /** Carga el ledger de facturación desde la tabla `facturas_ledger` */
-  hydrateFacturas: () => Promise<void>;
   /** Fallback: añade una solicitud pendiente al store en memoria (cuando Supabase no responde) */
   addPendingRequest: (request: OnboardingRequest) => void;
 }
@@ -142,8 +134,6 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   ifcTransactions: [],
   algorithmEquity: EMPTY_ALGORITHM,
   activeSection: 'resumen',
-  facturas: [],
-  isFacturasHydrated: false,
 
   setActiveSection: (section) => set({ activeSection: section }),
 
@@ -274,28 +264,4 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           : r
       ),
     })),
-
-  hydrateFacturas: async () => {
-    if (get().isFacturasHydrated) return;
-    set({ isFacturasHydrated: true });
-    const { data } = await fetchFacturasLedger();
-    if (data && data.length > 0) {
-      // Map snake_case DB rows to camelCase FacturaLedger type
-      const mapped: FacturaLedger[] = data.map((row) => ({
-        id: row.id,
-        constructoraId: row.constructora_id ?? '',
-        constructoraName: row.constructora_nombre,
-        concepto: row.concepto as FacturaLedger['concepto'],
-        montoUnitario: Number(row.monto_unitario),
-        cantidad: row.cantidad,
-        totalAcumulado: Number(row.total_acumulado),
-        estado: row.estado_pago as FacturaLedger['estado'],
-        periodo: row.periodo ?? '',
-      }));
-      set({ facturas: mapped });
-    } else {
-      // Sin datos en la BD: ledger vacío
-      set({ facturas: [] });
-    }
-  },
 }));

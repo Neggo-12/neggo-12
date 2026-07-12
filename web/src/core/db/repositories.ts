@@ -282,14 +282,86 @@ export function computeRejectionAggregates(
 
 // ───── Facturas ledger ─────
 
-export async function fetchFacturasLedger(): Promise<{
-  data: FacturaLedgerRow[] | null;
-  error: string | null;
-}> {
+export interface FacturaResumenNegocio {
+  organizationId: string;
+  organizationName: string;
+  organizationType: 'banco' | 'constructora' | 'comercio';
+  cantidadCargos: number;
+  totalPendiente: number;
+  totalFacturado: number;
+  totalPagado: number;
+}
+
+/**
+ * Resumen de facturación agrupado por negocio (vista `facturas_resumen_por_negocio`,
+ * security_invoker=true — hereda el RLS de facturas_ledger, así que Admin ve
+ * todos los negocios y una organización solo vería el suyo). Paginado y
+ * filtrable por nombre — pensado para escalar a miles de negocios sin traer
+ * el ledger completo al cliente.
+ */
+export async function fetchFacturasResumenPorNegocio(input: {
+  search?: string;
+  orderBy?: 'organization_name' | 'total_pendiente';
+  offset: number;
+  limit: number;
+}): Promise<{ data: FacturaResumenNegocio[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  let query = supabase
+    .from('facturas_resumen_por_negocio')
+    .select('organization_id, organization_name, organization_type, cantidad_cargos, total_pendiente, total_facturado, total_pagado')
+    .order(input.orderBy ?? 'organization_name', { ascending: input.orderBy !== 'total_pendiente' })
+    .range(input.offset, input.offset + input.limit - 1);
+  if (input.search) {
+    query = query.ilike('organization_name', `%${input.search}%`);
+  }
+  const { data, error } = await query;
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      organizationId: r.organization_id,
+      organizationName: r.organization_name,
+      organizationType: r.organization_type as FacturaResumenNegocio['organizationType'],
+      cantidadCargos: r.cantidad_cargos,
+      totalPendiente: Number(r.total_pendiente),
+      totalFacturado: Number(r.total_facturado),
+      totalPagado: Number(r.total_pagado),
+    })),
+    error: null,
+  };
+}
+
+export interface FacturasTotalesGlobales {
+  totalCpl: number;
+  totalSuccessFee: number;
+  totalFacturado: number;
+  totalPendiente: number;
+}
+
+/** Totales globales (vista `facturas_totales_globales`) para los 4 KPIs — independientes de la paginación/búsqueda. */
+export async function fetchFacturasTotalesGlobales(): Promise<{ data: FacturasTotalesGlobales | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.from('facturas_totales_globales').select('*').maybeSingle();
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: {
+      totalCpl: Number(data?.total_cpl ?? 0),
+      totalSuccessFee: Number(data?.total_success_fee ?? 0),
+      totalFacturado: Number(data?.total_facturado ?? 0),
+      totalPendiente: Number(data?.total_pendiente ?? 0),
+    },
+    error: null,
+  };
+}
+
+/** Detalle de cargos individuales de un negocio — lazy-fetch, solo al expandir su fila en Admin. */
+export async function fetchFacturasLedgerByOrganization(
+  organizationId: string,
+): Promise<{ data: FacturaLedgerRow[] | null; error: string | null }> {
   if (!supabase) return { data: null, error: NOT_CONFIGURED };
   const { data, error } = await supabase
     .from('facturas_ledger')
     .select('*')
+    .eq('organization_id', organizationId)
     .order('fecha', { ascending: false });
   if (error) return { data: null, error: errMessage(error) };
   return { data: data ?? [], error: null };
@@ -492,6 +564,205 @@ export async function updateOrganizationCiudad(
     return { error: 'No se pudo actualizar: la organización no existe o no tienes permiso (RLS).' };
   }
   return { error: null };
+}
+
+// ───── Tarifas y planes (Fase 9.2 — capa de facturación) ─────
+
+export type TarifaBancoTipo = 'por_millon_desembolsado' | 'monto_fijo';
+
+export interface TarifaBancoRow {
+  id: string;
+  clave: string;
+  label: string;
+  tipoTarifa: TarifaBancoTipo;
+  valor: number;
+}
+
+/** Fetches the configurable Bancos rate table (editable from Admin). */
+export async function fetchTarifasBancos(): Promise<{ data: TarifaBancoRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.from('tarifas_bancos').select('id, clave, label, tipo_tarifa, valor').order('clave');
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      id: r.id,
+      clave: r.clave,
+      label: r.label,
+      tipoTarifa: r.tipo_tarifa as TarifaBancoTipo,
+      valor: Number(r.valor),
+    })),
+    error: null,
+  };
+}
+
+/** Updates a single Bancos rate by its `clave`. */
+export async function updateTarifaBanco(clave: string, valor: number): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('tarifas_bancos')
+    .update({ valor, updated_at: new Date().toISOString() })
+    .eq('clave', clave)
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) return { error: 'No se pudo actualizar: la tarifa no existe.' };
+  return { error: null };
+}
+
+function periodoActualYYYYMM(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export interface TarifaBancoOrganizacionRow {
+  clave: string;
+  tipoTarifa: TarifaBancoTipo;
+  valor: number;
+  periodoVigenteDesde: string;
+}
+
+/**
+ * Trae la versión vigente más reciente de cada tarifa negociada de un banco
+ * (periodo_vigente_desde <= mes actual). Se trae todo lo vigente ordenado
+ * desc y se queda con la primera ocurrencia de cada clave — mismo patrón de
+ * este archivo de nunca usar selects embebidos/vistas para algo tan chico.
+ */
+export async function fetchTarifasBancoOrganizacion(
+  organizationId: string,
+): Promise<{ data: TarifaBancoOrganizacionRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('tarifas_bancos_por_organizacion')
+    .select('clave, tipo_tarifa, valor, periodo_vigente_desde')
+    .eq('banco_organization_id', organizationId)
+    .lte('periodo_vigente_desde', periodoActualYYYYMM())
+    .order('periodo_vigente_desde', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  const seen = new Set<string>();
+  const result: TarifaBancoOrganizacionRow[] = [];
+  for (const r of data ?? []) {
+    if (seen.has(r.clave)) continue;
+    seen.add(r.clave);
+    result.push({
+      clave: r.clave,
+      tipoTarifa: r.tipo_tarifa as TarifaBancoTipo,
+      valor: Number(r.valor),
+      periodoVigenteDesde: r.periodo_vigente_desde,
+    });
+  }
+  return { data: result, error: null };
+}
+
+/**
+ * Guarda una tarifa negociada para un banco específico. Inserta una fila
+ * nueva con periodo_vigente_desde = mes actual (nunca pisa una versión
+ * vieja — historial versionado, sección 9.3a). Si ya existe una fila para
+ * este banco+clave+mes, actualiza esa fila del mes en curso en vez de
+ * fallar por duplicado, sin tocar el historial de meses anteriores.
+ */
+export async function upsertTarifaBancoOrganizacion(
+  organizationId: string,
+  clave: string,
+  tipoTarifa: TarifaBancoTipo,
+  valor: number,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.from('tarifas_bancos_por_organizacion').upsert(
+    {
+      banco_organization_id: organizationId,
+      clave,
+      tipo_tarifa: tipoTarifa,
+      valor,
+      periodo_vigente_desde: periodoActualYYYYMM(),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'banco_organization_id,clave,periodo_vigente_desde' },
+  );
+  return { error: error ? errMessage(error) : null };
+}
+
+export interface PlanComercioRow {
+  id: string;
+  clave: 'solo_pauta' | 'balanceado' | 'solo_resultados';
+  label: string;
+  cpl: number;
+  comisionPct: number;
+}
+
+/** Fetches the 3 configurable Comercios negotiation plans (editable from Admin). */
+export async function fetchPlanesComercio(): Promise<{ data: PlanComercioRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.from('planes_comercio').select('id, clave, label, cpl, comision_pct').order('cpl', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      id: r.id,
+      clave: r.clave as PlanComercioRow['clave'],
+      label: r.label,
+      cpl: Number(r.cpl),
+      comisionPct: Number(r.comision_pct),
+    })),
+    error: null,
+  };
+}
+
+/** Updates a single Comercio plan's CPL and commission rate by its `clave`. */
+export async function updatePlanComercio(clave: string, cpl: number, comisionPct: number): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('planes_comercio')
+    .update({ cpl, comision_pct: comisionPct, updated_at: new Date().toISOString() })
+    .eq('clave', clave)
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) return { error: 'No se pudo actualizar: el plan no existe.' };
+  return { error: null };
+}
+
+/** Fetches a Comercio organization's negotiation plan (defaults to 'balanceado' if unset). */
+export async function fetchOrganizationPlanNegociacion(
+  organizationId: string,
+): Promise<{ data: string | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('plan_negociacion')
+    .eq('id', organizationId)
+    .limit(1)
+    .maybeSingle();
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: data?.plan_negociacion ?? 'balanceado', error: null };
+}
+
+/** Sets a Comercio organization's negotiation plan — Admin-only in practice (RLS enforces this at the DB level). */
+export async function updateOrganizationPlanNegociacion(
+  organizationId: string,
+  plan: string,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('organizations')
+    .update({ plan_negociacion: plan })
+    .eq('id', organizationId)
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: 'No se pudo actualizar: la organización no existe o no tienes permiso (RLS).' };
+  }
+  return { error: null };
+}
+
+/** Bulk-fetches display fields (name, type, plan_negociacion) for a list of organization ids. */
+export async function fetchOrganizationsByIds(
+  organizationIds: string[],
+): Promise<{ data: { id: string; name: string; type: string; planNegociacion: string | null }[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  if (organizationIds.length === 0) return { data: [], error: null };
+  const { data, error } = await supabase.from('organizations').select('id, name, type, plan_negociacion').in('id', organizationIds);
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({ id: r.id, name: r.name, type: r.type, planNegociacion: r.plan_negociacion })),
+    error: null,
+  };
 }
 
 // ───── Proyectos (constructoras) ─────
@@ -711,7 +982,20 @@ export async function insertMeInteresaDestinatarios(
     destinatario_type: d.type,
   }));
   const { error } = await supabase.from('me_interesa_destinatarios').insert(rows);
-  return { error: error ? errMessage(error) : null };
+  if (error) return { error: errMessage(error) };
+
+  // Best-effort: cada destinatario real genera un cargo de CPL (sección 9.2).
+  // El monto lo calcula registrar_cargo_cpl (SECURITY DEFINER) en Postgres —
+  // el cliente nunca envía ni calcula el monto.
+  await Promise.all(
+    rows.map((r) =>
+      supabase!.rpc('registrar_cargo_cpl', { p_destinatario_id: r.id }).then(({ error: cplError }) => {
+        if (cplError) console.error('No se pudo generar el cargo de CPL:', cplError.message);
+      }),
+    ),
+  );
+
+  return { error: null };
 }
 
 /** Fetches approved banks (`organizations` with `type='banco'`) for the Banca Privada selector. */
@@ -792,6 +1076,8 @@ export interface MeInteresaLeadDisplay {
   contactado: boolean;
   estadoPipeline: MeInteresaPipelineEstado;
   proximaGestionAt: string | null;
+  /** Monto de venta / desembolso reportado por el negocio al cerrar el lead (sección 9.2). */
+  montoCierre: number | null;
   createdAt: string;
   productoBancario: string | null;
   tipoVivienda: string | null;
@@ -826,7 +1112,7 @@ export async function fetchMeInteresaLeadsByOrganization(
 
   const { data: destinatarios, error: destError } = await supabase
     .from('me_interesa_destinatarios')
-    .select('id, solicitud_id, contactado, estado_pipeline, proxima_gestion_at, created_at')
+    .select('id, solicitud_id, contactado, estado_pipeline, proxima_gestion_at, monto_cierre, created_at')
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false });
   if (destError) return { data: null, error: errMessage(destError) };
@@ -867,6 +1153,7 @@ export async function fetchMeInteresaLeadsByOrganization(
       contactado: d.contactado,
       estadoPipeline: (d.estado_pipeline as MeInteresaPipelineEstado) ?? 'pendiente',
       proximaGestionAt: d.proxima_gestion_at,
+      montoCierre: d.monto_cierre,
       createdAt: d.created_at,
       productoBancario: solicitud?.producto_bancario ?? null,
       tipoVivienda: solicitud?.tipo_vivienda ?? null,
@@ -929,6 +1216,158 @@ export async function updateMeInteresaProximaGestion(
     return { error: 'No se pudo actualizar: el lead no existe o no tienes permiso (RLS).' };
   }
   return { error: null };
+}
+
+export interface CierreLeadInput {
+  destinatarioId: string;
+  montoCierre: number;
+  franquiciaTarjeta?: 'visa' | 'mastercard' | 'amex' | null;
+}
+
+/**
+ * Mueve un lead a su estado de cierre y genera el Success Fee/comisión
+ * correspondiente (sección 9.2). El estado destino y el monto del cargo los
+ * resuelve íntegramente registrar_cierre_lead (SECURITY DEFINER) — el
+ * cliente solo reporta el monto de cierre autodeclarado (ver 9.2.1), nunca
+ * el monto del cargo.
+ */
+export async function closeLeadWithCharge(input: CierreLeadInput): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.rpc('registrar_cierre_lead', {
+    p_destinatario_id: input.destinatarioId,
+    p_monto_cierre: input.montoCierre,
+    p_franquicia_tarjeta: input.franquiciaTarjeta ?? null,
+  });
+  return { error: error ? errMessage(error) : null };
+}
+
+// ───── Facturas mensuales (Fase 9.3b/9.3c) ─────
+
+export interface FacturaMensualRow {
+  id: string;
+  organizationId: string;
+  periodo: string;
+  montoTotal: number;
+  fechaLimitePago: string;
+  estado: 'pendiente_pago' | 'reportado_por_negocio' | 'confirmado_pagado';
+  tarifasSnapshot: unknown;
+  reportadoAt: string | null;
+  confirmadoAt: string | null;
+  createdAt: string;
+}
+
+/** Facturas mensuales de un negocio, más recientes primero. */
+export async function fetchFacturasMensualesByOrganization(
+  organizationId: string,
+): Promise<{ data: FacturaMensualRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('facturas_mensuales')
+    .select('id, organization_id, periodo, monto_total, fecha_limite_pago, estado, tarifas_snapshot, reportado_at, confirmado_at, created_at')
+    .eq('organization_id', organizationId)
+    .order('periodo', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      id: r.id,
+      organizationId: r.organization_id,
+      periodo: r.periodo,
+      montoTotal: Number(r.monto_total),
+      fechaLimitePago: r.fecha_limite_pago,
+      estado: r.estado as FacturaMensualRow['estado'],
+      tarifasSnapshot: r.tarifas_snapshot,
+      reportadoAt: r.reportado_at,
+      confirmadoAt: r.confirmado_at,
+      createdAt: r.created_at,
+    })),
+    error: null,
+  };
+}
+
+/** Detalle de cargos individuales de una factura mensual específica. */
+export async function fetchFacturasLedgerByFacturaMensual(
+  facturaMensualId: string,
+): Promise<{ data: FacturaLedgerRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('facturas_ledger')
+    .select('*')
+    .eq('factura_mensual_id', facturaMensualId)
+    .order('fecha', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: data ?? [], error: null };
+}
+
+/** El negocio marca una factura como pagada a Neggo — vía RPC (transición validada server-side). */
+export async function reportarPagoFactura(facturaId: string): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.rpc('reportar_pago_factura', { p_factura_id: facturaId });
+  return { error: error ? errMessage(error) : null };
+}
+
+export interface FacturaMensualAdminRow {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  organizationNit: string | null;
+  organizationType: 'banco' | 'constructora' | 'comercio';
+  periodo: string;
+  montoTotal: number;
+  fechaLimitePago: string;
+  estado: 'pendiente_pago' | 'reportado_por_negocio' | 'confirmado_pagado';
+  reportadoAt: string | null;
+  confirmadoAt: string | null;
+}
+
+/** Todas las facturas mensuales de todos los negocios — Admin. Filtrado por
+ *  estado/nombre/NIT se hace client-side (volumen mucho menor que
+ *  facturas_ledger: 1 fila por negocio por mes, no por cargo individual). */
+export async function fetchTodasLasFacturasMensuales(): Promise<{
+  data: FacturaMensualAdminRow[] | null;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('facturas_mensuales')
+    .select('id, organization_id, periodo, monto_total, fecha_limite_pago, estado, reportado_at, confirmado_at')
+    .order('periodo', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  if (!data || data.length === 0) return { data: [], error: null };
+
+  const orgIds = Array.from(new Set(data.map((r) => r.organization_id)));
+  const { data: orgs, error: orgError } = await supabase
+    .from('organizations')
+    .select('id, name, nit, type')
+    .in('id', orgIds);
+  if (orgError) return { data: null, error: errMessage(orgError) };
+  const orgById = new Map((orgs ?? []).map((o) => [o.id, o]));
+
+  return {
+    data: data.map((r) => {
+      const org = orgById.get(r.organization_id);
+      return {
+        id: r.id,
+        organizationId: r.organization_id,
+        organizationName: org?.name ?? 'Desconocido',
+        organizationNit: org?.nit ?? null,
+        organizationType: (org?.type as FacturaMensualAdminRow['organizationType']) ?? 'comercio',
+        periodo: r.periodo,
+        montoTotal: Number(r.monto_total),
+        fechaLimitePago: r.fecha_limite_pago,
+        estado: r.estado as FacturaMensualAdminRow['estado'],
+        reportadoAt: r.reportado_at,
+        confirmadoAt: r.confirmado_at,
+      };
+    }),
+    error: null,
+  };
+}
+
+/** Admin confirma que el pago de una factura llegó — vía RPC (valida is_platform_admin() server-side). */
+export async function confirmarPagoFactura(facturaId: string): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.rpc('confirmar_pago_factura', { p_factura_id: facturaId });
+  return { error: error ? errMessage(error) : null };
 }
 
 // ───── Cliente-banco-productos (registro B2C) ─────
