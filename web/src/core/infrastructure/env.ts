@@ -18,3 +18,9 @@ export const SUPABASE_ANON_KEY: string = import.meta.env.VITE_SUPABASE_ANON_KEY 
  */
 export const isSupabaseEnvConfigured: boolean =
   SUPABASE_URL.trim() !== '' && SUPABASE_ANON_KEY.trim() !== '';
+
+/** Sentry DSN para monitoreo de errores (string vacío cuando no está configurado). */
+export const SENTRY_DSN: string = import.meta.env.VITE_SENTRY_DSN ?? '';
+
+/** True solo cuando hay un DSN de Sentry presente. */
+export const isSentryConfigured: boolean = SENTRY_DSN.trim() !== '';
