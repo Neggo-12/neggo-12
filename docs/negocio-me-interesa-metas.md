@@ -226,3 +226,41 @@ El código de 6 dígitos que el cliente genera y le da al comercio para confirma
 
 ### 9.6 Sello de Confianza — pago específico
 - Hoy se otorga automático y gratis al completar el onboarding de Comercio (Fase 1). Debe convertirse en un pago específico, separado de los planes Básico/Premium existentes.
+
+## 10. Checklist de confianza para negociar con Bancos — pendiente de cierre
+
+Antes de acercarse formalmente a un banco grande, esto es lo que un negocio serio evalúa antes de confiar/conectarse:
+
+1. **Control de acceso real (RLS)** — ✅ Ya construido, trabajado extensamente en esta sesión.
+2. **Cifrado en tránsito y en reposo** — ✅ Ya lo provee Supabase por defecto (TLS + cifrado en reposo).
+3. **Registro de auditoría** — ⚠️ Existe la tabla audit_log, pero falta confirmar qué tan completa es su cobertura hoy (qué eventos realmente registra).
+4. **Certificaciones de cumplimiento** — ⚠️ Supabase tiene certificación SOC 2 Type II; verificar su estado actual antes de citarla formalmente ante un banco.
+5. **Ley de protección de datos colombiana (Habeas Data, Ley 1581 de 2012)** — ❌ Pendiente: confirmar la región donde vive el proyecto de Supabase, y redactar una política de tratamiento de datos documentada.
+6. **Autenticación multifactor (MFA) para cuentas Admin** — ❌ No implementado hoy. Estándar mínimo esperado por cualquier banco.
+7. **Auditoría de seguridad externa (pentest)** — ❌ No realizado. Antes de una reunión comercial con un banco grande, tener un informe de un tercero pesa mucho más que cualquier explicación arquitectónica propia.
+
+**Recomendación:** dedicar una sesión completa de auditoría de seguridad (repasando todo lo construido en las 3+ sesiones hasta ahora, más lo nuevo) y evaluar contratar un pentest externo económico, antes de la primera reunión comercial formal con un banco.
+
+## 11. Ruta hacia una auditoría de seguridad 8-9/10 — pendiente prioritario
+
+Auditoría honesta actual: 6.5/10. Para llegar a 8-9/10, se necesitan 3 pilares que hoy no existen:
+
+1. **MFA (Autenticación Multifactor)** para cuentas de Admin y, eventualmente, cuentas B2B — segundo factor de verificación al iniciar sesión, más allá de la contraseña.
+2. **Pentest externo** — contratar una auditoría de penetración por un tercero independiente antes de negociar con bancos grandes.
+3. **Tests automatizados** — cobertura de pruebas automáticas (al menos en flujos críticos: autenticación, RLS, cálculo de facturación) para evitar regresiones cuando se agregan features nuevas.
+
+Ninguno de los 3 está implementado hoy. Se recomienda abordarlos en una sesión dedicada, separada del desarrollo de features nuevas.
+
+## 12. Pendientes futuros — Fase 9.3 (Facturación mensual + tarifas por banco)
+
+- **Roles internos por negocio (admin maestro vs. empleados):** hoy cada negocio (banco/constructora/comercio) opera con un solo nivel de acceso vía membership — no hay distinción entre un "admin maestro" de la organización y empleados con permisos limitados (ej. alguien que puede gestionar leads pero no ver/reportar facturación, o no cambiar tarifas). No se construye en la Fase 9.3 — queda documentado como pendiente para una fase posterior de gestión de equipos/permisos internos por organización.
+
+## 13. Corrección de proceso — verificación de TypeScript
+
+Durante gran parte de esta sesión, el comando de verificación usado (`npx tsc --noEmit -p .`) no revisaba ningún archivo real — el tsconfig.json raíz es "solution-style" (`files: []` + `references`), y sin la flag `--build` no compila ni verifica nada. Cada "0 errores" reportado durante ese período era una verificación vacía, no una confirmación real.
+
+Se descubrió al investigar un bug real reportado por el usuario (`Loader2 is not defined` en producción, un error que `tsc` debería haber atrapado). Al corregir el comando a `npx tsc --noEmit -p tsconfig.app.json`, aparecieron 19 errores reales acumulados — todos del mismo patrón ya conocido (columnas/funciones RPC aplicadas en Supabase pero nunca sincronizadas en integrations/supabase/types.ts), sin ningún error de lógica de negocio nuevo.
+
+**Corrección permanente:** usar siempre `npx tsc --noEmit -p tsconfig.app.json` para cualquier verificación de tipos futura en este proyecto — nunca `-p .` (el comando raíz).
+
+**Lección:** las pruebas reales en el navegador con evidencia de base de datos siguen siendo la fuente de verdad final — fueron esas pruebas, no la verificación automática, las que dieron confianza real en el sistema durante toda la sesión.
