@@ -402,6 +402,86 @@ export type Database = {
           },
         ]
       }
+      negocios_curados: {
+        Row: {
+          id: string
+          sector: string
+          nombre: string
+          ciudad: string | null
+          activo: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          sector: string
+          nombre: string
+          ciudad?: string | null
+          activo?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          sector?: string
+          nombre?: string
+          ciudad?: string | null
+          activo?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      senales_interes: {
+        Row: {
+          id: string
+          cliente_id: string
+          cliente_nombre: string
+          cliente_telefono: string
+          sector: string
+          negocio_deseado: string | null
+          producto_bancario: string | null
+          tipo_vivienda: string | null
+          categoria: string | null
+          subcategoria: string | null
+          ciudad: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          cliente_id: string
+          cliente_nombre: string
+          cliente_telefono: string
+          sector: string
+          negocio_deseado?: string | null
+          producto_bancario?: string | null
+          tipo_vivienda?: string | null
+          categoria?: string | null
+          subcategoria?: string | null
+          ciudad?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          cliente_id?: string
+          cliente_nombre?: string
+          cliente_telefono?: string
+          sector?: string
+          negocio_deseado?: string
+          producto_bancario?: string | null
+          tipo_vivienda?: string | null
+          categoria?: string | null
+          subcategoria?: string | null
+          ciudad?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "senales_interes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cliente_banco_productos: {
         Row: {
           id: string

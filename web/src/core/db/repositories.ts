@@ -11,6 +11,7 @@
  */
 import { supabase } from '@/core/db/dbClient';
 import type { Database, Json } from '@/integrations/supabase/types';
+import { reportDbError } from '@/core/infrastructure/sentry';
 import type {
   GoalMeta,
   GoalCategory,
@@ -38,11 +39,19 @@ export type ClienteBancoProductoRow = Database['public']['Tables']['cliente_banc
 const NOT_CONFIGURED = 'Base de datos no configurada.';
 
 function errMessage(error: unknown): string {
+  let msg = 'Error desconocido al acceder a la base de datos.';
   if (error && typeof error === 'object' && 'message' in error) {
-    const msg = (error as { message?: unknown }).message;
-    if (typeof msg === 'string') return msg;
+    const m = (error as { message?: unknown }).message;
+    if (typeof m === 'string') msg = m;
   }
-  return 'Error desconocido al acceder a la base de datos.';
+  reportDbError(msg, error);
+  return msg;
+}
+
+/** Reporta a Sentry un "0 filas afectadas" (posible bloqueo de RLS) preservando el mensaje original al caller. */
+function noRowsError(message: string): string {
+  reportDbError(message);
+  return message;
 }
 
 // ───── Metas (client savings goals) ─────
@@ -99,11 +108,16 @@ export async function setMetaIFC(
   value: boolean,
 ): Promise<{ error: string | null }> {
   if (!supabase) return { error: NOT_CONFIGURED };
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('metas')
     .update({ ifc_activo: value })
-    .eq('id', metaId);
-  return { error: error ? errMessage(error) : null };
+    .eq('id', metaId)
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: noRowsError('No se pudo actualizar: la meta no existe o no tienes permiso (RLS).') };
+  }
+  return { error: null };
 }
 
 // ───── Solicitudes de banca ─────
@@ -407,7 +421,7 @@ export async function updateUserStatus(
     .select('id');
   if (error) return { error: errMessage(error) };
   if (!data || data.length === 0) {
-    return { error: 'No se pudo actualizar: el usuario no existe o no tienes permiso (RLS).' };
+    return { error: noRowsError('No se pudo actualizar: el usuario no existe o no tienes permiso (RLS).') };
   }
   return { error: null };
 }
@@ -458,7 +472,7 @@ export async function updateOrganizationStatus(
     .select('id');
   if (error) return { error: errMessage(error) };
   if (!data || data.length === 0) {
-    return { error: 'No se pudo actualizar la organización: no existe o no tienes permiso (RLS).' };
+    return { error: noRowsError('No se pudo actualizar la organización: no existe o no tienes permiso (RLS).') };
   }
   return { error: null };
 }
@@ -491,7 +505,7 @@ export async function updateOrganizationMetadata(
     .select('id');
   if (error) return { error: errMessage(error) };
   if (!data || data.length === 0) {
-    return { error: 'No se pudo actualizar: la organización no existe o no tienes permiso (RLS).' };
+    return { error: noRowsError('No se pudo actualizar: la organización no existe o no tienes permiso (RLS).') };
   }
   return { error: null };
 }
@@ -524,7 +538,7 @@ export async function updateOrganizationTrustSeal(
     .select('id');
   if (error) return { error: errMessage(error) };
   if (!data || data.length === 0) {
-    return { error: 'No se pudo actualizar: la organización no existe o no tienes permiso (RLS).' };
+    return { error: noRowsError('No se pudo actualizar: la organización no existe o no tienes permiso (RLS).') };
   }
   return { error: null };
 }
@@ -561,7 +575,7 @@ export async function updateOrganizationCiudad(
     .select('id');
   if (error) return { error: errMessage(error) };
   if (!data || data.length === 0) {
-    return { error: 'No se pudo actualizar: la organización no existe o no tienes permiso (RLS).' };
+    return { error: noRowsError('No se pudo actualizar: la organización no existe o no tienes permiso (RLS).') };
   }
   return { error: null };
 }
@@ -604,7 +618,7 @@ export async function updateTarifaBanco(clave: string, valor: number): Promise<{
     .eq('clave', clave)
     .select('id');
   if (error) return { error: errMessage(error) };
-  if (!data || data.length === 0) return { error: 'No se pudo actualizar: la tarifa no existe.' };
+  if (!data || data.length === 0) return { error: noRowsError('No se pudo actualizar: la tarifa no existe.') };
   return { error: null };
 }
 
@@ -714,7 +728,7 @@ export async function updatePlanComercio(clave: string, cpl: number, comisionPct
     .eq('clave', clave)
     .select('id');
   if (error) return { error: errMessage(error) };
-  if (!data || data.length === 0) return { error: 'No se pudo actualizar: el plan no existe.' };
+  if (!data || data.length === 0) return { error: noRowsError('No se pudo actualizar: el plan no existe.') };
   return { error: null };
 }
 
@@ -746,7 +760,7 @@ export async function updateOrganizationPlanNegociacion(
     .select('id');
   if (error) return { error: errMessage(error) };
   if (!data || data.length === 0) {
-    return { error: 'No se pudo actualizar: la organización no existe o no tienes permiso (RLS).' };
+    return { error: noRowsError('No se pudo actualizar: la organización no existe o no tienes permiso (RLS).') };
   }
   return { error: null };
 }
@@ -763,6 +777,222 @@ export async function fetchOrganizationsByIds(
     data: (data ?? []).map((r) => ({ id: r.id, name: r.name, type: r.type, planNegociacion: r.plan_negociacion })),
     error: null,
   };
+}
+
+// ───── Negocios de Interés / Señales de interés (Sección 9.3 — negocios no registrados) ─────
+
+export interface NegocioCuradoRow {
+  id: string;
+  sector: 'banco' | 'constructora' | 'comercio';
+  nombre: string;
+  ciudad: string | null;
+}
+
+/** Lista de Negocios de Interés (editable desde Admin) — negocios grandes conocidos, no registrados aún. */
+export async function fetchNegociosCuradosBySector(
+  sector: 'banco' | 'constructora' | 'comercio',
+): Promise<{ data: NegocioCuradoRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('negocios_curados')
+    .select('id, sector, nombre, ciudad')
+    .eq('sector', sector)
+    .eq('activo', true)
+    .order('nombre', { ascending: true });
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      id: r.id,
+      sector: r.sector as NegocioCuradoRow['sector'],
+      nombre: r.nombre,
+      ciudad: r.ciudad,
+    })),
+    error: null,
+  };
+}
+
+export interface NegocioCuradoAdminRow extends NegocioCuradoRow {
+  activo: boolean;
+  createdAt: string;
+}
+
+/** Todos los Negocios de Interés, incluyendo inactivos — solo para el panel Admin. */
+export async function fetchTodosLosNegociosCurados(): Promise<{ data: NegocioCuradoAdminRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('negocios_curados')
+    .select('id, sector, nombre, ciudad, activo, created_at')
+    .order('sector', { ascending: true })
+    .order('nombre', { ascending: true });
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      id: r.id,
+      sector: r.sector as NegocioCuradoRow['sector'],
+      nombre: r.nombre,
+      ciudad: r.ciudad,
+      activo: r.activo,
+      createdAt: r.created_at,
+    })),
+    error: null,
+  };
+}
+
+export interface InsertNegocioCuradoInput {
+  sector: 'banco' | 'constructora' | 'comercio';
+  nombre: string;
+  ciudad?: string;
+}
+
+/** Agrega un Negocio de Interés — Admin. La validación de ciudad obligatoria (constructora/comercio) vive en la UI. */
+export async function insertNegocioCurado(
+  input: InsertNegocioCuradoInput,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.from('negocios_curados').insert({
+    id: crypto.randomUUID(),
+    sector: input.sector,
+    nombre: input.nombre,
+    ciudad: input.ciudad ?? null,
+  });
+  return { error: error ? errMessage(error) : null };
+}
+
+/** Soft-delete/reactivación — activo=false oculta el negocio del selector de clientes sin borrar señales históricas. */
+export async function toggleNegocioCuradoActivo(
+  id: string,
+  activo: boolean,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('negocios_curados')
+    .update({ activo })
+    .eq('id', id)
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: noRowsError('No se pudo actualizar: el negocio no existe o no tienes permiso (RLS).') };
+  }
+  return { error: null };
+}
+
+export interface InsertSenalInteresInput {
+  clienteId: string;
+  clienteNombre: string;
+  clienteTelefono: string;
+  sector: 'banco' | 'constructora' | 'comercio';
+  /** Obligatorio para sector='banco'; opcional para constructora/comercio (señal genérica sin negocio específico). */
+  negocioDeseado?: string;
+  productoBancario?: string;
+  tipoVivienda?: string;
+  categoria?: string;
+  subcategoria?: string;
+  ciudad?: string;
+}
+
+/** Crea una señal de interés — el cliente eligió un Negocio de Interés (no registrado) o registró interés genérico por categoría, no un lead real. */
+export async function insertSenalInteres(
+  input: InsertSenalInteresInput,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.from('senales_interes').insert({
+    id: crypto.randomUUID(),
+    cliente_id: input.clienteId,
+    cliente_nombre: input.clienteNombre,
+    cliente_telefono: input.clienteTelefono,
+    sector: input.sector,
+    negocio_deseado: input.negocioDeseado ?? null,
+    producto_bancario: input.productoBancario ?? null,
+    tipo_vivienda: input.tipoVivienda ?? null,
+    categoria: input.categoria ?? null,
+    subcategoria: input.subcategoria ?? null,
+    ciudad: input.ciudad ?? null,
+  });
+  return { error: error ? errMessage(error) : null };
+}
+
+export interface SenalInteresDisplay {
+  id: string;
+  sector: 'banco' | 'constructora' | 'comercio';
+  negocioDeseado: string | null;
+  clienteNombre: string;
+  clienteTelefono: string;
+  productoBancario: string | null;
+  tipoVivienda: string | null;
+  categoria: string | null;
+  subcategoria: string | null;
+  ciudad: string | null;
+  createdAt: string;
+}
+
+function mapSenalInteresRow(r: {
+  id: string;
+  sector: string;
+  negocio_deseado: string | null;
+  cliente_nombre: string;
+  cliente_telefono: string;
+  producto_bancario: string | null;
+  tipo_vivienda: string | null;
+  categoria: string | null;
+  subcategoria: string | null;
+  ciudad: string | null;
+  created_at: string;
+}): SenalInteresDisplay {
+  return {
+    id: r.id,
+    sector: r.sector as SenalInteresDisplay['sector'],
+    negocioDeseado: r.negocio_deseado,
+    clienteNombre: r.cliente_nombre,
+    clienteTelefono: r.cliente_telefono,
+    productoBancario: r.producto_bancario,
+    tipoVivienda: r.tipo_vivienda,
+    categoria: r.categoria,
+    subcategoria: r.subcategoria,
+    ciudad: r.ciudad,
+    createdAt: r.created_at,
+  };
+}
+
+const SENAL_INTERES_SELECT = 'id, sector, negocio_deseado, cliente_nombre, cliente_telefono, producto_bancario, tipo_vivienda, categoria, subcategoria, ciudad, created_at';
+
+/** Señales de interés propias de un cliente — para su historial en el portal. */
+export async function fetchSenalesInteresByCliente(
+  clienteId: string,
+): Promise<{ data: SenalInteresDisplay[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('senales_interes')
+    .select(SENAL_INTERES_SELECT)
+    .eq('cliente_id', clienteId)
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: (data ?? []).map(mapSenalInteresRow), error: null };
+}
+
+/** Todas las señales de interés — Admin, panel "Clientes en Espera". */
+export async function fetchTodasLasSenalesInteres(): Promise<{ data: SenalInteresDisplay[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('senales_interes')
+    .select(SENAL_INTERES_SELECT)
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: (data ?? []).map(mapSenalInteresRow), error: null };
+}
+
+/** Nombre y teléfono reales del cliente — necesario para snapshot en senales_interes (currentUser.telefono no siempre está poblado). */
+export async function fetchClienteContactInfo(
+  clienteId: string,
+): Promise<{ data: { nombre: string; telefono: string } | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('users')
+    .select('nombre, telefono')
+    .eq('id', clienteId)
+    .limit(1)
+    .maybeSingle();
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: { nombre: data?.nombre ?? '', telefono: data?.telefono ?? '' }, error: null };
 }
 
 // ───── Proyectos (constructoras) ─────
@@ -1193,7 +1423,7 @@ export async function updateMeInteresaPipelineEstado(
     .select('id');
   if (error) return { error: errMessage(error) };
   if (!data || data.length === 0) {
-    return { error: 'No se pudo actualizar: el lead no existe o no tienes permiso (RLS).' };
+    return { error: noRowsError('No se pudo actualizar: el lead no existe o no tienes permiso (RLS).') };
   }
   return { error: null };
 }
@@ -1213,7 +1443,7 @@ export async function updateMeInteresaProximaGestion(
     .select('id');
   if (error) return { error: errMessage(error) };
   if (!data || data.length === 0) {
-    return { error: 'No se pudo actualizar: el lead no existe o no tienes permiso (RLS).' };
+    return { error: noRowsError('No se pudo actualizar: el lead no existe o no tienes permiso (RLS).') };
   }
   return { error: null };
 }
