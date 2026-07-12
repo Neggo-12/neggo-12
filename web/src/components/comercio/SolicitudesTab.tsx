@@ -12,6 +12,8 @@ import {
   fetchMeInteresaLeadsByOrganization,
   updateMeInteresaPipelineEstado,
   updateMeInteresaProximaGestion,
+  closeLeadWithCharge,
+  fetchOrganizationPlanNegociacion,
   type MeInteresaLeadDisplay,
   type MeInteresaPipelineEstado,
 } from '@/core/db/repositories';
@@ -36,6 +38,7 @@ export default function SolicitudesTab({
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [comercioPlan, setComercioPlan] = useState<string | null>(null);
 
   const loadSolicitudes = useCallback(async () => {
     if (!isDbConfigured || !organizationId) {
@@ -58,6 +61,11 @@ export default function SolicitudesTab({
     loadSolicitudes();
   }, [loadSolicitudes]);
 
+  useEffect(() => {
+    if (!organizationId) return;
+    fetchOrganizationPlanNegociacion(organizationId).then(({ data }) => setComercioPlan(data));
+  }, [organizationId]);
+
   const handlePipelineChange = useCallback(async (destinatarioId: string, estado: MeInteresaPipelineEstado) => {
     setLeads((prev) => prev.map((l) => (l.destinatarioId === destinatarioId ? { ...l, estadoPipeline: estado } : l)));
     const { error: updateError } = await updateMeInteresaPipelineEstado(destinatarioId, estado);
@@ -75,6 +83,22 @@ export default function SolicitudesTab({
       loadSolicitudes();
     }
   }, [loadSolicitudes]);
+
+  const handleCierreConfirmado = useCallback(async (
+    destinatarioId: string,
+    input: { montoCierre: number; franquiciaTarjeta?: 'visa' | 'mastercard' | 'amex' },
+  ) => {
+    const lead = leads.find((l) => l.destinatarioId === destinatarioId);
+    if (!lead) return;
+    const { error: closeError } = await closeLeadWithCharge({
+      destinatarioId, montoCierre: input.montoCierre, franquiciaTarjeta: input.franquiciaTarjeta ?? null,
+    });
+    if (closeError) {
+      toast.error('No se pudo confirmar el cierre', { description: closeError });
+    } else {
+      setLeads((prev) => prev.map((l) => (l.destinatarioId === destinatarioId ? { ...l, estadoPipeline: ESTADOS_CIERRE[l.origen], montoCierre: input.montoCierre } : l)));
+    }
+  }, [leads]);
 
   const filtered = leads.filter((l) => {
     if (!search) return true;
@@ -251,7 +275,9 @@ export default function SolicitudesTab({
                         <td colSpan={7} className="border-t border-border/30">
                           <ExpandedLeadCRM
                             lead={lead}
+                            comercioPlan={comercioPlan}
                             onPipelineChange={(estado) => handlePipelineChange(lead.destinatarioId, estado)}
+                            onCierreConfirmado={(input) => handleCierreConfirmado(lead.destinatarioId, input)}
                             onSeguimientoChange={(fecha) => handleSeguimientoChange(lead.destinatarioId, fecha)}
                           />
                         </td>

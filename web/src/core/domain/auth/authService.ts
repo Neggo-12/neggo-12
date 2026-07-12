@@ -12,6 +12,7 @@
  */
 import { supabase } from '@/core/db/dbClient';
 import { insertClienteBancoProductos } from '@/core/db/repositories';
+import { calcularScoreEstimado } from '@/core/domain/auth/types';
 import type {
   LoginInput,
   LoginResult,
@@ -345,6 +346,8 @@ export async function registerB2C(input: RegisterB2CInput): Promise<RegisterResu
     telefono: input.celular,
     tipo_documento: input.tipoId,
     numero_documento: input.numeroId,
+    rango_ingresos: input.rangoIngresos,
+    score_estimado: calcularScoreEstimado(input.rangoIngresos),
   });
 
   if (userError && !requiresEmailConfirmation) {

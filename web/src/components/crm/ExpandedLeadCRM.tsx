@@ -8,8 +8,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { MeInteresaLeadDisplay, MeInteresaPipelineEstado } from '@/core/db/repositories';
-import { PIPELINE_BY_ORIGEN, PIPELINE_CONFIG, PRIORIDAD_CONFIG, calcularPrioridad } from './pipelineConfig';
+import { PIPELINE_BY_ORIGEN, PIPELINE_CONFIG, PRIORIDAD_CONFIG, ESTADOS_CIERRE, calcularPrioridad } from './pipelineConfig';
 import { PRODUCT_LABELS, TIPO_VIVIENDA_LABELS, RANGO_INGRESOS_LABELS } from './leadLabels';
+import CierreVentaModal from './CierreVentaModal';
 
 function toWhatsAppUrl(telefono: string): string {
   const digits = telefono.replace(/\D/g, '');
@@ -19,15 +20,24 @@ function toWhatsAppUrl(telefono: string): string {
 
 interface ExpandedLeadCRMProps {
   lead: MeInteresaLeadDisplay;
+  comercioPlan?: string | null;
   onPipelineChange: (estado: MeInteresaPipelineEstado) => void;
+  onCierreConfirmado: (input: { montoCierre: number; franquiciaTarjeta?: 'visa' | 'mastercard' | 'amex' }) => void;
   onSeguimientoChange: (fecha: string | null) => void;
 }
 
-export default function ExpandedLeadCRM({ lead, onPipelineChange, onSeguimientoChange }: ExpandedLeadCRMProps) {
+export default function ExpandedLeadCRM({ lead, comercioPlan, onPipelineChange, onCierreConfirmado, onSeguimientoChange }: ExpandedLeadCRMProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [cierreModalOpen, setCierreModalOpen] = useState(false);
   const prioridad = calcularPrioridad(lead.scoreEstimado);
   const prioridadCfg = PRIORIDAD_CONFIG[prioridad];
   const hasTelefono = lead.clienteTelefono.trim().length > 0;
+
+  const requiereModalDeCierre = (estado: MeInteresaPipelineEstado) => {
+    if (estado !== ESTADOS_CIERRE[lead.origen]) return false;
+    if (lead.origen === 'comercio' && (comercioPlan ?? 'balanceado') === 'solo_pauta') return false;
+    return true;
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
@@ -128,7 +138,17 @@ export default function ExpandedLeadCRM({ lead, onPipelineChange, onSeguimientoC
 
         <div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Mover Pipeline</div>
-          <Select value={lead.estadoPipeline} onValueChange={(value) => onPipelineChange(value as MeInteresaPipelineEstado)}>
+          <Select
+            value={lead.estadoPipeline}
+            onValueChange={(value) => {
+              const estado = value as MeInteresaPipelineEstado;
+              if (requiereModalDeCierre(estado)) {
+                setCierreModalOpen(true);
+              } else {
+                onPipelineChange(estado);
+              }
+            }}
+          >
             <SelectTrigger className="h-9 text-xs bg-card/60 border-border/40">
               <SelectValue />
             </SelectTrigger>
@@ -173,6 +193,17 @@ export default function ExpandedLeadCRM({ lead, onPipelineChange, onSeguimientoC
           </div>
         </div>
       </div>
+
+      <CierreVentaModal
+        open={cierreModalOpen}
+        onOpenChange={setCierreModalOpen}
+        origen={lead.origen}
+        productoBancario={lead.productoBancario}
+        onConfirm={(input) => {
+          onCierreConfirmado(input);
+          setCierreModalOpen(false);
+        }}
+      />
     </div>
   );
 }

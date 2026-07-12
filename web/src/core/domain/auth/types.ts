@@ -36,6 +36,21 @@ export interface RegisterB2BInput {
   sector: B2BSector;
 }
 
+/** Rango de ingresos mensuales autodeclarado en el registro B2C — alimenta users.rango_ingresos. */
+export type RangoIngresosMensuales = '0-2M' | '2M-4M' | '4M-8M' | '8M+';
+
+const SCORE_BY_RANGO_INGRESOS: Record<RangoIngresosMensuales, number> = {
+  '0-2M': 450,
+  '2M-4M': 600,
+  '4M-8M': 720,
+  '8M+': 820,
+};
+
+/** Score estimado (0-1000) por rango de ingresos — fórmula acordada para poblar users.score_estimado. */
+export function calcularScoreEstimado(rango: RangoIngresosMensuales): number {
+  return SCORE_BY_RANGO_INGRESOS[rango];
+}
+
 /** Input for registering a B2C client. */
 export interface RegisterB2CInput {
   nombres: string;
@@ -46,6 +61,7 @@ export interface RegisterB2CInput {
   celular: string;
   password: string;
   bancoProductos: { organizationId: string; productos: string[] }[];
+  rangoIngresos: RangoIngresosMensuales;
 }
 
 /** Input for registering the base account for the platform master admin.

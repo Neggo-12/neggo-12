@@ -40,6 +40,8 @@ import {
   checkDuplicates,
 } from "@/core/db/supabaseClient";
 import { fetchBancosAprobados } from "@/core/db/repositories";
+import { RANGO_INGRESOS_LABELS } from "@/components/crm/leadLabels";
+import type { RangoIngresosMensuales } from "@/core/domain/auth/types";
 import { useAdminStore } from "@/features/admin/store/useAdminStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import type { OnboardingRequest, AdminEntityType, AuthorizationStatus } from "@/types";
@@ -1146,6 +1148,7 @@ function B2CRegister() {
     numeroId: "",
     correo: "",
     celular: "",
+    rangoIngresos: "",
     password: "",
     confirmPassword: "",
   });
@@ -1166,6 +1169,7 @@ function B2CRegister() {
     form.numeroId.trim() !== "" &&
     form.correo.trim() !== "" &&
     form.celular.trim() !== "" &&
+    form.rangoIngresos !== "" &&
     form.password.trim() !== "" &&
     form.confirmPassword.trim() !== "" &&
     pwValidation.isValid &&
@@ -1250,6 +1254,7 @@ function B2CRegister() {
           numeroId: form.numeroId.trim(),
           email: form.correo.trim().toLowerCase(),
           celular: form.celular.trim(),
+          rangoIngresos: form.rangoIngresos as RangoIngresosMensuales,
           password: form.password,
           bancoProductos: Object.entries(bancoProductos)
             .filter(([, productos]) => productos.length > 0)
@@ -1408,6 +1413,28 @@ function B2CRegister() {
           onChange={updateField("celular")}
           className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm font-mono"
         />
+      </div>
+
+      {/* ── Rango de Ingresos ── */}
+      <div className="space-y-2">
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Rango de Ingresos Mensuales
+        </Label>
+        <Select
+          value={form.rangoIngresos}
+          onValueChange={(val) => setForm((prev) => ({ ...prev, rangoIngresos: val }))}
+        >
+          <SelectTrigger className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm">
+            <SelectValue placeholder="Seleccionar" />
+          </SelectTrigger>
+          <SelectContent className="border-border/60 bg-card/95 backdrop-blur-xl">
+            {Object.entries(RANGO_INGRESOS_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value} className="cursor-pointer">
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* ── Password Fields ── */}

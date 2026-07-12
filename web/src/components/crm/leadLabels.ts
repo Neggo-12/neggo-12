@@ -3,6 +3,8 @@ export const PRODUCT_LABELS: Record<string, string> = {
   'credito-hipotecario': 'Crédito Hipotecario',
   'cdt': 'CDT',
   'libre-inversion': 'Libre Inversión',
+  'retanqueo': 'Retanqueo',
+  'tarjeta-credito': 'Tarjeta de Crédito',
 };
 
 export const TIPO_VIVIENDA_LABELS: Record<string, string> = {

@@ -47,6 +47,8 @@ import {
   getTheme,
 } from "./authConfig";
 import { fetchBancosAprobados } from "@/core/db/repositories";
+import { RANGO_INGRESOS_LABELS } from "@/components/crm/leadLabels";
+import type { RangoIngresosMensuales } from "@/core/domain/auth/types";
 
 // ═══════════════════════════════════════════════════════════════
 // B2B LOGIN
@@ -786,6 +788,7 @@ export function B2CRegister({ themeColor = "cyan" }: { themeColor?: AccentColor 
     numeroId: "",
     correo: "",
     celular: "",
+    rangoIngresos: "",
     password: "",
     confirmPassword: "",
   });
@@ -805,6 +808,7 @@ export function B2CRegister({ themeColor = "cyan" }: { themeColor?: AccentColor 
     form.numeroId.trim() !== "" &&
     form.correo.trim() !== "" &&
     form.celular.trim() !== "" &&
+    form.rangoIngresos !== "" &&
     form.password.trim() !== "" &&
     form.confirmPassword.trim() !== "" &&
     pwValidation.isValid &&
@@ -881,6 +885,7 @@ export function B2CRegister({ themeColor = "cyan" }: { themeColor?: AccentColor 
           numeroId: form.numeroId.trim(),
           email: form.correo.trim().toLowerCase(),
           celular: form.celular.trim(),
+          rangoIngresos: form.rangoIngresos as RangoIngresosMensuales,
           password: form.password,
           bancoProductos: Object.entries(bancoProductos)
             .filter(([, productos]) => productos.length > 0)
@@ -982,6 +987,20 @@ export function B2CRegister({ themeColor = "cyan" }: { themeColor?: AccentColor 
       <div className="space-y-2">
         <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Celular</Label>
         <Input type="tel" placeholder="Ej: +57 300 123 4567" value={form.celular} onChange={updateField("celular")} className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm font-mono" />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Rango de Ingresos Mensuales</Label>
+        <Select value={form.rangoIngresos} onValueChange={(val) => setForm((prev) => ({ ...prev, rangoIngresos: val }))}>
+          <SelectTrigger className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm">
+            <SelectValue placeholder="Seleccionar" />
+          </SelectTrigger>
+          <SelectContent className="border-border/60 bg-card/95 backdrop-blur-xl">
+            {Object.entries(RANGO_INGRESOS_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value} className="cursor-pointer">{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <PasswordField id="b2c-reg-password" label="Contraseña" placeholder="Mínimo 8 caracteres, 1 mayúscula, 1 número" value={form.password} onChange={updateField("password")} />

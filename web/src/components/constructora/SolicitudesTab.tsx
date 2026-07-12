@@ -12,6 +12,7 @@ import {
   fetchMeInteresaLeadsByOrganization,
   updateMeInteresaPipelineEstado,
   updateMeInteresaProximaGestion,
+  closeLeadWithCharge,
   type MeInteresaLeadDisplay,
   type MeInteresaPipelineEstado,
 } from '@/core/db/repositories';
@@ -67,6 +68,22 @@ export default function SolicitudesTab({ constructoraUser, organizationId }: { c
       loadSolicitudes();
     }
   }, [loadSolicitudes]);
+
+  const handleCierreConfirmado = useCallback(async (
+    destinatarioId: string,
+    input: { montoCierre: number; franquiciaTarjeta?: 'visa' | 'mastercard' | 'amex' },
+  ) => {
+    const lead = leads.find((l) => l.destinatarioId === destinatarioId);
+    if (!lead) return;
+    const { error: closeError } = await closeLeadWithCharge({
+      destinatarioId, montoCierre: input.montoCierre, franquiciaTarjeta: input.franquiciaTarjeta ?? null,
+    });
+    if (closeError) {
+      toast.error('No se pudo confirmar el cierre', { description: closeError });
+    } else {
+      setLeads((prev) => prev.map((l) => (l.destinatarioId === destinatarioId ? { ...l, estadoPipeline: ESTADOS_CIERRE[l.origen], montoCierre: input.montoCierre } : l)));
+    }
+  }, [leads]);
 
   const filtered = leads.filter((l) => {
     if (!search) return true;
@@ -246,6 +263,7 @@ export default function SolicitudesTab({ constructoraUser, organizationId }: { c
                           <ExpandedLeadCRM
                             lead={lead}
                             onPipelineChange={(estado) => handlePipelineChange(lead.destinatarioId, estado)}
+                            onCierreConfirmado={(input) => handleCierreConfirmado(lead.destinatarioId, input)}
                             onSeguimientoChange={(fecha) => handleSeguimientoChange(lead.destinatarioId, fecha)}
                           />
                         </td>
