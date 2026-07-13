@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -22,11 +22,17 @@ interface EnviarPropuestaDialogProps {
 export default function EnviarPropuestaDialog({ open, onOpenChange }: EnviarPropuestaDialogProps) {
   const {
     currentComercio,
+    oportunidades,
+    hydrateOportunidades,
     selectedOpportunityId,
     sendPropuesta,
     markPropuestaEnviada,
     setPropuestaDialogOpen,
   } = useComercioStore();
+
+  useEffect(() => {
+    void hydrateOportunidades();
+  }, [hydrateOportunidades]);
 
   const [beneficio, setBeneficio] = useState('');
   const [detalles, setDetalles] = useState('');
@@ -37,9 +43,8 @@ export default function EnviarPropuestaDialog({ open, onOpenChange }: EnviarProp
   const [sent, setSent] = useState(false);
 
   const oport = filterOportunidades(
-    [],
+    oportunidades,
     currentComercio.categoria,
-    currentComercio.ciudad
   ).find((o) => o.id === selectedOpportunityId);
 
   const handleSend = (): void => {
@@ -219,8 +224,8 @@ export default function EnviarPropuestaDialog({ open, onOpenChange }: EnviarProp
             <div>
               <DialogTitle className="text-lg font-semibold">Propuesta Enviada</DialogTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Tu propuesta ha sido enviada al pipeline de Neggo. El cliente la verá en su portal
-                bajo la sección de ofertas personalizadas.
+                Tu propuesta quedó registrada. Muy pronto el cliente podrá verla y responderla
+                directamente.
               </p>
             </div>
             <Button className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium" onClick={handleClose}>

@@ -376,3 +376,26 @@ Se implementó `@sentry/react` para capturar errores reales sin depender de que 
 ### 14.4 Nuevo pendiente en el backlog
 
 Considerar remover o etiquetar de forma mucho más visible el "Modo Demo" del `ProfileSwitcher` (sección "Módulo de Pruebas y Simulación — Modo Demo" en `AdminDashboard.tsx` y las demás vistas) — hoy es fácil entrar en modo demo sin darse cuenta de que no es una sesión real, y eso fue la causa raíz confirmada del bug de 14.1. No se ha decidido todavía si la solución es un badge visual más agresivo, restringirlo a un build de desarrollo únicamente, o remover el atajo por completo en producción.
+
+## 15. Metas/IFC → Leads reales de Comercios (en diseño)
+
+Conecta el sistema de Metas/IFC (hoy real en su creación/persistencia, pero sin ningún puente hacia negocios reales) con comercios registrados que califiquen por categoría — alcance de esta fase: **solo Comercios**, sin Bancos/Constructoras todavía. Diseño confirmado, pendiente de aplicar SQL y código.
+
+### 15.1 Aclaración de diseño — `ofertas_comercios.comercio_id` es un `users.id`, no un `organization_id` (intencional, no deuda técnica)
+
+Durante el diseño de esta fase se identificó que `ofertas_comercios.comercio_id` almacena el id del **usuario** que envía la propuesta, no el `organization_id` del negocio — una asimetría frente al resto del proyecto (Me Interesa, facturación) donde todo se referencia por `organization_id`. **Esto no es un bug a corregir: es comportamiento de negocio intencional**, adelantado a la futura fase de roles internos por negocio (admin maestro + empleados, ya documentada como pendiente en la sección 12) — cuando exista, cada empleado de un mismo comercio podrá competir con su propio margen de negociación por el mismo cliente/meta, y eso es deseable, no un error a prevenir.
+
+Lo que sí revela esta asimetría es el problema real pendiente: con muchos negocios y, eventualmente, muchos empleados por negocio compitiendo, un cliente podría llegar a ver cientos de ofertas para una sola meta — inmanejable. La solución a esto **ya estaba diseñada desde el documento original del proyecto** y nunca se construyó: el **algoritmo de distribución 40/30/20/10** (Calidad + Respuesta + Rotación + Sorteo, sección 4) combinado con el **sistema de cola anti-saturación** (máximo 3-5 ofertas visibles simultáneamente, el resto en cola, sección 5). Esa es la pieza que debe curar/limitar cuántas propuestas ve un cliente por meta — no una restricción artificial sobre quién puede enviar una propuesta.
+
+**Implicación para el roadmap:** antes o junto con la fase de roles internos por negocio, hace falta implementar el algoritmo 40/30/20/10 + cola anti-saturación aplicado a `ofertas_comercios` (hoy ese algoritmo solo existe documentado en las secciones 4 y 5, sin implementación real en ningún flujo del proyecto). No se construye en la fase actual (Comercios-only, sin roles internos).
+
+### 15.2 Pendiente descubierto — "Facturación Automática" / "Bóveda del Cliente" es 100% desconectado
+
+Diagnóstico honesto: `ofertas_comercios.facturacion_automatica` se escribe (el switch en `EnviarPropuestaDialog.tsx` sí persiste el booleano) pero nunca se lee en ningún lugar del código ni de las migraciones — es una columna write-only. `FacturasView.tsx` (la "Bóveda Digital" del cliente) es 100% mock, renderiza `MOCK_INVOICES` estático sin ningún fetch a la base de datos. El banner que promete depósito automático de facturas usando el "ID Único IFC" describe un mecanismo que no existe en ningún punto del sistema.
+
+Para construir esto de verdad hace falta, como mínimo:
+1. Un estado real de "oferta aceptada por el cliente" en `ofertas_comercios` (hoy no existe ningún flujo donde el cliente acepte/rechace una propuesta — depende de la pieza pendiente "cliente ve y responde ofertas reales", Fase 15 punto #5 original).
+2. Definir qué evento cuenta como "compra concretada" — no existe hoy ningún estado de "compra confirmada".
+3. Tabla real de facturas del cliente + conectar `FacturasView.tsx` a datos reales en vez de `MOCK_INVOICES`.
+
+No se construye en esta sesión — queda documentado como el siguiente gran capítulo pendiente, que depende primero de que el cliente pueda ver/responder ofertas reales (Fase 15.3, next).

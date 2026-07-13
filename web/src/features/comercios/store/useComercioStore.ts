@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import { insertOfertaComercio, fetchOrganizationMetadata, updateOrganizationMetadata, fetchOrganizationTrustSeal, updateOrganizationTrustSeal, updateOrganizationCiudad, fetchOrganizationCore } from '@/core/db/repositories';
+import { insertOfertaComercio, fetchOrganizationMetadata, updateOrganizationMetadata, fetchOrganizationTrustSeal, updateOrganizationTrustSeal, updateOrganizationCiudad, fetchOrganizationCore, fetchOportunidadesParaComercio, fetchOfertasComercios } from '@/core/db/repositories';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuthStore } from '@/store/useAuthStore';
 import type {
@@ -40,72 +40,6 @@ const DEFAULT_COMERCIO: Comercio = {
   tasaConversion: 0,
 };
 
-// ───── Mock IFC opportunities ─────
-
-const MOCK_OPORTUNIDADES: OportunidadIFC[] = [
-  {
-    id: 'OP-001',
-    clienteId: 'L-1818',
-    categoria: 'Carro',
-    ciudad: 'Medellín',
-    presupuesto: 35000000,
-    capacidadAhorro: 68,
-    probabilidadCierre: 91,
-    compraEstimadaDias: 64,
-    propuestaEnviada: false,
-    subcategoria: 'Hibrido',
-  },
-  {
-    id: 'OP-002',
-    clienteId: 'L-2103',
-    categoria: 'Carro',
-    ciudad: 'Medellín',
-    presupuesto: 22000000,
-    capacidadAhorro: 45,
-    probabilidadCierre: 78,
-    compraEstimadaDias: 120,
-    propuestaEnviada: false,
-    subcategoria: 'Electrico',
-  },
-  {
-    id: 'OP-003',
-    clienteId: 'L-3456',
-    categoria: 'Carro',
-    ciudad: 'Bogotá',
-    presupuesto: 48000000,
-    capacidadAhorro: 82,
-    probabilidadCierre: 95,
-    compraEstimadaDias: 30,
-    propuestaEnviada: false,
-    subcategoria: 'Gasolina',
-  },
-  {
-    id: 'OP-004',
-    clienteId: 'L-4721',
-    categoria: 'Viaje',
-    ciudad: 'Medellín',
-    presupuesto: 8000000,
-    capacidadAhorro: 55,
-    probabilidadCierre: 72,
-    compraEstimadaDias: 90,
-    propuestaEnviada: false,
-    subcategoria: 'Internacional',
-    metadataAdicional: { personas: 3 },
-  },
-  {
-    id: 'OP-005',
-    clienteId: 'L-5892',
-    categoria: 'Vivienda',
-    ciudad: 'Bogotá',
-    presupuesto: 120000000,
-    capacidadAhorro: 40,
-    probabilidadCierre: 88,
-    compraEstimadaDias: 180,
-    propuestaEnviada: false,
-    subcategoria: 'Apartamento',
-  },
-];
-
 // ───── Store ─────
 
 interface ComercioState {
@@ -121,6 +55,10 @@ interface ComercioState {
   isOnboardingHydrated: boolean;
   /** IFC opportunities matching the commerce category + city */
   oportunidades: OportunidadIFC[];
+  /** true mientras se cargan las oportunidades desde la base de datos */
+  isOportunidadesLoading: boolean;
+  /** true después del primer intento de hidratación */
+  isOportunidadesHydrated: boolean;
   /** Proposals sent by this commerce */
   propuestas: PropuestaComercio[];
   /** Currently selected opportunity for proposal dialog */
@@ -131,6 +69,8 @@ interface ComercioState {
   setComercio: (data: Partial<Comercio>) => void;
   /** Reads `organizations.metadata` and hydrates onboarding status from the real DB record. */
   hydrateOnboardingStatus: () => Promise<void>;
+  /** Trae las metas con IFC activo que califican para la categoría de este comercio — vía RPC, sin datos personales del cliente. */
+  hydrateOportunidades: () => Promise<void>;
   /** Persists onboarding completion to `organizations.metadata`. Returns false (and toasts an error) if the write fails. */
   completeOnboarding: () => Promise<boolean>;
   /** Cambia el plan de suscripción — reconstruye el metadata completo para no pisar categoria/especialidades. */
@@ -149,6 +89,8 @@ export const useComercioStore = create<ComercioState>((set, get) => ({
   isOnboardingChecking: false,
   isOnboardingHydrated: false,
   oportunidades: [],
+  isOportunidadesLoading: false,
+  isOportunidadesHydrated: false,
   propuestas: [],
   selectedOpportunityId: null,
   isPropuestaDialogOpen: false,
@@ -194,6 +136,41 @@ export const useComercioStore = create<ComercioState>((set, get) => ({
     } else {
       set({ isOnboardingChecking: false, isOnboardingHydrated: true });
     }
+  },
+
+  hydrateOportunidades: async () => {
+    if (get().isOportunidadesHydrated || get().isOportunidadesLoading) return;
+    const categoria = get().currentComercio.categoria;
+    const comercioId = get().currentComercio.id;
+    set({ isOportunidadesLoading: true });
+    const [{ data, error }, ofertasRes] = await Promise.all([
+      fetchOportunidadesParaComercio(categoria),
+      comercioId ? fetchOfertasComercios(comercioId) : Promise.resolve({ data: [], error: null }),
+    ]);
+    if (error || !data) {
+      set({ isOportunidadesLoading: false, isOportunidadesHydrated: true });
+      return;
+    }
+    const metaIdsConPropuesta = new Set(
+      (ofertasRes.data ?? [])
+        .map((o) => o.meta_id)
+        .filter((id): id is string => id !== null),
+    );
+    set({
+      oportunidades: data.map((r): OportunidadIFC => ({
+        id: r.metaId,
+        categoria,
+        presupuesto: r.montoObjetivo,
+        capacidadAhorro: Math.min(100, Math.round((r.montoAhorrado / r.montoObjetivo) * 100)),
+        compraEstimadaDias: Math.ceil(
+          (Math.max(r.montoObjetivo - r.montoAhorrado, 0) / Math.max(r.ahorroMensual, 1)) * 30,
+        ),
+        propuestaEnviada: metaIdsConPropuesta.has(r.metaId),
+        subcategoria: r.subcategoria ?? undefined,
+      })),
+      isOportunidadesLoading: false,
+      isOportunidadesHydrated: true,
+    });
   },
 
   completeOnboarding: async () => {
@@ -301,15 +278,7 @@ export const useComercioStore = create<ComercioState>((set, get) => ({
 export function filterOportunidades(
   oportunidades: OportunidadIFC[],
   categoria: ComercioCategory | undefined,
-  ciudad: string | undefined
 ): OportunidadIFC[] {
-  if (!categoria || !ciudad) return [];
-  return oportunidades.filter(
-    (op) => op.categoria === categoria && op.ciudad.toLowerCase() === ciudad.toLowerCase()
-  );
+  if (!categoria) return [];
+  return oportunidades.filter((op) => op.categoria === categoria);
 }
-
-// ───── Empty opportunities for production (no mock data injected) ─────
-const EMPTY_OPORTUNIDADES: OportunidadIFC[] = [];
-
-export { EMPTY_OPORTUNIDADES as MOCK_OPORTUNIDADES };

@@ -332,12 +332,11 @@ export interface Comercio {
 
 export interface OportunidadIFC {
   id: string;
-  clienteId: string;
   categoria: ComercioCategory;
-  ciudad: string;
   presupuesto: number;
   capacidadAhorro: number;
-  probabilidadCierre: number;
+  /** Sin señal real disponible hoy — undefined en vez de un número inventado. */
+  probabilidadCierre?: number;
   compraEstimadaDias: number;
   propuestaEnviada: boolean;
   /** Subcategoría del cliente (ej: 'Eléctrico' para Carro, 'iPhone' para Celular) */

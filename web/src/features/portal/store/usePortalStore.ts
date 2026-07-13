@@ -6,6 +6,7 @@ import {
   fetchMetas,
   insertMeta,
   setMetaIFC,
+  updateMetaStatus,
   insertMeInteresaSolicitud,
   insertMeInteresaDestinatarios,
   fetchMeInteresaSolicitudesByCliente,
@@ -621,18 +622,31 @@ export const usePortalStore = create<PortalState>((set, get) => ({
   },
 
   deleteMeta: async (metaId) => {
+    const current = get().metas.find((m) => m.id === metaId);
+    if (!current) return;
     // Optimista: marcamos deleted
     set((state) => ({
       metas: state.metas.map((m) =>
         m.id === metaId ? { ...m, status: 'deleted' as const } : m,
       ),
     }));
+    const { error } = await updateMetaStatus(metaId, 'deleted');
+    if (error) {
+      // Revertir si la base de datos rechazó el cambio
+      set((state) => ({
+        metas: state.metas.map((m) => (m.id === metaId ? { ...m, status: current.status } : m)),
+      }));
+      toast.error('No se pudo eliminar la meta', { description: error });
+      return;
+    }
     toast.success('Meta eliminada', {
       description: 'La meta fue removida de tu lista activa.',
     });
   },
 
   completeMeta: async (metaId) => {
+    const current = get().metas.find((m) => m.id === metaId);
+    if (!current) return;
     const now = new Date().toISOString();
     // Optimista: marcamos completed
     set((state) => ({
@@ -642,6 +656,22 @@ export const usePortalStore = create<PortalState>((set, get) => ({
           : m,
       ),
     }));
+    const { error } = await updateMetaStatus(metaId, 'completed', {
+      completedAt: now,
+      montoAhorrado: current.targetAmount,
+    });
+    if (error) {
+      // Revertir si la base de datos rechazó el cambio
+      set((state) => ({
+        metas: state.metas.map((m) =>
+          m.id === metaId
+            ? { ...m, status: current.status, completedAt: current.completedAt, savedAmount: current.savedAmount }
+            : m,
+        ),
+      }));
+      toast.error('No se pudo completar la meta', { description: error });
+      return;
+    }
     toast.success('¡Meta Lograda! 🎉', {
       description: 'Felicidades, tu meta ha sido marcada como cumplida.',
     });

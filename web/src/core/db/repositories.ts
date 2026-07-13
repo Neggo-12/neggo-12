@@ -15,6 +15,7 @@ import { reportDbError } from '@/core/infrastructure/sentry';
 import type {
   GoalMeta,
   GoalCategory,
+  GoalStatus,
   PropuestaComercio,
   RejectionMetric,
   RejectionAggregate,
@@ -56,6 +57,18 @@ function noRowsError(message: string): string {
 
 // ───── Metas (client savings goals) ─────
 
+/** metas.status vive en español en la DB; GoalStatus (tipo de la app) está en inglés — mapeo explícito en ambas direcciones. */
+const DB_STATUS_TO_GOAL_STATUS: Record<string, GoalStatus> = {
+  activa: 'active',
+  completada: 'completed',
+  eliminada: 'deleted',
+};
+const GOAL_STATUS_TO_DB_STATUS: Record<GoalStatus, string> = {
+  active: 'activa',
+  completed: 'completada',
+  deleted: 'eliminada',
+};
+
 function rowToGoalMeta(row: MetaRow): GoalMeta {
   const metadata = (row.metadata ?? null) as Record<string, string | number> | null;
   return {
@@ -66,7 +79,8 @@ function rowToGoalMeta(row: MetaRow): GoalMeta {
     monthlyGoal: Number(row.ahorro_mensual),
     offers: [],
     ifcCertified: row.ifc_activo,
-    status: 'active',
+    status: DB_STATUS_TO_GOAL_STATUS[row.status] ?? 'active',
+    completedAt: row.completed_at ?? undefined,
     subcategoria: row.subcategoria ?? undefined,
     metadataAdicional: metadata ?? undefined,
   };
@@ -111,6 +125,30 @@ export async function setMetaIFC(
   const { data, error } = await supabase
     .from('metas')
     .update({ ifc_activo: value })
+    .eq('id', metaId)
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: noRowsError('No se pudo actualizar: la meta no existe o no tienes permiso (RLS).') };
+  }
+  return { error: null };
+}
+
+/** Persiste el status real de una meta (activa/completada/eliminada — soft-delete, nunca DELETE físico). */
+export async function updateMetaStatus(
+  metaId: string,
+  status: GoalStatus,
+  opts?: { completedAt?: string; montoAhorrado?: number },
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const updates: { status: string; completed_at?: string | null; monto_ahorrado?: number } = {
+    status: GOAL_STATUS_TO_DB_STATUS[status],
+  };
+  if (opts?.completedAt !== undefined) updates.completed_at = opts.completedAt;
+  if (opts?.montoAhorrado !== undefined) updates.monto_ahorrado = opts.montoAhorrado;
+  const { data, error } = await supabase
+    .from('metas')
+    .update(updates)
     .eq('id', metaId)
     .select('id');
   if (error) return { error: errMessage(error) };
@@ -190,6 +228,7 @@ export async function insertOfertaComercio(
     id: propuesta.id,
     comercio_id: comercioId,
     comercio_nombre: comercioNombre,
+    meta_id: propuesta.oportunidadId,
     oportunidad_id: propuesta.oportunidadId,
     beneficio: propuesta.beneficio,
     descripcion: propuesta.descripcionDetallada,
@@ -198,6 +237,37 @@ export async function insertOfertaComercio(
     facturacion_automatica: propuesta.facturacionAutomatica,
   });
   return { error: error ? errMessage(error) : null };
+}
+
+export interface OportunidadComercioRow {
+  metaId: string;
+  subcategoria: string | null;
+  montoObjetivo: number;
+  montoAhorrado: number;
+  ahorroMensual: number;
+  createdAt: string;
+}
+
+/** Metas con IFC activo que coinciden con la categoría del comercio — vía RPC SECURITY DEFINER, nunca expone cliente_id. */
+export async function fetchOportunidadesParaComercio(
+  categoria: string,
+): Promise<{ data: OportunidadComercioRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.rpc('fetch_oportunidades_comercio', {
+    p_categoria: categoria,
+  });
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      metaId: r.meta_id,
+      subcategoria: r.subcategoria,
+      montoObjetivo: Number(r.monto_objetivo),
+      montoAhorrado: Number(r.monto_ahorrado),
+      ahorroMensual: Number(r.ahorro_mensual),
+      createdAt: r.created_at,
+    })),
+    error: null,
+  };
 }
 
 // ───── Métricas de rechazo (rejection telemetry) ─────
@@ -1245,7 +1315,7 @@ export async function fetchBancosAprobados(): Promise<{
 }
 
 export interface ComerciosMatchInput {
-  ciudad: string;
+  ciudad?: string;
   categoria: string;
 }
 
@@ -1262,13 +1332,14 @@ export async function fetchComerciosMatch(
   error: string | null;
 }> {
   if (!supabase) return { data: null, error: NOT_CONFIGURED };
-  const { data, error } = await supabase
+  let query = supabase
     .from('organizations')
     .select('id, name, metadata, has_trust_seal')
     .eq('type', 'comercio')
     .eq('status', 'approved')
-    .eq('ciudad', input.ciudad)
     .eq('metadata->>categoria', input.categoria);
+  if (input.ciudad) query = query.eq('ciudad', input.ciudad);
+  const { data, error } = await query;
   if (error) return { data: null, error: errMessage(error) };
   const result = (data ?? []).map((row) => {
     const metadata = (row.metadata ?? {}) as Record<string, unknown>;

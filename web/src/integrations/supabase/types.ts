@@ -571,36 +571,42 @@ export type Database = {
           ahorro_mensual: number
           categoria: string
           cliente_id: string | null
+          completed_at: string | null
           created_at: string
           id: string
           ifc_activo: boolean
           metadata: Json | null
           monto_ahorrado: number
           monto_objetivo: number
+          status: string
           subcategoria: string | null
         }
         Insert: {
           ahorro_mensual?: number
           categoria: string
           cliente_id?: string | null
+          completed_at?: string | null
           created_at?: string
           id: string
           ifc_activo?: boolean
           metadata?: Json | null
           monto_ahorrado?: number
           monto_objetivo?: number
+          status?: string
           subcategoria?: string | null
         }
         Update: {
           ahorro_mensual?: number
           categoria?: string
           cliente_id?: string | null
+          completed_at?: string | null
           created_at?: string
           id?: string
           ifc_activo?: boolean
           metadata?: Json | null
           monto_ahorrado?: number
           monto_objetivo?: number
+          status?: string
           subcategoria?: string | null
         }
         Relationships: [
@@ -1003,6 +1009,17 @@ export type Database = {
       confirmar_pago_factura: {
         Args: { p_factura_id: string }
         Returns: undefined
+      }
+      fetch_oportunidades_comercio: {
+        Args: { p_categoria: string }
+        Returns: {
+          meta_id: string
+          subcategoria: string | null
+          monto_objetivo: number
+          monto_ahorrado: number
+          ahorro_mensual: number
+          created_at: string
+        }[]
       }
     }
     Enums: {

@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
+import { fetchComerciosMatch } from '@/core/db/repositories';
 import { SUBCATEGORIAS } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -94,46 +95,27 @@ function groupOffersBySector(offers: PartnerOffer[]): SectorOfferGroup[] {
   return sectors.filter((s) => s.offers.length > 0);
 }
 
-// ───── Agent log lines (simulated orchestrator) ─────
-
-const AGENT_LOG_LINES = [
-  '🔍 Escaneando promociones activas en 12 comercios verificados con Sello de Confianza...',
-  '📊 Recalculando fecha de cumplimiento optimizada según tu ahorro real.',
-  '⚡ Certificación IFC enviada de forma 100% anónima a aliados estratégicos.',
-  '🛡️ Verificando legalidad y procedencia de nuevas ofertas entrantes...',
-  '🤝 Negociando condiciones preferenciales con comercios de tu categoría.',
-  '📈 Actualizando proyección de ahorro con datos del último mes.',
-  '🔐 Cifrando tu perfil financiero para distribución segura en la red Neggo.',
-  '💡 Detectada una nueva oportunidad de ahorro — recalculando rutas de cumplimiento.',
-];
-
 // ───── Agent Orchestrator Panel ─────
 
 function AgentOrchestrator({ goal }: { goal: GoalMeta }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [currentLogIndex, setCurrentLogIndex] = useState(0);
-  const [isTyping, setIsTyping] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [comerciosCount, setComerciosCount] = useState<number | null>(null);
+  const [hasChecked, setHasChecked] = useState(false);
 
   useEffect(() => {
-    if (isExpanded) {
-      intervalRef.current = setInterval(() => {
-        setIsTyping(true);
-        setTimeout(() => {
-          setCurrentLogIndex((prev) => (prev + 1) % AGENT_LOG_LINES.length);
-          setIsTyping(false);
-        }, 400);
-      }, 2800);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isExpanded]);
+    if (!isExpanded || hasChecked) return;
+    setIsLoading(true);
+    fetchComerciosMatch({ categoria: goal.category }).then(({ data }) => {
+      setComerciosCount((data ?? []).length);
+      setIsLoading(false);
+      setHasChecked(true);
+    });
+  }, [isExpanded, hasChecked, goal.category]);
 
   const toggleAgent = useCallback(() => setIsExpanded((prev) => !prev), []);
-  const currentLog = AGENT_LOG_LINES[currentLogIndex];
+  const refrescar = useCallback(() => setHasChecked(false), []);
+  const hasMatches = (comerciosCount ?? 0) > 0;
 
   return (
     <div className="border-t border-border/40 bg-gradient-to-b from-emerald-500/5 to-transparent">
@@ -174,49 +156,52 @@ function AgentOrchestrator({ goal }: { goal: GoalMeta }) {
                 </div>
                 <span className="text-xs font-semibold text-emerald-400">Agente Neggo</span>
               </div>
-              <div className="flex items-center gap-2">
+              {!isLoading && hasChecked && (
                 <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400/70">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  En vivo
+                  Verificado
                 </span>
+              )}
+            </div>
+
+            {isLoading ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Buscando comercios verificados en tu categoría...
               </div>
-            </div>
+            ) : hasMatches ? (
+              <div className="rounded-lg bg-black/30 border border-emerald-500/10 p-3">
+                <p className="text-emerald-400 text-[11px] leading-relaxed">
+                  ✅ Encontramos {comerciosCount} comercio{comerciosCount === 1 ? '' : 's'} verificado
+                  {comerciosCount === 1 ? '' : 's'} en tu categoría — tu Sello IFC ya está visible para ellos.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-lg bg-black/30 border border-amber-500/10 p-3">
+                <p className="text-amber-400/90 text-[11px] leading-relaxed">
+                  Estamos trabajando para conectarte con comercios en esta categoría.
+                </p>
+              </div>
+            )}
+            {!isLoading && (
+              <button
+                onClick={refrescar}
+                className="text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+              >
+                Actualizar
+              </button>
+            )}
 
-            <div className="rounded-lg bg-black/30 border border-emerald-500/10 p-3 space-y-1.5 font-mono text-[11px]">
-              {[...Array(3)].map((_, i) => {
-                const idx = (currentLogIndex - 3 + i + AGENT_LOG_LINES.length) % AGENT_LOG_LINES.length;
-                return (
-                  <p key={`prev-${i}`} className="text-emerald-400/40 leading-relaxed">
-                    <span className="text-[9px] text-emerald-500/40 mr-2">
-                      [{new Date(Date.now() - (3 - i) * 3000).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}]
-                    </span>
-                    {AGENT_LOG_LINES[idx]}
-                  </p>
-                );
-              })}
-              <p className={cn('text-emerald-400 leading-relaxed', isTyping && 'opacity-60')}>
-                <span className="text-[9px] text-emerald-500/60 mr-2">
-                  [{new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}]
-                </span>
-                {currentLog}
-                {isTyping && <span className="inline-block w-1.5 h-3.5 bg-emerald-400/60 ml-0.5 animate-pulse" />}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <div className="rounded-md bg-emerald-500/5 border border-emerald-500/10 px-2.5 py-2 text-center">
-                <p className="text-[9px] text-muted-foreground mb-0.5">Comercios</p>
-                <p className="text-xs font-bold text-emerald-400 font-mono">12 activos</p>
+                <p className="text-[9px] text-muted-foreground mb-0.5">Comercios verificados</p>
+                <p className="text-xs font-bold text-emerald-400 font-mono">
+                  {isLoading ? '—' : comerciosCount}
+                </p>
               </div>
               <div className="rounded-md bg-emerald-500/5 border border-emerald-500/10 px-2.5 py-2 text-center">
                 <p className="text-[9px] text-muted-foreground mb-0.5">Ofertas</p>
                 <p className="text-xs font-bold text-emerald-400 font-mono">{goal.offers.length} en competencia</p>
-              </div>
-              <div className="rounded-md bg-emerald-500/5 border border-emerald-500/10 px-2.5 py-2 text-center">
-                <p className="text-[9px] text-muted-foreground mb-0.5">Ahorro pot.</p>
-                <p className="text-xs font-bold text-emerald-400 font-mono">
-                  {formatCOP(goal.offers.reduce((s, o) => s + o.savingsEstimate, 0))}
-                </p>
               </div>
             </div>
 

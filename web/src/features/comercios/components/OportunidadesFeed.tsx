@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useComercioStore, filterOportunidades } from '../store/useComercioStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,16 +21,21 @@ function subcatLabel(cat: ComercioCategory, val: string): string {
 export default function OportunidadesFeed() {
   const {
     currentComercio,
+    oportunidades,
+    hydrateOportunidades,
     selectedOpportunityId,
     isPropuestaDialogOpen,
     setSelectedOpportunity,
     setPropuestaDialogOpen,
   } = useComercioStore();
 
-  const oportunidades = filterOportunidades(
-    [],
+  useEffect(() => {
+    void hydrateOportunidades();
+  }, [hydrateOportunidades]);
+
+  const oportunidadesFiltradas = filterOportunidades(
+    oportunidades,
     currentComercio.categoria,
-    currentComercio.ciudad
   );
 
   const handleOpenPropuesta = (id: string): void => {
@@ -37,7 +43,7 @@ export default function OportunidadesFeed() {
     setPropuestaDialogOpen(true);
   };
 
-  if (oportunidades.length === 0) {
+  if (oportunidadesFiltradas.length === 0) {
     return (
       <Card className="border-dashed border-border/40 bg-card/30">
         <CardContent className="flex flex-col items-center justify-center py-16 text-center space-y-3">
@@ -59,7 +65,7 @@ export default function OportunidadesFeed() {
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {oportunidades.map((op) => (
+        {oportunidadesFiltradas.map((op) => (
           <OportunidadCard
             key={op.id}
             oportunidad={op}
@@ -87,11 +93,13 @@ function OportunidadCard({
 }) {
   const isSent = oportunidad.propuestaEnviada;
   const probColor =
-    oportunidad.probabilidadCierre >= 90
-      ? 'text-emerald-400'
-      : oportunidad.probabilidadCierre >= 75
-        ? 'text-blue-400'
-        : 'text-amber-400';
+    oportunidad.probabilidadCierre === undefined
+      ? undefined
+      : oportunidad.probabilidadCierre >= 90
+        ? 'text-emerald-400'
+        : oportunidad.probabilidadCierre >= 75
+          ? 'text-blue-400'
+          : 'text-amber-400';
 
   // Build the full opportunity ID with subcategory
   const displayId = oportunidad.subcategoria
@@ -167,12 +175,14 @@ function OportunidadCard({
               className="mt-1 h-1.5 [&>div]:bg-emerald-500"
             />
           </MetricRow>
-          <MetricRow
-            icon={Target}
-            label="Probabilidad de Cierre"
-            value={`${oportunidad.probabilidadCierre}%`}
-            valueClassName={probColor}
-          />
+          {oportunidad.probabilidadCierre !== undefined && (
+            <MetricRow
+              icon={Target}
+              label="Probabilidad de Cierre"
+              value={`${oportunidad.probabilidadCierre}%`}
+              valueClassName={probColor}
+            />
+          )}
           <MetricRow
             icon={Clock}
             label="Compra Estimada"
