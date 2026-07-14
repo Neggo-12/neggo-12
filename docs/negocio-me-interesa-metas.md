@@ -463,3 +463,25 @@ Investigación completada sobre cómo verificar ingresos reales en Colombia (má
 ## 18. Pendiente — Política de Tratamiento de Datos Personales de Neggo
 
 Se necesita redactar la Política de Tratamiento de Datos Personales real de Neggo (marco: Ley 1581 de 2012, Ley 1266 de 2008), como documento legal formal — necesario antes de cualquier integración de verificación de ingresos (sección 17) y antes de cualquier lanzamiento real con clientes. Pendiente de trabajar en una sesión dedicada.
+
+## 19. Escalabilidad de infraestructura — cuándo actuar (no ahora)
+
+Investigación confirmada sobre lo que Supabase ya provee vs. lo que habría que construir:
+
+**Ya incluido en Supabase, sin costo adicional para nuestra etapa actual:**
+- Supavisor (connection pooler) — multiplexa miles de conexiones de clientes en pocas conexiones reales a la base de datos.
+- Edge Functions serverless — auto-escalan solas, no hay una sola instancia que se sature.
+- Read Replicas (plan pago) — balanceo automático de lecturas con geo-enrutamiento, equivalente a un Load Balancer + Auto Scaling Group tradicional, ya empaquetado.
+
+**No incluido, requeriría construcción propia cuando haga falta:**
+- Capa de caché (tipo Redis, ej. Upstash) delante de consultas costosas repetidas.
+
+**Límite real de Supabase:** escala verticalmente hasta 64 núcleos/256GB; Read Replicas escalan solo lecturas, no escrituras (todas las escrituras van a una sola base principal). Escritura distribuida horizontal (sharding) no está lista en producción todavía ni siquiera en el roadmap de Supabase (Multigres, su solución futura, sigue en alpha).
+
+**Señales reales para actuar (no anticipar, esperar evidencia real vía los paneles de monitoreo de Supabase):**
+1. CPU/memoria consistentemente alta → subir plan de cómputo (cambio simple, sin rearquitecturar).
+2. Reportes/analítica ralentizando la app en vivo → activar Read Replicas.
+3. Mismas consultas costosas repitiéndose en los logs de consultas lentas → agregar capa de caché.
+4. Volumen de escrituras masivo (miles/segundo) → escenario muy lejano, no aplica a la etapa actual de Neggo.
+
+No se construye nada de esto ahora — queda documentado como referencia para monitorear con datos reales cuando haya tráfico real de producción.
