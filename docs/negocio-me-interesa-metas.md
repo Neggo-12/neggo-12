@@ -400,6 +400,17 @@ Para construir esto de verdad hace falta, como mínimo:
 
 No se construye en esta sesión — queda documentado como el siguiente gran capítulo pendiente, que depende primero de que el cliente pueda ver/responder ofertas reales (Fase 15.3, next).
 
+### 15.2.1 Cierre y visión futura
+
+**Cierre de fase (probado con evidencia real):** `facturas_cliente`, `registrar_compra_oferta`, bucket `facturas-clientes`, sanitización de nombres de archivo, y las 3 secciones de `MisPropuestasTab` (Pendientes de gestión / Ventas Exitosas / Rechazadas) + `CompletedGoalCard` mostrando la compra que cerró cada meta — todo funcionando end-to-end.
+
+**Visión futura de la Bóveda (NO construir ahora, solo documentar):** expandir la Bóveda de "solo facturas de compra de comercios" a un repositorio general de documentos del cliente, organizado por carpetas:
+- Carpeta "Declaración de Renta": los bancos podrían depositar ahí documentos fiscales anuales para sus clientes (certificados de intereses, extractos anuales, etc.).
+- Una carpeta por banco/entidad que participe, más una carpeta consolidada que junte todo.
+- El cliente puede descargar carpetas completas (ej. para entregarle todo a su contador de una vez).
+
+Esto es una expansión significativa de alcance (nuevo modelo de "carpetas"/categorías de documento, nuevo flujo de que un banco suba documentos a nombre de un cliente, generación de descarga consolidada) — se diseña en una fase dedicada futura, no ahora.
+
 ### 15.3 Cierre de fase — Cliente ve/acepta/rechaza ofertas reales, comercio con visibilidad completa (CERRADO E IMPLEMENTADO)
 
 Cerrado y verificado con evidencia real de punta a punta:
