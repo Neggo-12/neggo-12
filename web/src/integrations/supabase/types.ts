@@ -672,11 +672,14 @@ export type Database = {
           comercio_ref: string | null
           created_at: string
           descripcion: string | null
+          estado: string
           facturacion_automatica: boolean
           gancho_comercial: string | null
           id: string
           meta_id: string | null
+          motivo_rechazo: string | null
           oportunidad_id: string | null
+          respondida_at: string | null
           terminos: string | null
         }
         Insert: {
@@ -686,11 +689,14 @@ export type Database = {
           comercio_ref?: string | null
           created_at?: string
           descripcion?: string | null
+          estado?: string
           facturacion_automatica?: boolean
           gancho_comercial?: string | null
           id: string
           meta_id?: string | null
+          motivo_rechazo?: string | null
           oportunidad_id?: string | null
+          respondida_at?: string | null
           terminos?: string | null
         }
         Update: {
@@ -700,11 +706,14 @@ export type Database = {
           comercio_ref?: string | null
           created_at?: string
           descripcion?: string | null
+          estado?: string
           facturacion_automatica?: boolean
           gancho_comercial?: string | null
           id?: string
           meta_id?: string | null
+          motivo_rechazo?: string | null
           oportunidad_id?: string | null
+          respondida_at?: string | null
           terminos?: string | null
         }
         Relationships: [
@@ -1020,6 +1029,10 @@ export type Database = {
           ahorro_mensual: number
           created_at: string
         }[]
+      }
+      responder_oferta_comercio: {
+        Args: { p_oferta_id: string; p_estado: string; p_motivo_rechazo?: string | null }
+        Returns: undefined
       }
     }
     Enums: {

@@ -239,6 +239,48 @@ export async function insertOfertaComercio(
   return { error: error ? errMessage(error) : null };
 }
 
+/** Ofertas reales sobre una meta del cliente — protegido por RLS (cliente_comercio_admin_selecciona_ofertas). */
+export async function fetchOfertasParaCliente(
+  metaId: string,
+): Promise<{ data: OfertaComercioRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('ofertas_comercios')
+    .select('*')
+    .eq('meta_id', metaId)
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: data ?? [], error: null };
+}
+
+/**
+ * Acepta/rechaza una oferta — nunca por UPDATE directo, siempre vía
+ * responder_oferta_comercio() (SECURITY DEFINER): valida dueño de la meta y
+ * que la oferta siga 'pendiente'. No cierra la meta ni las demás ofertas
+ * competidoras (decisión de negocio, sección 15.2/17).
+ */
+async function responderOferta(
+  ofertaId: string,
+  estado: 'aceptada' | 'rechazada',
+  motivoRechazo?: string,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.rpc('responder_oferta_comercio', {
+    p_oferta_id: ofertaId,
+    p_estado: estado,
+    p_motivo_rechazo: motivoRechazo ?? null,
+  });
+  return { error: error ? errMessage(error) : null };
+}
+
+export function aceptarOferta(ofertaId: string): Promise<{ error: string | null }> {
+  return responderOferta(ofertaId, 'aceptada');
+}
+
+export function rechazarOferta(ofertaId: string, motivo?: string): Promise<{ error: string | null }> {
+  return responderOferta(ofertaId, 'rechazada', motivo);
+}
+
 export interface OportunidadComercioRow {
   metaId: string;
   subcategoria: string | null;

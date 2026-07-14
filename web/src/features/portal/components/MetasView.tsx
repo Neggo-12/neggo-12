@@ -1,17 +1,15 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  Target, Shield, Sparkles, Gift, TrendingUp,
-  ChevronDown, Clock, BadgeCheck, Store,
+  Target, Shield, Sparkles, Gift,
+  ChevronDown, Clock, BadgeCheck,
   Zap, Plus, Star, Loader2, CheckCircle2,
-  Bot, Cpu, Users, Trash2, Trophy, Home,
-  Building2, Landmark,
+  Bot, Cpu, Users, Trash2, Trophy,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -27,12 +25,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
-import { fetchComerciosMatch } from '@/core/db/repositories';
+import { fetchComerciosMatch, fetchOfertasParaCliente, aceptarOferta, rechazarOferta } from '@/core/db/repositories';
 import { SUBCATEGORIAS } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useRejectionTracking } from '@/hooks/useRejectionTracking';
-import type { GoalMeta, PartnerOffer, GoalCategory } from '@/types';
+import type { GoalMeta, GoalCategory } from '@/types';
+import type { OfertaComercioRow } from '@/core/db/repositories';
 
 // ───── Category config ─────
 
@@ -58,46 +57,9 @@ function formatSubcatLabel(category: GoalCategory, subcatValue: string): string 
   return found ? found.label : subcatValue;
 }
 
-// ───── Aggregated offer types ─────
-
-type OfferSector = 'constructoras' | 'banca' | 'establecimientos' | 'inversiones';
-
-interface SectorOfferGroup {
-  sector: OfferSector;
-  label: string;
-  icon: typeof Home;
-  color: string;
-  offers: PartnerOffer[];
-}
-
-function groupOffersBySector(offers: PartnerOffer[]): SectorOfferGroup[] {
-  // Distribute mock offers across sectors based on commerce name patterns
-  const sectors: SectorOfferGroup[] = [
-    { sector: 'constructoras', label: 'Constructoras', icon: Home, color: 'text-purple-400', offers: [] },
-    { sector: 'banca', label: 'Banca', icon: Building2, color: 'text-blue-400', offers: [] },
-    { sector: 'establecimientos', label: 'Establecimientos', icon: Store, color: 'text-emerald-400', offers: [] },
-    { sector: 'inversiones', label: 'Inversiones', icon: TrendingUp, color: 'text-amber-400', offers: [] },
-  ];
-
-  for (let i = 0; i < offers.length; i++) {
-    const name = offers[i].commerceName.toLowerCase();
-    if (name.includes('constructora') || name.includes('inmobiliaria') || name.includes('vivienda')) {
-      sectors[0].offers.push(offers[i]);
-    } else if (name.includes('banco') || name.includes('financiera')) {
-      sectors[1].offers.push(offers[i]);
-    } else if (name.includes('viaje') || name.includes('electro') || name.includes('tech') || name.includes('motor') || name.includes('auto') || name.includes('ferre')) {
-      sectors[2].offers.push(offers[i]);
-    } else {
-      sectors[3].offers.push(offers[i]);
-    }
-  }
-
-  return sectors.filter((s) => s.offers.length > 0);
-}
-
 // ───── Agent Orchestrator Panel ─────
 
-function AgentOrchestrator({ goal }: { goal: GoalMeta }) {
+function AgentOrchestrator({ goal, ofertasCount }: { goal: GoalMeta; ofertasCount: number }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [comerciosCount, setComerciosCount] = useState<number | null>(null);
@@ -201,7 +163,7 @@ function AgentOrchestrator({ goal }: { goal: GoalMeta }) {
               </div>
               <div className="rounded-md bg-emerald-500/5 border border-emerald-500/10 px-2.5 py-2 text-center">
                 <p className="text-[9px] text-muted-foreground mb-0.5">Ofertas</p>
-                <p className="text-xs font-bold text-emerald-400 font-mono">{goal.offers.length} en competencia</p>
+                <p className="text-xs font-bold text-emerald-400 font-mono">{ofertasCount} en competencia</p>
               </div>
             </div>
 
@@ -223,27 +185,55 @@ function AgentOrchestrator({ goal }: { goal: GoalMeta }) {
 
 // ───── Offer Card (inside expanded panel) ─────
 
-function OfferCard({ offer, rank }: { offer: PartnerOffer; rank: number }) {
-  const medalColor =
-    rank === 0 ? 'text-amber-400' : rank === 1 ? 'text-slate-300' : 'text-amber-700';
-  const [isRejected, setIsRejected] = useState(offer.status === 'rejected');
+function OfferCard({
+  oferta,
+  onAccept,
+  onReject,
+}: {
+  oferta: OfertaComercioRow;
+  onAccept: (ofertaId: string) => void;
+  onReject: (ofertaId: string, motivo?: string) => void;
+}) {
   const { trackRejection } = useRejectionTracking();
+  const comercioNombre = oferta.comercio_nombre ?? 'Comercio';
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [motivo, setMotivo] = useState('');
 
-  const handleReject = useCallback(() => {
+  const handleConfirmReject = useCallback(() => {
+    const motivoTrimmed = motivo.trim() || undefined;
+    onReject(oferta.id, motivoTrimmed);
     void trackRejection({
-      offerId: offer.id,
+      offerId: oferta.id,
       sector: 'establecimientos',
-      productType: offer.commerceName.includes('Constructora') || offer.commerceName.includes('Inmobiliaria')
-        ? 'Apartamento' : 'Producto de consumo',
-      entityName: offer.commerceName,
-      onRejected: () => setIsRejected(true),
+      productType: 'Producto de consumo',
+      entityName: comercioNombre,
     });
-  }, [offer.id, offer.commerceName, trackRejection]);
+  }, [oferta.id, comercioNombre, motivo, onReject, trackRejection]);
 
-  if (isRejected) {
+  const handleAccept = useCallback(() => {
+    onAccept(oferta.id);
+  }, [oferta.id, onAccept]);
+
+  if (oferta.estado !== 'pendiente') {
+    const isAceptada = oferta.estado === 'aceptada';
     return (
-      <div className="rounded-xl border border-border/20 bg-secondary/10 p-4 opacity-40 pointer-events-none">
-        <p className="text-[11px] text-muted-foreground italic text-center">Oferta descartada</p>
+      <div
+        className={cn(
+          'rounded-xl border p-4 opacity-60',
+          isAceptada ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-border/20 bg-secondary/10',
+        )}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-foreground">{comercioNombre}</p>
+          <span
+            className={cn(
+              'text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full',
+              isAceptada ? 'text-emerald-400 bg-emerald-500/10' : 'text-muted-foreground bg-secondary/30',
+            )}
+          >
+            {isAceptada ? 'Aceptada' : 'Descartada'}
+          </span>
+        </div>
       </div>
     );
   }
@@ -256,22 +246,11 @@ function OfferCard({ offer, rank }: { offer: PartnerOffer; rank: number }) {
         'hover:shadow-md hover:shadow-black/10',
       )}
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-card border border-border/40 text-xs font-bold font-mono text-muted-foreground">
-            {offer.commerceName.charAt(0)}
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-foreground">{offer.commerceName}</p>
-            <div className="flex items-center gap-1 mt-0.5">
-              <Shield className="h-3 w-3 text-emerald-400" />
-              <p className="text-[10px] text-emerald-400/80 leading-tight">
-                {offer.securityBadge}
-              </p>
-            </div>
-          </div>
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-card border border-border/40 text-xs font-bold font-mono text-muted-foreground">
+          {comercioNombre.charAt(0)}
         </div>
-        <span className={cn('text-base font-bold font-mono', medalColor)}>#{rank + 1}</span>
+        <p className="text-xs font-semibold text-foreground">{comercioNombre}</p>
       </div>
 
       <div className="rounded-lg bg-card/60 border border-border/30 px-3 py-2.5 mb-3">
@@ -281,31 +260,68 @@ function OfferCard({ offer, rank }: { offer: PartnerOffer; rank: number }) {
             Beneficio
           </span>
         </div>
-        <p className="text-sm font-semibold text-cyan-300">{offer.benefit}</p>
+        <p className="text-sm font-semibold text-cyan-300">{oferta.beneficio}</p>
+        {oferta.gancho_comercial && (
+          <p className="text-[11px] text-muted-foreground mt-1">{oferta.gancho_comercial}</p>
+        )}
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-md bg-card/40 px-2.5 py-2 text-center">
-          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">Ahorro Est.</p>
-          <p className="text-xs font-bold text-emerald-400 font-mono">{formatCOP(offer.savingsEstimate)}</p>
+      {(oferta.descripcion || oferta.terminos) && (
+        <div className="rounded-lg bg-card/40 border border-border/20 px-3 py-2 mb-3 space-y-1">
+          {oferta.descripcion && (
+            <p className="text-[11px] text-muted-foreground">{oferta.descripcion}</p>
+          )}
+          {oferta.terminos && (
+            <p className="text-[10px] text-muted-foreground/70 italic">{oferta.terminos}</p>
+          )}
         </div>
-        <div className="rounded-md bg-card/40 px-2.5 py-2 text-center">
-          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">Cumplimiento</p>
-          <p className="text-xs font-bold text-blue-400 font-mono">{offer.completionMonths} meses</p>
-        </div>
-        <div className="rounded-md bg-card/40 px-2.5 py-2 text-center">
-          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">Confianza</p>
-          <p className="text-xs font-bold text-purple-400 font-mono">{offer.confidenceLevel}%</p>
-        </div>
-      </div>
+      )}
 
-      {/* Reject button */}
-      <button
-        onClick={(e) => { e.stopPropagation(); handleReject(); }}
-        className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg border border-border/20 bg-transparent px-3 py-1.5 text-[10px] text-muted-foreground/50 hover:text-red-400/70 hover:border-red-500/20 hover:bg-red-500/5 transition-all cursor-pointer"
-      >
-        No me interesa
-      </button>
+      {!isRejecting ? (
+        <div className="flex items-center gap-2 mt-3">
+          <button
+            onClick={(e) => { e.stopPropagation(); handleAccept(); }}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-400 hover:bg-emerald-500/15 transition-all cursor-pointer"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Aceptar
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setIsRejecting(true); }}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-border/20 bg-transparent px-3 py-1.5 text-[11px] text-muted-foreground/60 hover:text-red-400/70 hover:border-red-500/20 hover:bg-red-500/5 transition-all cursor-pointer"
+          >
+            No me interesa
+          </button>
+        </div>
+      ) : (
+        <div
+          className="mt-3 space-y-2 rounded-lg border border-border/30 bg-card/40 p-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <label className="text-[10px] text-muted-foreground">¿Por qué? (opcional)</label>
+          <Input
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Ej: encontré algo mejor, no me convence el plazo..."
+            className="h-8 text-xs"
+            maxLength={200}
+          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleConfirmReject}
+              className="flex-1 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-1.5 text-[11px] font-semibold text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
+            >
+              Confirmar rechazo
+            </button>
+            <button
+              onClick={() => { setIsRejecting(false); setMotivo(''); }}
+              className="flex-1 rounded-lg border border-border/20 bg-transparent px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -357,17 +373,57 @@ function GoalCard({
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [offerSector, setOfferSector] = useState<OfferSector>('establecimientos');
+  const [ofertas, setOfertas] = useState<OfertaComercioRow[]>([]);
+  const [isLoadingOfertas, setIsLoadingOfertas] = useState(false);
+  const [hasFetchedOfertas, setHasFetchedOfertas] = useState(false);
   const config = CATEGORY_CONFIG[goal.category] ?? CATEGORY_CONFIG.Celular;
   const progressPercent = Math.min(100, Math.round((goal.savedAmount / goal.targetAmount) * 100));
   const remaining = goal.targetAmount - goal.savedAmount;
-  const sectorGroups = useMemo(() => groupOffersBySector(goal.offers), [goal.offers]);
-  const defaultSector = sectorGroups.length > 0 ? sectorGroups[0].sector : 'establecimientos';
-  const activeSector = sectorGroups.some((s) => s.sector === offerSector) ? offerSector : defaultSector;
-  const activeOffers = sectorGroups.find((s) => s.sector === activeSector)?.offers ?? [];
-  const hasOffers = goal.offers.length > 0;
+  const hasOffers = ofertas.length > 0;
+
+  useEffect(() => {
+    if (!isIFCActive || hasFetchedOfertas) return;
+    setIsLoadingOfertas(true);
+    void fetchOfertasParaCliente(goal.id).then(({ data, error }) => {
+      setIsLoadingOfertas(false);
+      setHasFetchedOfertas(true);
+      if (error) {
+        toast.error('No se pudieron cargar las ofertas', { description: error });
+        return;
+      }
+      setOfertas(data ?? []);
+    });
+  }, [isIFCActive, hasFetchedOfertas, goal.id]);
 
   const toggleExpand = useCallback(() => setIsExpanded((prev) => !prev), []);
+
+  const handleAceptarOferta = useCallback((ofertaId: string) => {
+    const previous = ofertas;
+    setOfertas((prev) => prev.map((o) =>
+      o.id === ofertaId ? { ...o, estado: 'aceptada', respondida_at: new Date().toISOString() } : o,
+    ));
+    void aceptarOferta(ofertaId).then(({ error }) => {
+      if (error) {
+        setOfertas(previous);
+        toast.error('No se pudo aceptar la oferta', { description: error });
+      }
+    });
+  }, [ofertas]);
+
+  const handleRechazarOferta = useCallback((ofertaId: string, motivo?: string) => {
+    const previous = ofertas;
+    setOfertas((prev) => prev.map((o) =>
+      o.id === ofertaId
+        ? { ...o, estado: 'rechazada', respondida_at: new Date().toISOString(), motivo_rechazo: motivo ?? null }
+        : o,
+    ));
+    void rechazarOferta(ofertaId, motivo).then(({ error }) => {
+      if (error) {
+        setOfertas(previous);
+        toast.error('No se pudo registrar tu respuesta', { description: error });
+      }
+    });
+  }, [ofertas]);
 
   const handleComplete = useCallback(() => {
     setShowConfetti(true);
@@ -504,13 +560,20 @@ function GoalCard({
             >
               <Sparkles className="h-3 w-3 text-cyan-400" />
               <span className="text-[11px] font-semibold text-cyan-400">
-                {goal.offers.length} Ofertas Disponibles
+                {ofertas.length} Ofertas Disponibles
               </span>
               <ChevronDown className="h-3 w-3 text-cyan-400/60" />
             </button>
           )}
 
-          {!hasOffers && isIFCActive && (
+          {!hasOffers && isIFCActive && isLoadingOfertas && (
+            <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground italic">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Buscando ofertas...
+            </p>
+          )}
+
+          {!hasOffers && isIFCActive && !isLoadingOfertas && (
             <p className="text-[10px] text-muted-foreground italic">
               Esperando ofertas de aliados...
             </p>
@@ -545,7 +608,7 @@ function GoalCard({
         </div>
       </div>
 
-      {/* ── Expandable Offers Panel with Sector Tabs ── */}
+      {/* ── Expandable Offers Panel ── */}
       {isExpanded && hasOffers && isIFCActive && (
         <div className="border-t border-border/40 bg-gradient-to-b from-card/50 to-background/50 px-5 py-4 animate-slide-up">
           <div className="flex items-center justify-between mb-3">
@@ -554,45 +617,22 @@ function GoalCard({
                 <Zap className="h-3 w-3 text-cyan-400" />
               </div>
               <h4 className="text-xs font-semibold text-foreground">
-                Propuestas Neggo por Sector
+                Propuestas de Comercios
               </h4>
             </div>
             <span className="text-[10px] text-muted-foreground">
-              Seleccionadas por algoritmo anti-saturación
+              {ofertas.length} oferta{ofertas.length === 1 ? '' : 's'}
             </span>
           </div>
 
-          {/* Sector Tabs */}
-          {sectorGroups.length > 1 && (
-            <Tabs
-              value={activeSector}
-              onValueChange={(v) => setOfferSector(v as OfferSector)}
-              className="mb-3"
-            >
-              <TabsList className="h-9 w-full justify-start gap-0 bg-transparent p-0 border-b border-border/30 rounded-none">
-                {sectorGroups.map((sg) => (
-                  <TabsTrigger
-                    key={sg.sector}
-                    value={sg.sector}
-                    className={cn(
-                      'relative flex items-center gap-1.5 rounded-none border-b-2 border-transparent px-3 py-2 text-[10px] font-medium text-muted-foreground transition-all',
-                      'data-[state=active]:border-cyan-500 data-[state=active]:text-cyan-400 data-[state=active]:bg-transparent',
-                      'hover:text-foreground',
-                    )}
-                  >
-                    <sg.icon className="h-3 w-3" />
-                    {sg.label}
-                    <span className="ml-0.5 text-[9px] opacity-60">({sg.offers.length})</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          )}
-
-          {/* Active sector offers */}
           <div className="space-y-3 mb-4">
-            {activeOffers.map((offer, idx) => (
-              <OfferCard key={offer.id} offer={offer} rank={idx} />
+            {ofertas.map((oferta) => (
+              <OfferCard
+                key={oferta.id}
+                oferta={oferta}
+                onAccept={handleAceptarOferta}
+                onReject={handleRechazarOferta}
+              />
             ))}
           </div>
 
@@ -609,7 +649,7 @@ function GoalCard({
       )}
 
       {/* ── Agent Orchestrator (only when IFC is active for this goal) ── */}
-      {isIFCActive && <AgentOrchestrator goal={goal} />}
+      {isIFCActive && <AgentOrchestrator goal={goal} ofertasCount={ofertas.length} />}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useComercioStore } from '@/features/comercios/store/useComercioStore';
 import ComercioOnboarding from '@/features/comercios/components/ComercioOnboarding';
 import OportunidadesFeed from '@/features/comercios/components/OportunidadesFeed';
+import MisPropuestasTab from '@/features/comercios/components/MisPropuestasTab';
 import ComercioSolicitudesTab from '@/components/comercio/SolicitudesTab';
 import ComercioSuscripcionTab from '@/components/comercio/SuscripcionTab';
 import MiFacturacionTab from '@/components/facturacion/MiFacturacionTab';
@@ -17,11 +18,12 @@ import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useOrganizationName } from '@/hooks/useOrganizationName';
 
-type ComercioSection = 'dashboard' | 'oportunidades' | 'suscripcion' | 'solicitudes' | 'mi-facturacion' | 'feedback' | 'metricas-rechazo';
+type ComercioSection = 'dashboard' | 'oportunidades' | 'mis-propuestas' | 'suscripcion' | 'solicitudes' | 'mi-facturacion' | 'feedback' | 'metricas-rechazo';
 
 const COMERCIO_SECTIONS: SidebarNavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: Store },
   { key: 'oportunidades', label: 'Oportunidades IFC', icon: Radio, badge: 3 },
+  { key: 'mis-propuestas', label: 'Mis Propuestas', icon: Send },
   { key: 'suscripcion', label: 'Suscripción', icon: CreditCard },
   { key: 'solicitudes', label: 'Solicitudes (Me Interesa)', icon: Inbox },
   { key: 'mi-facturacion', label: 'Mi Facturación', icon: Receipt },
@@ -237,6 +239,10 @@ export default function ComerciosDashboard() {
           )}
 
           {activeSection === 'suscripcion' && <ComercioSuscripcionTab />}
+
+          {activeSection === 'mis-propuestas' && (
+            <MisPropuestasTab comercioId={currentComercio.id} />
+          )}
 
           {activeSection === 'solicitudes' && (
             <ComercioSolicitudesTab
