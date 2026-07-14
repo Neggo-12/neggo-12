@@ -25,13 +25,20 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
-import { fetchComerciosMatch, fetchOfertasParaCliente, aceptarOferta, rechazarOferta } from '@/core/db/repositories';
+import {
+  fetchComerciosMatch,
+  fetchOfertasParaCliente,
+  fetchFacturasCliente,
+  aceptarOferta,
+  rechazarOferta,
+} from '@/core/db/repositories';
 import { SUBCATEGORIAS } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useRejectionTracking } from '@/hooks/useRejectionTracking';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { GoalMeta, GoalCategory } from '@/types';
-import type { OfertaComercioRow } from '@/core/db/repositories';
+import type { OfertaComercioRow, FacturaClienteConOferta } from '@/core/db/repositories';
 
 // ───── Category config ─────
 
@@ -910,7 +917,7 @@ function CrearMetaDialog({
 
 // ───── Completed Goals View ─────
 
-function CompletedGoalCard({ goal }: { goal: GoalMeta }) {
+function CompletedGoalCard({ goal, factura }: { goal: GoalMeta; factura?: FacturaClienteConOferta }) {
   const config = CATEGORY_CONFIG[goal.category] ?? CATEGORY_CONFIG.Celular;
   return (
     <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 opacity-80 hover:opacity-100 transition-opacity">
@@ -937,6 +944,16 @@ function CompletedGoalCard({ goal }: { goal: GoalMeta }) {
         <Trophy className="h-3.5 w-3.5 text-emerald-400" />
         <p className="text-[11px] text-emerald-400 font-medium">Meta lograda con éxito</p>
       </div>
+      {factura && (
+        <p className="text-[10px] text-muted-foreground mt-2">
+          Cerrada por compra en{' '}
+          <span className="text-foreground font-medium">
+            {factura.ofertas_comercios?.comercio_nombre ?? 'un comercio'}
+          </span>
+          : {formatCOP(factura.monto)} el{' '}
+          {new Date(factura.fecha_compra).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </p>
+      )}
     </div>
   );
 }
@@ -946,6 +963,13 @@ function CompletedGoalCard({ goal }: { goal: GoalMeta }) {
 export default function MetasView() {
   const { metas, hydrateMetas, isMetasLoading, toggleMetaIFC, deleteMeta, completeMeta } = usePortalStore();
   const [isCrearMetaOpen, setIsCrearMetaOpen] = useState(false);
+  const session = useAuthStore((s) => s.session);
+  const [facturas, setFacturas] = useState<FacturaClienteConOferta[]>([]);
+
+  useEffect(() => {
+    if (!session?.userId) return;
+    void fetchFacturasCliente(session.userId).then(({ data }) => setFacturas(data ?? []));
+  }, [session?.userId]);
 
   // Hidrata las metas desde la base de datos real al montar la vista
   useEffect(() => {
@@ -1063,7 +1087,11 @@ export default function MetasView() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {completedMetas.map((goal) => (
-              <CompletedGoalCard key={goal.id} goal={goal} />
+              <CompletedGoalCard
+                key={goal.id}
+                goal={goal}
+                factura={facturas.find((f) => f.ofertas_comercios?.meta_id === goal.id)}
+              />
             ))}
           </div>
         </div>

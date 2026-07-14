@@ -39,6 +39,21 @@ export type ClienteBancoProductoRow = Database['public']['Tables']['cliente_banc
 
 const NOT_CONFIGURED = 'Base de datos no configurada.';
 
+/**
+ * Sanitiza un nombre de archivo para Storage — Supabase rechaza rutas con
+ * tildes/espacios ("Invalid key"). Mismo criterio de diacríticos que
+ * normalizeCiudad (lib/utils.ts): NFD + strip de marcas combinantes.
+ */
+function sanitizeFileName(fileName: string): string {
+  return fileName
+    .normalize('NFD')
+    .replace(/\p{Mn}/gu, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zA-Z0-9.-]/g, '')
+    .replace(/-+/g, '-');
+}
+
 function errMessage(error: unknown): string {
   let msg = 'Error desconocido al acceder a la base de datos.';
   if (error && typeof error === 'object' && 'message' in error) {
@@ -237,6 +252,91 @@ export async function insertOfertaComercio(
     facturacion_automatica: propuesta.facturacionAutomatica,
   });
   return { error: error ? errMessage(error) : null };
+}
+
+// ───── Facturas del cliente (Bóveda) ─────
+
+export type FacturaClienteRow = Database['public']['Tables']['facturas_cliente']['Row'];
+
+export interface FacturaClienteConOferta extends FacturaClienteRow {
+  ofertas_comercios: { comercio_nombre: string | null; meta_id: string | null } | null;
+}
+
+const FACTURAS_BUCKET = 'facturas-clientes';
+
+/**
+ * El comercio declara una compra real sobre una oferta ya aceptada — sube el
+ * documento a Storage (si lo hay) y llama registrar_compra_oferta(), que
+ * inserta la factura y completa la meta en la misma transacción.
+ */
+export async function registrarCompraOferta(
+  ofertaId: string,
+  comercioId: string,
+  monto: number,
+  fechaCompra: string,
+  file?: File,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+
+  let documentoUrl: string | null = null;
+  if (file) {
+    const path = `${comercioId}/${ofertaId}-${Date.now()}-${sanitizeFileName(file.name)}`;
+    const { error: uploadError } = await supabase.storage.from(FACTURAS_BUCKET).upload(path, file);
+    if (uploadError) return { error: errMessage(uploadError) };
+    documentoUrl = path;
+  }
+
+  const { error } = await supabase.rpc('registrar_compra_oferta', {
+    p_oferta_id: ofertaId,
+    p_monto: monto,
+    p_fecha_compra: fechaCompra,
+    p_documento_url: documentoUrl,
+  });
+  return { error: error ? errMessage(error) : null };
+}
+
+/**
+ * Facturas reales del cliente — join facturas_cliente → ofertas_comercios →
+ * metas, filtrado explícitamente por cliente_id (RLS ya lo exige, pero se
+ * filtra también aquí como capa de UX, mismo criterio que el resto de este archivo).
+ */
+export async function fetchFacturasCliente(
+  clienteId: string,
+): Promise<{ data: FacturaClienteConOferta[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('facturas_cliente')
+    .select('*, ofertas_comercios!inner(comercio_nombre, meta_id, metas!inner(cliente_id))')
+    .eq('ofertas_comercios.metas.cliente_id', clienteId)
+    .order('fecha_compra', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: (data ?? []) as unknown as FacturaClienteConOferta[], error: null };
+}
+
+/**
+ * documento_url guarda el path del objeto en el bucket privado, no una URL
+ * pública — se firma bajo demanda, nunca se persiste la URL firmada.
+ */
+export async function getFacturaSignedUrl(path: string): Promise<{ url: string | null; error: string | null }> {
+  if (!supabase) return { url: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.storage.from(FACTURAS_BUCKET).createSignedUrl(path, 60 * 10);
+  if (error) return { url: null, error: errMessage(error) };
+  return { url: data.signedUrl, error: null };
+}
+
+/** Facturas ya registradas para un conjunto de ofertas del comercio — protegido
+ * por la misma policy de SELECT (comercio dueño de la oferta). */
+export async function fetchFacturasPorOfertas(
+  ofertaIds: string[],
+): Promise<{ data: FacturaClienteRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  if (ofertaIds.length === 0) return { data: [], error: null };
+  const { data, error } = await supabase
+    .from('facturas_cliente')
+    .select('*')
+    .in('oferta_id', ofertaIds);
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: data ?? [], error: null };
 }
 
 /** Ofertas reales sobre una meta del cliente — protegido por RLS (cliente_comercio_admin_selecciona_ofertas). */

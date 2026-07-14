@@ -109,6 +109,41 @@ export type Database = {
           },
         ]
       }
+      facturas_cliente: {
+        Row: {
+          id: string
+          oferta_id: string
+          monto: number
+          documento_url: string | null
+          fecha_compra: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          oferta_id: string
+          monto: number
+          documento_url?: string | null
+          fecha_compra: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          oferta_id?: string
+          monto?: number
+          documento_url?: string | null
+          fecha_compra?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_cliente_oferta_id_fkey"
+            columns: ["oferta_id"]
+            isOneToOne: false
+            referencedRelation: "ofertas_comercios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facturas_mensuales: {
         Row: {
           id: string
@@ -1032,6 +1067,10 @@ export type Database = {
       }
       responder_oferta_comercio: {
         Args: { p_oferta_id: string; p_estado: string; p_motivo_rechazo?: string | null }
+        Returns: undefined
+      }
+      registrar_compra_oferta: {
+        Args: { p_oferta_id: string; p_monto: number; p_fecha_compra: string; p_documento_url?: string | null }
         Returns: undefined
       }
     }
