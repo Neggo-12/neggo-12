@@ -399,3 +399,67 @@ Para construir esto de verdad hace falta, como mínimo:
 3. Tabla real de facturas del cliente + conectar `FacturasView.tsx` a datos reales en vez de `MOCK_INVOICES`.
 
 No se construye en esta sesión — queda documentado como el siguiente gran capítulo pendiente, que depende primero de que el cliente pueda ver/responder ofertas reales (Fase 15.3, next).
+
+### 15.3 Cierre de fase — Cliente ve/acepta/rechaza ofertas reales, comercio con visibilidad completa (CERRADO E IMPLEMENTADO)
+
+Cerrado y verificado con evidencia real de punta a punta:
+
+- `ofertas_comercios` gana `estado` (`pendiente`/`aceptada`/`rechazada`), `respondida_at` y `motivo_rechazo`, todo mutado exclusivamente vía la función `SECURITY DEFINER` `responder_oferta_comercio()` — nunca por `UPDATE` directo (mismo patrón que `reportar_pago_factura`/`confirmar_pago_factura`). Durante el diseño se descubrieron 3 políticas RLS preexistentes en `ofertas_comercios` creadas fuera de las migraciones versionadas (`ofertas_insert_owner`, `ofertas_select_public`, `ofertas_update_owner`) — `ofertas_update_owner` permitía al comercio hacer `UPDATE` directo sin restricción de columna, lo cual rompía la garantía de que solo la función guardada controla `estado`. Se eliminó junto con el duplicado de `INSERT` y la política de `SELECT` abierta (`qual = true`), dejando exactamente 2 políticas: `ofertas_insert_owner` (INSERT) y `cliente_comercio_admin_selecciona_ofertas` (SELECT).
+- `MetasView.tsx`/`OfferCard` ahora muestra ofertas reales de `fetchOfertasParaCliente(meta.id)` — se eliminó el sector-grouping mock (`groupOffersBySector`) y los 4 campos decorativos sin respaldo real (`securityBadge`, `savingsEstimate`, `completionMonths`, `confidenceLevel`). El cliente puede Aceptar o rechazar con "No me interesa", que ahora pide un motivo opcional antes de confirmar y persiste de verdad (antes solo hacía UI local + telemetría demográfica de un `DEMO_USER` hardcodeado — esa telemetría se conserva, solo se le agregó la persistencia real que faltaba).
+- El comercio gana visibilidad completa de sus propuestas enviadas en la nueva sección "Mis Propuestas" (`MisPropuestasTab.tsx`) — antes `fetchOfertasComercios` se llamaba pero su resultado solo alimentaba un contador de KPI, sin ninguna vista que listara cada propuesta con su estado.
+
+**Cadena de eventos aclarada — aceptar una oferta NO cierra la meta**: cliente acepta oferta (`estado = 'aceptada'`) → compra real en el comercio → comercio genera factura real → factura se deposita en la Bóveda del cliente → **ahí sí** la meta se marca `completada` automáticamente. Los pasos de compra/factura/Bóveda son la Fase 15.2 (ya documentada arriba), aún pendiente de construir. Tampoco se cierran automáticamente las demás ofertas competidoras de la misma meta al aceptar una — quedan visibles/pendientes (idea para el futuro, sin diseñar todavía: explorar redistribuir ofertas no aceptadas hacia otros clientes con necesidades similares).
+
+**Idea futura anotada para la Bóveda (Fase 15.2)**: además de facturas, la Bóveda podría incluir un historial anual de metas cumplidas con PDF exportable (mencionado por el usuario) — no se diseña todavía, queda como parte del alcance futuro de esa fase.
+
+## 16. Estado de preparación para producción y próximos pasos estratégicos
+
+### 16.1 Sistema de notificaciones — estrategia diferenciada por audiencia
+
+Hoy no existe ningún mecanismo para avisarle al cliente o al comercio cuando algo relevante pasa (nueva oferta, respuesta del cliente a una oferta, lead contactado por un banco, etc.). Cada uno debe entrar manualmente a revisar. Esto reduce significativamente el valor práctico de todo el motor de leads/Metas construido hasta ahora.
+
+Diseño confirmado — el canal correcto depende de la audiencia, no es "un solo sistema de notificaciones para todos":
+
+- **Comercios → Supabase Realtime, no correo.** Los comercios están activos en la plataforma durante el día (revisando oportunidades, gestionando propuestas), así que una notificación en tiempo real dentro de la app (ej. cuando el cliente acepta/rechaza una oferta en "Mis Propuestas") tiene más sentido que un correo que puede tardar en revisarse.
+- **Clientes → correo (Resend).** El cliente no vive dentro de la plataforma todo el día, así que correo es el canal correcto. Dominio `neggo.co` ya verificado en Resend.
+- **WhatsApp Business API → mejora futura, no ahora.** Documentado como el siguiente canal a evaluar para clientes, pero es significativamente más complejo que correo: requiere verificación de negocio ante Meta y aprobación de plantillas de mensaje antes de poder enviar nada — no es un simple "conectar y listo" como Resend.
+
+**Correo a clientes (Resend) — COMPLETADO Y PROBADO CON EVIDENCIA REAL.** Dominio `neggo.co` verificado. Primer evento implementado: `oferta_comercio_nueva` (trigger `AFTER INSERT` en `ofertas_comercios` → `pg_net` → Edge Function `send-notification` → Resend), documentado en `supabase/migrations/20260714_notificaciones_sistema.sql` y `supabase/functions/send-notification/index.ts`. Probado: correo real recibido en bandeja principal (no spam) en el primer intento.
+
+Próximos eventos a agregar al mismo sistema (mismo patrón: nuevo trigger + nuevo `case` en `buildEmail()` de la Edge Function, sin tocar la arquitectura base):
+- Lead contactado (cambio de pipeline en Me Interesa).
+- Factura mensual generada.
+- Pago confirmado.
+
+Notificaciones a comercios (vía Supabase Realtime, no correo) siguen pendientes de construir.
+
+**Sube de prioridad**: antes que la app móvil, después de Metas/IFC (ya completado).
+
+### 16.2 Evaluación honesta de preparación para producción — 5-6/10
+
+Sólido: los 3 flujos de Me Interesa, CRM, facturación completa, RLS de base — todo probado con evidencia real.
+Pendiente antes de un lanzamiento real: notificaciones (16.1), MFA + pentest + tests automatizados (secciones 10-11), política de tratamiento de datos (Habeas Data), y más tiempo de prueba real para Metas/IFC (recién construido).
+
+Recomendación: lanzamiento piloto controlado (pocos comercios/clientes reales, supervisión cercana) es razonable una vez resueltos notificaciones + MFA básico + política de datos. Lanzamiento abierto/escalado requiere además el pentest.
+
+### 16.3 Plan futuro — App móvil vía Capacitor
+
+Cuando el producto salga a producción con clientes reales, envolver la web actual (React/Vite) con Capacitor — reutiliza ~90%+ del código existente, evita una reescritura nativa. Complejidad estimada 3-4/10. Requiere del lado del usuario: cuenta Apple Developer ($99 USD/año) y Google Play Developer ($25 USD pago único). No se construye hasta que haya clientes reales en producción — sería trabajo prematuro sobre un producto aún en definición.
+
+## 17. Verificación de ingresos reales — investigación y roadmap futuro
+
+Investigación completada sobre cómo verificar ingresos reales en Colombia (más allá del rango autodeclarado actual):
+
+- Sistema real: PILA (Planilla Integrada de Liquidación de Aportes) + RUAF (Registro Único de Afiliados) — reportan el Ingreso Base de Cotización (IBC) mensual.
+- Empleados: el IBC lo reporta el EMPLEADOR (alta confiabilidad, consecuencias legales por falsear). Independientes: el IBC es autodeclarado por la misma persona (mejora sobre un dato sin respaldo, pero no es verificación de terceros).
+- Acceso legal: requiere autorización explícita previa del cliente (Ley 1581 de 2012, Habeas Data) — no es una consulta abierta. Acceso técnico real se hace vía operadores de información autorizados (ej. +Simple, Enlace Operativo/SuAporte), no directo a RUAF.
+- Independientes, verificación más robusta a futuro: análisis de extractos bancarios (Open Banking — proveedores como Belvo en LatAm) + declaración de renta cuando aplica.
+
+**Roadmap propuesto:**
+- Fase 1: integración con operador autorizado (PILA/RUAF) para empleados + flujo de autorización de datos explícito en el registro.
+- Fase 2 (posterior): Open Banking para independientes.
+- Complejidad estimada: 6-7/10 (incluye carga legal/compliance, no solo integración técnica).
+
+## 18. Pendiente — Política de Tratamiento de Datos Personales de Neggo
+
+Se necesita redactar la Política de Tratamiento de Datos Personales real de Neggo (marco: Ley 1581 de 2012, Ley 1266 de 2008), como documento legal formal — necesario antes de cualquier integración de verificación de ingresos (sección 17) y antes de cualquier lanzamiento real con clientes. Pendiente de trabajar en una sesión dedicada.
