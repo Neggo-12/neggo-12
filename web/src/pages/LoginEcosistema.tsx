@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { POLITICA_RUTA } from "@/core/domain/legal/politica";
 import {
   isSupabaseConfigured,
   validatePassword,
@@ -489,6 +491,7 @@ function B2BRegister() {
   });
 
   const [resultRequiresEmailConfirmation, setResultRequiresEmailConfirmation] = useState(false);
+  const [aceptaPolitica, setAceptaPolitica] = useState(false);
   const activeSector = B2B_SECTORS.find((s) => s.id === sector)!;
   const pwValidation = validatePassword(form.password);
   const passwordsMatch =
@@ -504,6 +507,7 @@ function B2BRegister() {
     form.confirmPassword.trim() !== "" &&
     pwValidation.isValid &&
     passwordsMatch &&
+    aceptaPolitica &&
     submitState === "idle";
 
   const updateField = useCallback(
@@ -767,6 +771,25 @@ function B2BRegister() {
           Las contraseñas no coinciden
         </div>
       )}
+
+      <div className="flex items-start gap-2">
+        <Checkbox
+          id="b2b-eco-acepta-politica"
+          checked={aceptaPolitica}
+          onCheckedChange={(v) => setAceptaPolitica(v === true)}
+          className="mt-0.5"
+        />
+        <Label
+          htmlFor="b2b-eco-acepta-politica"
+          className="text-[11px] font-normal leading-relaxed text-muted-foreground cursor-pointer"
+        >
+          Acepto la{" "}
+          <Link to={POLITICA_RUTA} target="_blank" className="underline text-foreground hover:text-primary">
+            Política de Tratamiento de Datos Personales
+          </Link>{" "}
+          de Neggo.
+        </Label>
+      </div>
 
       <Button
         type="submit"
@@ -1157,6 +1180,7 @@ function B2CRegister() {
   const [loadBancosError, setLoadBancosError] = useState<string | null>(null);
   const [bancoProductos, setBancoProductos] = useState<Record<string, string[]>>({});
   const [resultRequiresEmailConfirmation, setResultRequiresEmailConfirmation] = useState(false);
+  const [aceptaPolitica, setAceptaPolitica] = useState(false);
 
   const pwValidation = validatePassword(form.password);
   const passwordsMatch =
@@ -1174,6 +1198,7 @@ function B2CRegister() {
     form.confirmPassword.trim() !== "" &&
     pwValidation.isValid &&
     passwordsMatch &&
+    aceptaPolitica &&
     submitState === "idle";
 
   useEffect(() => {
@@ -1541,6 +1566,25 @@ function B2CRegister() {
             )}
           </div>
         )}
+      </div>
+
+      <div className="flex items-start gap-2">
+        <Checkbox
+          id="b2c-eco-acepta-politica"
+          checked={aceptaPolitica}
+          onCheckedChange={(v) => setAceptaPolitica(v === true)}
+          className="mt-0.5"
+        />
+        <Label
+          htmlFor="b2c-eco-acepta-politica"
+          className="text-[11px] font-normal leading-relaxed text-muted-foreground cursor-pointer"
+        >
+          Acepto la{" "}
+          <Link to={POLITICA_RUTA} target="_blank" className="underline text-foreground hover:text-primary">
+            Política de Tratamiento de Datos Personales
+          </Link>{" "}
+          de Neggo.
+        </Label>
       </div>
 
       {/* ── Submit ── */}

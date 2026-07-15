@@ -1,9 +1,14 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useComercioStore } from '../store/useComercioStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import { insertAceptacionPolitica } from '@/core/db/repositories';
+import { POLITICA_VERSION, POLITICA_RUTA } from '@/core/domain/legal/politica';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -82,10 +87,12 @@ export const PLANES: Plan[] = [
 
 export default function ComercioOnboarding() {
   const { currentComercio, setComercio, completeOnboarding } = useComercioStore();
+  const session = useAuthStore((s) => s.session);
   const [step, setStep] = useState<'info' | 'especialidades' | 'plan'>('info');
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>('premium');
   const [showSeal, setShowSeal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [aceptaPolitica, setAceptaPolitica] = useState(false);
 
   // Dynamic subcategory options based on selected category
   const subOptions = useMemo(
@@ -109,6 +116,9 @@ export default function ComercioOnboarding() {
     setComercio({ plan: selectedPlan });
     setIsSaving(true);
     const success = await completeOnboarding();
+    if (success && session?.userId) {
+      await insertAceptacionPolitica(session.userId, POLITICA_VERSION);
+    }
     setIsSaving(false);
     if (success) {
       setShowSeal(true);
@@ -355,6 +365,25 @@ export default function ComercioOnboarding() {
                 </button>
               ))}
             </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="comercio-onboarding-acepta-politica"
+                checked={aceptaPolitica}
+                onCheckedChange={(v) => setAceptaPolitica(v === true)}
+                className="mt-0.5"
+              />
+              <Label
+                htmlFor="comercio-onboarding-acepta-politica"
+                className="text-[11px] font-normal leading-relaxed text-muted-foreground cursor-pointer"
+              >
+                Acepto la{' '}
+                <Link to={POLITICA_RUTA} target="_blank" className="underline text-foreground hover:text-primary">
+                  Política de Tratamiento de Datos Personales
+                </Link>{' '}
+                de Neggo.
+              </Label>
+            </div>
+
             <div className="flex gap-3">
               <Button
                 variant="outline"
@@ -366,7 +395,7 @@ export default function ComercioOnboarding() {
               <Button
                 className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
                 onClick={handleComplete}
-                disabled={isSaving}
+                disabled={isSaving || !aceptaPolitica}
               >
                 {isSaving ? 'Guardando...' : 'Activar Suscripción'}
                 <Sparkles className="ml-2 h-4 w-4" />

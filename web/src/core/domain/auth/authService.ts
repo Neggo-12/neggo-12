@@ -11,8 +11,9 @@
  *    always read back from the `users` table after authentication.
  */
 import { supabase } from '@/core/db/dbClient';
-import { insertClienteBancoProductos } from '@/core/db/repositories';
+import { insertClienteBancoProductos, insertAceptacionPolitica } from '@/core/db/repositories';
 import { calcularScoreEstimado } from '@/core/domain/auth/types';
+import { POLITICA_VERSION } from '@/core/domain/legal/politica';
 import type {
   LoginInput,
   LoginResult,
@@ -273,6 +274,10 @@ export async function registerB2B(input: RegisterB2BInput): Promise<RegisterResu
     };
   }
 
+  // Mejor esfuerzo — misma salvedad que en registerB2C: la garantía real es
+  // la verificación al iniciar sesión (PoliticaAcceptanceGate en App.tsx).
+  await insertAceptacionPolitica(userId, POLITICA_VERSION);
+
   // 2) organizations — the tenant entity.
   const organizationId = crypto.randomUUID();
   const { error: orgError } = await supabase.from('organizations').insert({
@@ -356,6 +361,13 @@ export async function registerB2C(input: RegisterB2CInput): Promise<RegisterResu
       error: friendlyDuplicateMessage(userError) ?? errMessage(userError, 'No se pudo registrar el cliente.'),
     };
   }
+
+  // Mejor esfuerzo aquí — puede fallar por RLS si el correo requiere
+  // confirmación y aún no hay sesión (mismo caso que el INSERT de arriba).
+  // La garantía real de que quedó prueba de aceptación es la verificación al
+  // iniciar sesión (PoliticaAcceptanceGate en App.tsx), que corre siempre con
+  // JWT válido.
+  await insertAceptacionPolitica(userId, POLITICA_VERSION);
 
   // Best-effort: registra los productos bancarios declarados. No bloquea el
   // registro si falla (el usuario ya quedó creado); solo se pierde ese detalle

@@ -1,10 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
+import { toast } from "sonner";
 import { useAuthStore } from "@/store/useAuthStore";
+import { checkAceptacionPolitica, insertAceptacionPolitica } from "@/core/db/repositories";
+import { POLITICA_VERSION, POLITICA_RUTA } from "@/core/domain/legal/politica";
 import LandingHub from "./pages/LandingHub";
 import LandingBancos from "./pages/LandingBancos";
 import LandingConstructoras from "./pages/LandingConstructoras";
@@ -19,6 +23,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminSignup from "./pages/AdminSignup";
 import LoginEcosistema from "./pages/LoginEcosistema";
 import NotFound from "./pages/NotFound";
+import PoliticaDatos from "./pages/PoliticaDatos";
 import RequireAdmin from "@/components/RequireAdmin";
 import RequireRole from "@/components/RequireRole";
 
@@ -35,6 +40,72 @@ function SessionRestoreGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Garantía real de prueba de aceptación (Ley 1581 de 2012) — el registro
+ * (registerB2C/registerB2B) es "mejor esfuerzo" porque puede correr sin sesión
+ * si el correo requiere confirmación. Esta verificación corre siempre con JWT
+ * válido, así que también cubre usuarios que se registraron antes de que
+ * existiera esta política. Bloquea la app con un aviso hasta que acepte.
+ */
+function PoliticaAcceptanceGate({ children }: { children: React.ReactNode }) {
+  const session = useAuthStore((s) => s.session);
+  const location = useLocation();
+  const [needsAcceptance, setNeedsAcceptance] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+
+  useEffect(() => {
+    if (!session?.userId) {
+      setNeedsAcceptance(false);
+      return;
+    }
+    setIsChecking(true);
+    void checkAceptacionPolitica(session.userId, POLITICA_VERSION).then(({ aceptada }) => {
+      setNeedsAcceptance(!aceptada);
+      setIsChecking(false);
+    });
+  }, [session?.userId]);
+
+  const handleAceptar = useCallback(async () => {
+    if (!session?.userId) return;
+    setIsAccepting(true);
+    const { error } = await insertAceptacionPolitica(session.userId, POLITICA_VERSION);
+    setIsAccepting(false);
+    if (error) {
+      toast.error("No se pudo registrar tu aceptación", { description: error });
+      return;
+    }
+    setNeedsAcceptance(false);
+  }, [session?.userId]);
+
+  const showGate = !isChecking && needsAcceptance && location.pathname !== POLITICA_RUTA;
+
+  return (
+    <>
+      {children}
+      {showGate && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-border/60 bg-card p-6">
+            <h2 className="text-base font-semibold text-foreground">
+              Actualizamos nuestra Política de Tratamiento de Datos
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Para continuar usando Neggo necesitamos que aceptes nuestra{" "}
+              <Link to={POLITICA_RUTA} target="_blank" className="underline text-foreground hover:text-primary">
+                Política de Tratamiento de Datos Personales
+              </Link>
+              , conforme a la Ley 1581 de 2012.
+            </p>
+            <Button onClick={handleAceptar} disabled={isAccepting} className="w-full">
+              {isAccepting ? "Guardando..." : "Acepto y continúo"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -42,7 +113,11 @@ const App = () => (
       <Sonner />
       <SessionRestoreGate>
         <BrowserRouter>
+          <PoliticaAcceptanceGate>
           <Routes>
+            {/* Documento público — Política de Tratamiento de Datos Personales */}
+            <Route path="/politica-de-datos" element={<PoliticaDatos />} />
+
             {/* Landing pages — no sidebar, full-width marketing */}
             <Route path="/" element={<LandingHub />} />
             <Route path="/landing/bancos" element={<LandingBancos />} />
@@ -105,6 +180,7 @@ const App = () => (
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </PoliticaAcceptanceGate>
         </BrowserRouter>
       </SessionRestoreGate>
     </TooltipProvider>

@@ -18,6 +18,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      aceptaciones_politica: {
+        Row: {
+          id: string
+          user_id: string
+          version_politica: string
+          aceptado_at: string
+          ip_o_contexto: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          version_politica: string
+          aceptado_at?: string
+          ip_o_contexto?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          version_politica?: string
+          aceptado_at?: string
+          ip_o_contexto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aceptaciones_politica_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           created_at: string

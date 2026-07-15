@@ -34,6 +34,7 @@ export type MetricaRechazoRow = Database['public']['Tables']['metricas_rechazo']
 export type MeInteresaSolicitudRow = Database['public']['Tables']['me_interesa_solicitudes']['Row'];
 export type MeInteresaDestinatarioRow = Database['public']['Tables']['me_interesa_destinatarios']['Row'];
 export type ClienteBancoProductoRow = Database['public']['Tables']['cliente_banco_productos']['Row'];
+export type AceptacionPoliticaRow = Database['public']['Tables']['aceptaciones_politica']['Row'];
 
 // ───── Helpers ─────
 
@@ -1836,6 +1837,45 @@ export async function insertClienteBancoProductos(
   );
   if (rows.length === 0) return { error: null };
   const { error } = await supabase.from('cliente_banco_productos').insert(rows);
+  return { error: error ? errMessage(error) : null };
+}
+
+// ───── Aceptación de la Política de Tratamiento de Datos (Ley 1581/2012) ─────
+
+/** ¿El usuario ya aceptó esta versión de la política? Corre siempre con JWT
+ * válido (usuario ya autenticado), a diferencia del intento en el registro. */
+export async function checkAceptacionPolitica(
+  userId: string,
+  version: string,
+): Promise<{ aceptada: boolean; error: string | null }> {
+  if (!supabase) return { aceptada: false, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('aceptaciones_politica')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('version_politica', version)
+    .limit(1);
+  if (error) return { aceptada: false, error: errMessage(error) };
+  return { aceptada: (data ?? []).length > 0, error: null };
+}
+
+/** Registra la aceptación — nunca se actualiza ni se borra, es prueba histórica.
+ * ip_o_contexto guarda navigator.userAgent (el navegador no puede leer su
+ * propia IP pública; no es una IP real, solo contexto del dispositivo). */
+export async function insertAceptacionPolitica(
+  userId: string,
+  version: string,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.from('aceptaciones_politica').insert({
+    id: crypto.randomUUID(),
+    user_id: userId,
+    version_politica: version,
+    ip_o_contexto: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+  });
+  // 23505 = violación de UNIQUE (user_id, version_politica) — la aceptación
+  // ya existía, que es exactamente la garantía que buscamos. No es un error.
+  if (error && error.code === '23505') return { error: null };
   return { error: error ? errMessage(error) : null };
 }
 

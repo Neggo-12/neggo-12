@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -32,6 +33,7 @@ import {
   validatePassword,
   checkDuplicates,
 } from "@/core/db/supabaseClient";
+import { POLITICA_RUTA } from "@/core/domain/legal/politica";
 import { useAdminStore } from "@/features/admin/store/useAdminStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import type { OnboardingRequest, AdminEntityType, AuthorizationStatus } from "@/types";
@@ -310,6 +312,7 @@ export function B2BRegister({ sector }: { sector: B2BSector }) {
     confirmPassword: "",
   });
   const [resultRequiresEmailConfirmation, setResultRequiresEmailConfirmation] = useState(false);
+  const [aceptaPolitica, setAceptaPolitica] = useState(false);
 
   const pwValidation = validatePassword(form.password);
   const passwordsMatch = form.password && form.confirmPassword && form.password === form.confirmPassword;
@@ -324,6 +327,7 @@ export function B2BRegister({ sector }: { sector: B2BSector }) {
     form.confirmPassword.trim() !== "" &&
     pwValidation.isValid &&
     passwordsMatch &&
+    aceptaPolitica &&
     submitState === "idle";
 
   const updateField = useCallback(
@@ -529,6 +533,25 @@ export function B2BRegister({ sector }: { sector: B2BSector }) {
           Las contraseñas no coinciden
         </div>
       )}
+
+      <div className="flex items-start gap-2">
+        <Checkbox
+          id="b2b-reg-acepta-politica"
+          checked={aceptaPolitica}
+          onCheckedChange={(v) => setAceptaPolitica(v === true)}
+          className="mt-0.5"
+        />
+        <Label
+          htmlFor="b2b-reg-acepta-politica"
+          className="text-[11px] font-normal leading-relaxed text-muted-foreground cursor-pointer"
+        >
+          Acepto la{" "}
+          <Link to={POLITICA_RUTA} target="_blank" className="underline text-foreground hover:text-primary">
+            Política de Tratamiento de Datos Personales
+          </Link>{" "}
+          de Neggo.
+        </Label>
+      </div>
 
       <Button
         type="submit"
@@ -797,6 +820,7 @@ export function B2CRegister({ themeColor = "cyan" }: { themeColor?: AccentColor 
   const [loadBancosError, setLoadBancosError] = useState<string | null>(null);
   const [bancoProductos, setBancoProductos] = useState<Record<string, string[]>>({});
   const [resultRequiresEmailConfirmation, setResultRequiresEmailConfirmation] = useState(false);
+  const [aceptaPolitica, setAceptaPolitica] = useState(false);
 
   const pwValidation = validatePassword(form.password);
   const passwordsMatch = form.password && form.confirmPassword && form.password === form.confirmPassword;
@@ -813,6 +837,7 @@ export function B2CRegister({ themeColor = "cyan" }: { themeColor?: AccentColor 
     form.confirmPassword.trim() !== "" &&
     pwValidation.isValid &&
     passwordsMatch &&
+    aceptaPolitica &&
     submitState === "idle";
 
   useEffect(() => {
@@ -1085,6 +1110,25 @@ export function B2CRegister({ themeColor = "cyan" }: { themeColor?: AccentColor 
             )}
           </div>
         )}
+      </div>
+
+      <div className="flex items-start gap-2">
+        <Checkbox
+          id="b2c-reg-acepta-politica"
+          checked={aceptaPolitica}
+          onCheckedChange={(v) => setAceptaPolitica(v === true)}
+          className="mt-0.5"
+        />
+        <Label
+          htmlFor="b2c-reg-acepta-politica"
+          className="text-[11px] font-normal leading-relaxed text-muted-foreground cursor-pointer"
+        >
+          Acepto la{" "}
+          <Link to={POLITICA_RUTA} target="_blank" className="underline text-foreground hover:text-primary">
+            Política de Tratamiento de Datos Personales
+          </Link>{" "}
+          de Neggo.
+        </Label>
       </div>
 
       <Button
