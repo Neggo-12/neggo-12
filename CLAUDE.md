@@ -25,3 +25,6 @@ Agrupar en commits temáticos (no un commit gigante). Nunca incluir: .DS_Store, 
 
 ## Proceso — MCP de Supabase conectado a claude.ai
 El proyecto de Supabase (idbyahyffuhvircgzpvg) ahora tiene un MCP conectado directamente a la conversación de claude.ai (no a Claude Code en terminal) — SQL puede aplicarse directo desde ahí. Sin importar cuál camino se use (MCP directo o copiar/pegar en el editor), todo cambio de esquema debe quedar respaldado como archivo de migración en supabase/migrations/, igual que siempre.
+
+## Probar múltiples perfiles en desarrollo
+Supabase Auth comparte UNA sola sesión por navegador vía localStorage — dos pestañas normales del mismo navegador nunca pueden estar logueadas como usuarios distintos al mismo tiempo (loguear una cuenta distinta en una pestaña sobrescribe el JWT de todas). Para probar dos perfiles a la vez, usa una ventana de incógnito para el segundo perfil (localStorage separado).

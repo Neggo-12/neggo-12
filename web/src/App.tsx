@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/useAuthStore";
+import { supabase } from "@/core/db/dbClient";
 import { checkAceptacionPolitica, insertAceptacionPolitica } from "@/core/db/repositories";
 import { POLITICA_VERSION, POLITICA_RUTA } from "@/core/domain/legal/politica";
 import LandingHub from "./pages/LandingHub";
@@ -36,6 +37,51 @@ function SessionRestoreGate({ children }: { children: React.ReactNode }) {
     // Restore any persisted Supabase Auth session on app load
     void restoreSession();
   }, [restoreSession]);
+
+  // Supabase Auth shares ONE session per browser via localStorage — logging
+  // into a different account in another tab silently swaps the JWT under
+  // every open tab (supabase-js syncs across tabs via storage events). This
+  // listener is the app's only defense: if the real authenticated user ever
+  // differs from what this tab's store believes, never keep operating with a
+  // stale identity — force an honest, clean reload back to login instead.
+  //
+  // Comparison rule (no "is this my own login" flag needed):
+  //   - storeUserId is null whenever this tab hasn't established (or has
+  //     cleared) its own identity — a fresh SIGNED_IN here is a normal login,
+  //     never a mismatch, regardless of event timing.
+  //   - TOKEN_REFRESHED never changes the user id, so it never matches either.
+  //   - A SIGNED_OUT while storeUserId is still non-null means someone
+  //     (this tab or another) really signed out — logout() in useAuthStore
+  //     clears the store BEFORE calling signOut() precisely so a normal
+  //     logout never trips this.
+  useEffect(() => {
+    if (!supabase) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      const storeUserId = useAuthStore.getState().session?.userId ?? null;
+      const eventUserId = newSession?.user?.id ?? null;
+
+      const isForeignSignOut = event === 'SIGNED_OUT' && storeUserId !== null;
+      const isForeignIdentitySwap =
+        event !== 'SIGNED_OUT' && storeUserId !== null && eventUserId !== null && storeUserId !== eventUserId;
+
+      if (!isForeignSignOut && !isForeignIdentitySwap) return;
+
+      useAuthStore.setState({
+        session: null,
+        currentUser: null,
+        activeProfile: null,
+        sessionMode: 'demo',
+      });
+      toast.error('Tu sesión cambió', {
+        description: 'Se inició sesión con otra cuenta en este navegador. Vuelve a iniciar sesión.',
+      });
+      setTimeout(() => {
+        window.location.href = '/login-ecosistema';
+      }, 2000);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return <>{children}</>;
 }

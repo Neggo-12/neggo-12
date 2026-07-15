@@ -97,6 +97,15 @@ export const useAuthStore = create<AuthState>()(
       },
 
       loginWithCredentials: async (input: LoginInput) => {
+        // Clear the previous identity BEFORE calling signInWithPassword —
+        // same reasoning as logout(): signInWithPassword fires SIGNED_IN as
+        // part of its own processing, and the app's onAuthStateChange
+        // listener (App.tsx) treats a SIGNED_IN with a different user id
+        // than the store's current session as a foreign (cross-tab) sign-in.
+        // Without this, logging into a different portal in the SAME tab
+        // (store still holds the previous session) trips that rule mid-login
+        // and resets the store before the new session is ever set.
+        set({ session: null, currentUser: null, activeProfile: null });
         const result = await authServiceLogin(input);
         if (result.success) {
           // Pick up the session established by authService
@@ -168,6 +177,10 @@ export const useAuthStore = create<AuthState>()(
         // B2C clients are auto-approved — auto-login after registration
         // UNLESS email confirmation is required (Supabase Auth config)
         if (result.success && !result.pendingApproval && !result.requiresEmailConfirmation) {
+          // Same reasoning as loginWithCredentials: clear any previous
+          // identity before signing in, so the onAuthStateChange listener
+          // never mistakes this auto-login for a foreign cross-tab sign-in.
+          set({ session: null, currentUser: null, activeProfile: null });
           // Auto-login so the client goes straight to the portal
           const loginResult = await authServiceLogin({
             email: input.email,
@@ -231,16 +244,22 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
-        // If in production mode, sign out from Supabase
-        if (get().sessionMode === 'production') {
-          await authServiceLogout();
-        }
+        // Clear the store BEFORE calling supabase.auth.signOut() — signOut()
+        // fires a SIGNED_OUT auth event synchronously as part of its own
+        // processing, and the app's onAuthStateChange listener (App.tsx)
+        // treats an unexpected SIGNED_OUT while session is still non-null as
+        // a foreign session change. Clearing first makes session null by the
+        // time the event fires, so a normal logout is never mistaken for one.
+        const wasProduction = get().sessionMode === 'production';
         set({
           currentUser: null,
           activeProfile: null,
           session: null,
           sessionMode: 'demo',
         });
+        if (wasProduction) {
+          await authServiceLogout();
+        }
       },
 
       getRedirectPath: () => {
