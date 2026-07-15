@@ -15,6 +15,7 @@ import { calcularScoreEstimado } from '@/core/domain/auth/types';
 import { POLITICA_VERSION } from '@/core/domain/legal/politica';
 import { MFA_ENFORCEMENT_ENABLED, MFA_ENFORCED_ROLES } from '@/core/config/mfaConfig';
 import { checkAssuranceLevel, listFactors, challengeAndVerify } from '@/core/domain/auth/mfaService';
+import { shouldDenyForMfa } from '@/core/domain/auth/mfaGuardRule';
 import { logFalloApp } from '@/core/infrastructure/fallosApp';
 import type {
   LoginInput,
@@ -191,7 +192,7 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   // necesita para poder llamar mfa.challenge/verify.
   if (MFA_ENFORCEMENT_ENABLED && session && (MFA_ENFORCED_ROLES as readonly string[]).includes(session.role)) {
     const { currentLevel, nextLevel } = await checkAssuranceLevel();
-    if (nextLevel === 'aal2' && currentLevel === 'aal1') {
+    if (shouldDenyForMfa(currentLevel, nextLevel)) {
       const { factors } = await listFactors();
       const verifiedFactor = factors.find((f) => f.status === 'verified');
       if (verifiedFactor) {

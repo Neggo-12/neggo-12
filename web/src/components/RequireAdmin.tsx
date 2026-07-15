@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { resolveIsPlatformAdmin } from '@/core/domain/tenant/tenantContext';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 import { checkAssuranceLevel } from '@/core/domain/auth/mfaService';
+import { shouldDenyForMfa } from '@/core/domain/auth/mfaGuardRule';
 
 type GuardStatus = 'checking' | 'allowed' | 'denied';
 
@@ -38,7 +39,7 @@ export default function RequireAdmin({ children }: { children: React.ReactNode }
       }
       if (MFA_ENFORCEMENT_ENABLED) {
         const { currentLevel, nextLevel } = await checkAssuranceLevel();
-        if (!cancelled) setStatus(currentLevel === 'aal2' && nextLevel === 'aal2' ? 'allowed' : 'denied');
+        if (!cancelled) setStatus(shouldDenyForMfa(currentLevel, nextLevel) ? 'denied' : 'allowed');
         return;
       }
       if (!cancelled) setStatus('allowed');

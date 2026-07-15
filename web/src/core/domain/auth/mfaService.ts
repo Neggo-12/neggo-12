@@ -21,10 +21,31 @@ export interface EnrollTotpResult {
   error: string | null;
 }
 
-/** Inicia la inscripción de un factor TOTP. Devuelve el QR (data URI SVG) y el secreto para entrada manual. */
+/**
+ * Inicia la inscripción de un factor TOTP. Devuelve el QR (data URI SVG) y el
+ * secreto para entrada manual.
+ *
+ * Auto-repara intentos de enroll abandonados a mitad de camino (el usuario
+ * cierra sesión o cancela antes de verificar el código): un factor
+ * 'unverified' huérfano bloquea cualquier enroll nuevo con el error de
+ * Supabase "A factor with the friendly name ... already exists" — se limpia
+ * cualquier factor no verificado antes de intentar el enroll nuevo, así que
+ * abandonar el flujo nunca deja al usuario atascado.
+ */
 export async function enrollTotp(): Promise<EnrollTotpResult> {
   if (!supabase) return { factorId: null, qrCode: null, secret: null, error: 'Base de datos no configurada.' };
-  const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+
+  const { factors } = await listFactors();
+  for (const factor of factors) {
+    if (factor.status !== 'verified') {
+      await unenrollFactor(factor.id);
+    }
+  }
+
+  const { data, error } = await supabase.auth.mfa.enroll({
+    factorType: 'totp',
+    friendlyName: 'App de autenticación',
+  });
   if (error || !data) {
     return { factorId: null, qrCode: null, secret: null, error: error ? mfaErrMessage(error) : 'No se pudo iniciar la inscripción.' };
   }

@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { resolveUserRole } from '@/core/domain/tenant/tenantContext';
 import { MFA_ENFORCEMENT_ENABLED, MFA_ENFORCED_ROLES } from '@/core/config/mfaConfig';
 import { checkAssuranceLevel } from '@/core/domain/auth/mfaService';
+import { shouldDenyForMfa } from '@/core/domain/auth/mfaGuardRule';
 
 type GuardStatus = 'checking' | 'allowed' | 'denied';
 
@@ -46,7 +47,7 @@ export default function RequireRole({
       }
       if (MFA_ENFORCEMENT_ENABLED && role && (MFA_ENFORCED_ROLES as readonly string[]).includes(role)) {
         const { currentLevel, nextLevel } = await checkAssuranceLevel();
-        if (!cancelled) setStatus(currentLevel === 'aal2' && nextLevel === 'aal2' ? 'allowed' : 'denied');
+        if (!cancelled) setStatus(shouldDenyForMfa(currentLevel, nextLevel) ? 'denied' : 'allowed');
         return;
       }
       if (!cancelled) setStatus('allowed');
