@@ -13,7 +13,7 @@
  * guards de ruta (RequireAdmin/RequireRole) exigen aal2 además del rol para
  * estos roles.
  */
-export const MFA_ENFORCEMENT_ENABLED = false;
+export const MFA_ENFORCEMENT_ENABLED = true;
 
 /** Roles a los que aplica la exigencia de MFA cuando el flag está en true. */
 export const MFA_ENFORCED_ROLES = ['Admin', 'Banco', 'Constructora', 'Comercio'] as const;
