@@ -11,7 +11,6 @@
  *    always read back from the `users` table after authentication.
  */
 import { supabase } from '@/core/db/dbClient';
-import { insertClienteBancoProductos, insertAceptacionPolitica } from '@/core/db/repositories';
 import { calcularScoreEstimado } from '@/core/domain/auth/types';
 import { POLITICA_VERSION } from '@/core/domain/legal/politica';
 import { MFA_ENFORCEMENT_ENABLED, MFA_ENFORCED_ROLES } from '@/core/config/mfaConfig';
@@ -26,7 +25,6 @@ import type {
   RestoreResult,
   PasswordResetResult,
   AuthSession,
-  B2BSector,
 } from '@/core/domain/auth/types';
 
 // ───── Role / route helpers ─────
@@ -38,18 +36,6 @@ const ROLE_ROUTES: Record<string, string> = {
   Constructora: '/constructoras',
   Banco: '/banca',
   Fiduciaria: '/admin',
-};
-
-const SECTOR_TO_ROLE: Record<B2BSector, string> = {
-  banca: 'Banco',
-  constructora: 'Constructora',
-  comercio: 'Comercio',
-};
-
-const SECTOR_TO_ORG_TYPE: Record<B2BSector, string> = {
-  banca: 'banco',
-  constructora: 'constructora',
-  comercio: 'comercio',
 };
 
 function dashboardRouteForRole(role: string): string {
@@ -283,8 +269,6 @@ export async function registerB2B(input: RegisterB2BInput): Promise<RegisterResu
     return { success: false, error: 'Base de datos no configurada.' };
   }
 
-  const role = SECTOR_TO_ROLE[input.sector];
-
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
@@ -296,67 +280,28 @@ export async function registerB2B(input: RegisterB2BInput): Promise<RegisterResu
 
   const userId = data.user.id;
   const requiresEmailConfirmation = !data.session;
-  const nowIso = new Date().toISOString();
 
-  // 1) users — the master user for the organization (pending admin approval).
-  const { error: userError } = await supabase.from('users').insert({
-    id: userId,
-    email: input.email,
-    nombre: input.razonSocial,
-    rol: role,
-    status: 'pending_approval',
-    nit: input.nit,
-    telefono: input.telefono,
-    representante_legal: input.representante,
-    tipo_entidad: input.sector,
+  // Registro atómico — users + organizations + memberships + aceptación de
+  // política, todo o nada, en una sola función SECURITY DEFINER. Reemplaza
+  // los 4 INSERTs sueltos con tolerancia silenciosa que causaban cuentas
+  // medio creadas (caso real: usuario con organización pero sin membership).
+  // Si no hay sesión (correo pendiente de confirmar), la función misma lo
+  // rechaza con un mensaje claro en vez de fallar en silencio.
+  const { error: rpcError } = await supabase.rpc('registrar_b2b_completo', {
+    p_razon_social: input.razonSocial,
+    p_nit: input.nit,
+    p_email: input.email,
+    p_representante: input.representante,
+    p_telefono: input.telefono,
+    p_sector: input.sector,
+    p_politica_version: POLITICA_VERSION,
   });
 
-  // If the master user row could not be created and email is already usable,
-  // surface the error. When email confirmation is pending, RLS may block the
-  // insert until the user confirms — in that case we still report success.
-  if (userError && !requiresEmailConfirmation) {
+  if (rpcError) {
     return {
       success: false,
-      error: friendlyDuplicateMessage(userError) ?? errMessage(userError, 'No se pudo registrar el usuario.'),
+      error: friendlyDuplicateMessage(rpcError) ?? errMessage(rpcError, 'No se pudo completar el registro.'),
     };
-  }
-
-  // Mejor esfuerzo — misma salvedad que en registerB2C: la garantía real es
-  // la verificación al iniciar sesión (PoliticaAcceptanceGate en App.tsx).
-  await insertAceptacionPolitica(userId, POLITICA_VERSION);
-
-  // 2) organizations — the tenant entity.
-  const organizationId = crypto.randomUUID();
-  const { error: orgError } = await supabase.from('organizations').insert({
-    id: organizationId,
-    name: input.razonSocial,
-    type: SECTOR_TO_ORG_TYPE[input.sector],
-    nit: input.nit,
-    telefono: input.telefono,
-    email: input.email,
-    representante_legal: input.representante,
-    status: 'pending',
-    created_at: nowIso,
-  });
-
-  // A duplicate NIT on `organizations` fails here even when the `users`
-  // insert above succeeded — surface it instead of silently reporting success.
-  if (orgError) {
-    const friendly = friendlyDuplicateMessage(orgError);
-    if (friendly) {
-      return { success: false, error: friendly };
-    }
-  }
-
-  // 3) memberships — link the master user to the organization.
-  if (!orgError) {
-    await supabase.from('memberships').insert({
-      id: crypto.randomUUID(),
-      user_id: userId,
-      organization_id: organizationId,
-      role,
-      is_active: true,
-    });
   }
 
   return {
@@ -386,41 +331,28 @@ export async function registerB2C(input: RegisterB2CInput): Promise<RegisterResu
   const userId = data.user.id;
   const requiresEmailConfirmation = !data.session;
 
-  // B2C clients are auto-approved and do not own an organization.
-  const { error: userError } = await supabase.from('users').insert({
-    id: userId,
-    email: input.email,
-    nombre: `${input.nombres} ${input.apellidos}`.trim(),
-    first_name: input.nombres,
-    last_name: input.apellidos,
-    rol: 'Cliente',
-    status: 'approved',
-    telefono: input.celular,
-    tipo_documento: input.tipoId,
-    numero_documento: input.numeroId,
-    rango_ingresos: input.rangoIngresos,
-    score_estimado: calcularScoreEstimado(input.rangoIngresos),
+  // Registro atómico — users + aceptación de política + productos bancarios
+  // declarados, todo en una sola función SECURITY DEFINER. Los productos
+  // bancarios ya NO son best-effort: si la función falla, todo el registro
+  // falla visiblemente, sin importar en qué paso interno haya fallado.
+  const { error: rpcError } = await supabase.rpc('registrar_b2c_completo', {
+    p_nombres: input.nombres,
+    p_apellidos: input.apellidos,
+    p_tipo_id: input.tipoId,
+    p_numero_id: input.numeroId,
+    p_email: input.email,
+    p_celular: input.celular,
+    p_rango_ingresos: input.rangoIngresos,
+    p_score_estimado: calcularScoreEstimado(input.rangoIngresos),
+    p_politica_version: POLITICA_VERSION,
+    p_banco_productos: input.bancoProductos,
   });
 
-  if (userError && !requiresEmailConfirmation) {
+  if (rpcError) {
     return {
       success: false,
-      error: friendlyDuplicateMessage(userError) ?? errMessage(userError, 'No se pudo registrar el cliente.'),
+      error: friendlyDuplicateMessage(rpcError) ?? errMessage(rpcError, 'No se pudo completar el registro.'),
     };
-  }
-
-  // Mejor esfuerzo aquí — puede fallar por RLS si el correo requiere
-  // confirmación y aún no hay sesión (mismo caso que el INSERT de arriba).
-  // La garantía real de que quedó prueba de aceptación es la verificación al
-  // iniciar sesión (PoliticaAcceptanceGate en App.tsx), que corre siempre con
-  // JWT válido.
-  await insertAceptacionPolitica(userId, POLITICA_VERSION);
-
-  // Best-effort: registra los productos bancarios declarados. No bloquea el
-  // registro si falla (el usuario ya quedó creado); solo se pierde ese detalle
-  // de perfil, que el cliente puede volver a declarar después.
-  if (input.bancoProductos.length > 0) {
-    await insertClienteBancoProductos(userId, input.bancoProductos);
   }
 
   return {

@@ -1105,6 +1105,33 @@ export type Database = {
         Args: { p_oferta_id: string; p_monto: number; p_fecha_compra: string; p_documento_url?: string | null }
         Returns: undefined
       }
+      registrar_b2b_completo: {
+        Args: {
+          p_razon_social: string
+          p_nit: string
+          p_email: string
+          p_representante: string
+          p_telefono: string
+          p_sector: string
+          p_politica_version: string
+        }
+        Returns: undefined
+      }
+      registrar_b2c_completo: {
+        Args: {
+          p_nombres: string
+          p_apellidos: string
+          p_tipo_id: string
+          p_numero_id: string
+          p_email: string
+          p_celular: string
+          p_rango_ingresos: string
+          p_score_estimado: number
+          p_politica_version: string
+          p_banco_productos?: Json
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
