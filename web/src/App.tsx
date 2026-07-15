@@ -11,6 +11,7 @@ import { supabase } from "@/core/db/dbClient";
 import { checkAceptacionPolitica, insertAceptacionPolitica } from "@/core/db/repositories";
 import { POLITICA_VERSION, POLITICA_RUTA } from "@/core/domain/legal/politica";
 import { logFalloApp } from "@/core/infrastructure/fallosApp";
+import { shouldReactToForeignAuthChange } from "@/core/domain/auth/authChangeRule";
 import LandingHub from "./pages/LandingHub";
 import LandingBancos from "./pages/LandingBancos";
 import LandingConstructoras from "./pages/LandingConstructoras";
@@ -61,11 +62,7 @@ function SessionRestoreGate({ children }: { children: React.ReactNode }) {
       const storeUserId = useAuthStore.getState().session?.userId ?? null;
       const eventUserId = newSession?.user?.id ?? null;
 
-      const isForeignSignOut = event === 'SIGNED_OUT' && storeUserId !== null;
-      const isForeignIdentitySwap =
-        event !== 'SIGNED_OUT' && storeUserId !== null && eventUserId !== null && storeUserId !== eventUserId;
-
-      if (!isForeignSignOut && !isForeignIdentitySwap) return;
+      if (!shouldReactToForeignAuthChange(event, storeUserId, eventUserId)) return;
 
       useAuthStore.setState({
         session: null,

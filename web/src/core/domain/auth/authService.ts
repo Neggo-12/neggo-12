@@ -57,7 +57,7 @@ function errMessage(error: unknown, fallback = 'Ocurrió un error inesperado.'):
  * the error isn't a recognized unique-constraint violation on those columns,
  * so callers fall back to {@link errMessage}.
  */
-function friendlyDuplicateMessage(error: unknown): string | null {
+export function friendlyDuplicateMessage(error: unknown): string | null {
   if (!error || typeof error !== 'object') return null;
   const code = 'code' in error ? (error as { code?: unknown }).code : undefined;
   if (code !== '23505') return null;
@@ -76,7 +76,7 @@ function friendlyDuplicateMessage(error: unknown): string | null {
  * RPC falló — no podemos distinguir cuál desde el cliente ni borrar la
  * cuenta huérfana (requiere la Admin API), así que el mensaje cubre ambos casos.
  */
-function isAlreadyRegisteredError(error: unknown): boolean {
+export function isAlreadyRegisteredError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const code = 'code' in error ? (error as { code?: unknown }).code : undefined;
   if (code === 'user_already_exists') return true;

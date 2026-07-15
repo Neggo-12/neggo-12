@@ -47,7 +47,7 @@ const NOT_CONFIGURED = 'Base de datos no configurada.';
  * tildes/espacios ("Invalid key"). Mismo criterio de diacríticos que
  * normalizeCiudad (lib/utils.ts): NFD + strip de marcas combinantes.
  */
-function sanitizeFileName(fileName: string): string {
+export function sanitizeFileName(fileName: string): string {
   return fileName
     .normalize('NFD')
     .replace(/\p{Mn}/gu, '')

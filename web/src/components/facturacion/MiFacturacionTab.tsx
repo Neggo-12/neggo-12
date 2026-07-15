@@ -20,7 +20,7 @@ function formatPeriodo(periodo: string): string {
   return `${MESES[Number(month) - 1] ?? month} ${year}`;
 }
 
-function formatCOP(value: number): string {
+export function formatCOP(value: number): string {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
 }
 
