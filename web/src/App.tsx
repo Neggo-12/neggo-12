@@ -10,6 +10,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { supabase } from "@/core/db/dbClient";
 import { checkAceptacionPolitica, insertAceptacionPolitica } from "@/core/db/repositories";
 import { POLITICA_VERSION, POLITICA_RUTA } from "@/core/domain/legal/politica";
+import { logFalloApp } from "@/core/infrastructure/fallosApp";
 import LandingHub from "./pages/LandingHub";
 import LandingBancos from "./pages/LandingBancos";
 import LandingConstructoras from "./pages/LandingConstructoras";
@@ -118,11 +119,20 @@ function PoliticaAcceptanceGate({ children }: { children: React.ReactNode }) {
     const { error } = await insertAceptacionPolitica(session.userId, POLITICA_VERSION);
     setIsAccepting(false);
     if (error) {
+      logFalloApp('aceptar_politica', error);
       toast.error("No se pudo registrar tu aceptación", { description: error });
       return;
     }
     setNeedsAcceptance(false);
   }, [session?.userId]);
+
+  // Escape de emergencia — si este gate llega a atraparse en cualquier estado
+  // roto futuro (ej. una fila de users inconsistente), el usuario nunca debe
+  // quedar sin salida: puede cerrar sesión y volver a intentar desde cero.
+  const handleCerrarSesion = useCallback(async () => {
+    await useAuthStore.getState().logout();
+    window.location.href = "/login-ecosistema";
+  }, []);
 
   const showGate = !isChecking && needsAcceptance && location.pathname !== POLITICA_RUTA;
 
@@ -144,6 +154,13 @@ function PoliticaAcceptanceGate({ children }: { children: React.ReactNode }) {
             </p>
             <Button onClick={handleAceptar} disabled={isAccepting} className="w-full">
               {isAccepting ? "Guardando..." : "Acepto y continúo"}
+            </Button>
+            <Button
+              onClick={handleCerrarSesion}
+              variant="ghost"
+              className="w-full text-muted-foreground hover:text-foreground"
+            >
+              Cerrar sesión
             </Button>
           </div>
         </div>

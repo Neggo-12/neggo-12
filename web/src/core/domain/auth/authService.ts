@@ -15,6 +15,7 @@ import { calcularScoreEstimado } from '@/core/domain/auth/types';
 import { POLITICA_VERSION } from '@/core/domain/legal/politica';
 import { MFA_ENFORCEMENT_ENABLED, MFA_ENFORCED_ROLES } from '@/core/config/mfaConfig';
 import { checkAssuranceLevel, listFactors, challengeAndVerify } from '@/core/domain/auth/mfaService';
+import { logFalloApp } from '@/core/infrastructure/fallosApp';
 import type {
   LoginInput,
   LoginResult,
@@ -66,6 +67,21 @@ function friendlyDuplicateMessage(error: unknown): string | null {
   if (msg.includes('nit')) return 'Este NIT ya está registrado en el ecosistema.';
   if (msg.includes('email')) return 'Este correo ya está registrado.';
   return 'Ya existe un registro con estos datos.';
+}
+
+/**
+ * True cuando signUp() falló porque el correo ya tiene una cuenta en
+ * auth.users. Puede ser una cuenta real ya usada, o una "cuenta fantasma"
+ * (auth.users sin fila en public.users) dejada por un registro anterior cuyo
+ * RPC falló — no podemos distinguir cuál desde el cliente ni borrar la
+ * cuenta huérfana (requiere la Admin API), así que el mensaje cubre ambos casos.
+ */
+function isAlreadyRegisteredError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const code = 'code' in error ? (error as { code?: unknown }).code : undefined;
+  if (code === 'user_already_exists') return true;
+  const message = 'message' in error ? (error as { message?: unknown }).message : undefined;
+  return typeof message === 'string' && message.toLowerCase().includes('already registered');
 }
 
 // ───── Last-login session hand-off ─────
@@ -275,6 +291,12 @@ export async function registerB2B(input: RegisterB2BInput): Promise<RegisterResu
   });
 
   if (error || !data.user) {
+    if (isAlreadyRegisteredError(error)) {
+      return {
+        success: false,
+        error: 'Ya existe una cuenta con este correo. Si tu registro anterior no se completó, usa un correo distinto o contacta a soporte.',
+      };
+    }
     return { success: false, error: errMessage(error, 'No se pudo crear la cuenta.') };
   }
 
@@ -298,10 +320,15 @@ export async function registerB2B(input: RegisterB2BInput): Promise<RegisterResu
   });
 
   if (rpcError) {
-    return {
-      success: false,
-      error: friendlyDuplicateMessage(rpcError) ?? errMessage(rpcError, 'No se pudo completar el registro.'),
-    };
+    const message = friendlyDuplicateMessage(rpcError) ?? errMessage(rpcError, 'No se pudo completar el registro.');
+    logFalloApp('registrar_b2b_completo', message, rpcError);
+    // El registro falló pero signUp() ya dejó sesión activa — cerrarla para
+    // que el usuario no quede atrapado como "cuenta fantasma" logueada sin
+    // fila en public.users (causa raíz confirmada del bucle en
+    // PoliticaAcceptanceGate). La cuenta de auth.users queda huérfana — no se
+    // puede borrar desde el cliente, requiere la Admin API.
+    await supabase.auth.signOut();
+    return { success: false, error: message };
   }
 
   return {
@@ -325,6 +352,12 @@ export async function registerB2C(input: RegisterB2CInput): Promise<RegisterResu
   });
 
   if (error || !data.user) {
+    if (isAlreadyRegisteredError(error)) {
+      return {
+        success: false,
+        error: 'Ya existe una cuenta con este correo. Si tu registro anterior no se completó, usa un correo distinto o contacta a soporte.',
+      };
+    }
     return { success: false, error: errMessage(error, 'No se pudo crear la cuenta.') };
   }
 
@@ -349,10 +382,13 @@ export async function registerB2C(input: RegisterB2CInput): Promise<RegisterResu
   });
 
   if (rpcError) {
-    return {
-      success: false,
-      error: friendlyDuplicateMessage(rpcError) ?? errMessage(rpcError, 'No se pudo completar el registro.'),
-    };
+    const message = friendlyDuplicateMessage(rpcError) ?? errMessage(rpcError, 'No se pudo completar el registro.');
+    logFalloApp('registrar_b2c_completo', message, rpcError);
+    // Ver comentario equivalente en registerB2B: nunca dejar sesión activa
+    // tras un registro fallido, o el usuario queda atrapado como "cuenta
+    // fantasma" en PoliticaAcceptanceGate.
+    await supabase.auth.signOut();
+    return { success: false, error: message };
   }
 
   return {

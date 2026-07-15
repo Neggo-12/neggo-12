@@ -39,7 +39,6 @@ import { POLITICA_RUTA } from "@/core/domain/legal/politica";
 import {
   isSupabaseConfigured,
   validatePassword,
-  checkDuplicates,
 } from "@/core/db/supabaseClient";
 import { fetchBancosAprobados } from "@/core/db/repositories";
 import { RANGO_INGRESOS_LABELS } from "@/components/crm/leadLabels";
@@ -592,25 +591,6 @@ function B2BRegister() {
         if (!isSupabaseConfigured) {
           toast.error("Base de datos no configurada", {
             description: "Contacta al administrador.",
-          });
-          setSubmitState("idle");
-          return;
-        }
-
-        // Duplicate check
-        const duplicateField = await checkDuplicates({
-          email: form.correo.trim().toLowerCase(),
-          documentNumber: form.nit.trim(),
-          documentType: "nit",
-        });
-
-        if (duplicateField) {
-          const fieldLabels: Record<string, string> = {
-            correo: "correo",
-            documento: "NIT",
-          };
-          toast.error("Error: Datos duplicados", {
-            description: `El ${fieldLabels[duplicateField] || duplicateField} ya se encuentra registrado en el ecosistema.`,
           });
           setSubmitState("idle");
           return;
@@ -1312,25 +1292,6 @@ function B2CRegister() {
         if (!isSupabaseConfigured) {
           toast.error("Base de datos no configurada", {
             description: "Contacta al administrador.",
-          });
-          setSubmitState("idle");
-          return;
-        }
-
-        // Duplicate check
-        const duplicateField = await checkDuplicates({
-          email: form.correo.trim().toLowerCase(),
-          documentNumber: form.numeroId.trim(),
-          documentType: "cedula",
-        });
-
-        if (duplicateField) {
-          const fieldLabels: Record<string, string> = {
-            correo: "correo",
-            documento: "cédula/documento",
-          };
-          toast.error("Error: Datos duplicados", {
-            description: `El ${fieldLabels[duplicateField] || duplicateField} ya se encuentra registrado en el ecosistema.`,
           });
           setSubmitState("idle");
           return;

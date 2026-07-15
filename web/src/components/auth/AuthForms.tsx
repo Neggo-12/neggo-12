@@ -31,7 +31,6 @@ import { toast } from "sonner";
 import {
   isSupabaseConfigured,
   validatePassword,
-  checkDuplicates,
 } from "@/core/db/supabaseClient";
 import { POLITICA_RUTA } from "@/core/domain/legal/politica";
 import { useAdminStore } from "@/features/admin/store/useAdminStore";
@@ -418,21 +417,6 @@ export function B2BRegister({ sector }: { sector: B2BSector }) {
       try {
         if (!isSupabaseConfigured) {
           toast.error("Base de datos no configurada", { description: "Contacta al administrador." });
-          setSubmitState("idle");
-          return;
-        }
-
-        const duplicateField = await checkDuplicates({
-          email: form.correo.trim().toLowerCase(),
-          documentNumber: form.nit.trim(),
-          documentType: "nit",
-        });
-
-        if (duplicateField) {
-          const fieldLabels: Record<string, string> = { correo: "correo", documento: "NIT" };
-          toast.error("Error: Datos duplicados", {
-            description: `El ${fieldLabels[duplicateField] || duplicateField} ya se encuentra registrado en el ecosistema.`,
-          });
           setSubmitState("idle");
           return;
         }
@@ -956,21 +940,6 @@ export function B2CRegister({ themeColor = "cyan" }: { themeColor?: AccentColor 
       try {
         if (!isSupabaseConfigured) {
           toast.error("Base de datos no configurada", { description: "Contacta al administrador." });
-          setSubmitState("idle");
-          return;
-        }
-
-        const duplicateField = await checkDuplicates({
-          email: form.correo.trim().toLowerCase(),
-          documentNumber: form.numeroId.trim(),
-          documentType: "cedula",
-        });
-
-        if (duplicateField) {
-          const fieldLabels: Record<string, string> = { correo: "correo", documento: "cédula/documento" };
-          toast.error("Error: Datos duplicados", {
-            description: `El ${fieldLabels[duplicateField] || duplicateField} ya se encuentra registrado en el ecosistema.`,
-          });
           setSubmitState("idle");
           return;
         }
