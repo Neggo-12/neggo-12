@@ -4,6 +4,8 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
 import { resolveUserRole } from '@/core/domain/tenant/tenantContext';
+import { MFA_ENFORCEMENT_ENABLED, MFA_ENFORCED_ROLES } from '@/core/config/mfaConfig';
+import { checkAssuranceLevel } from '@/core/domain/auth/mfaService';
 
 type GuardStatus = 'checking' | 'allowed' | 'denied';
 
@@ -12,6 +14,9 @@ type GuardStatus = 'checking' | 'allowed' | 'denied';
  * production session's user has a `rol` in `allowedRoles`, re-verified
  * server-side on every mount via {@link resolveUserRole} — never trusts
  * client-held session.role or demo-mode state. Same pattern as RequireAdmin.
+ *
+ * When MFA_ENFORCEMENT_ENABLED, also requires aal2 for roles in
+ * MFA_ENFORCED_ROLES — same fail-closed treatment as a role mismatch.
  */
 export default function RequireRole({
   allowedRoles,
@@ -32,10 +37,20 @@ export default function RequireRole({
       return;
     }
     let cancelled = false;
-    resolveUserRole(session.userId).then((role) => {
-      if (cancelled) return;
-      setStatus(role !== null && allowedRolesKey.split(',').includes(role) ? 'allowed' : 'denied');
-    });
+    (async () => {
+      const role = await resolveUserRole(session.userId);
+      const roleOk = role !== null && allowedRolesKey.split(',').includes(role);
+      if (!roleOk) {
+        if (!cancelled) setStatus('denied');
+        return;
+      }
+      if (MFA_ENFORCEMENT_ENABLED && role && (MFA_ENFORCED_ROLES as readonly string[]).includes(role)) {
+        const { currentLevel, nextLevel } = await checkAssuranceLevel();
+        if (!cancelled) setStatus(currentLevel === 'aal2' && nextLevel === 'aal2' ? 'allowed' : 'denied');
+        return;
+      }
+      if (!cancelled) setStatus('allowed');
+    })();
     return () => {
       cancelled = true;
     };

@@ -32,6 +32,7 @@ import MiFacturacionTab from '@/components/facturacion/MiFacturacionTab';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
+import SeguridadTab from '@/features/shared/components/SeguridadTab';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -46,9 +47,10 @@ import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useOrganizationName } from '@/hooks/useOrganizationName';
 import type { LeadInmobiliario, ProyectoConstructora, LeadStatus } from '@/types';
-import { MessageSquareText, TrendingDown, Receipt } from 'lucide-react';
+import { MessageSquareText, TrendingDown, Receipt, Lock } from 'lucide-react';
+import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 
-type ConstTab = 'proyectos' | 'leads' | 'solicitudes' | 'matching' | 'mi-facturacion' | 'analitica' | 'feedback' | 'metricas-rechazo';
+type ConstTab = 'proyectos' | 'leads' | 'solicitudes' | 'matching' | 'mi-facturacion' | 'analitica' | 'feedback' | 'metricas-rechazo' | 'seguridad';
 
 const CONST_SECTIONS: SidebarNavItem[] = [
   { key: 'proyectos', label: 'Proyectos', icon: Building2 },
@@ -59,6 +61,7 @@ const CONST_SECTIONS: SidebarNavItem[] = [
   { key: 'analitica', label: 'Analítica', icon: TrendingUp },
   { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText },
   { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: BarChart3 },
+  ...(MFA_ENFORCEMENT_ENABLED ? [{ key: 'seguridad', label: 'Seguridad', icon: Lock }] : []),
 ];
 
 /** Convierte un ProyectoRow de Supabase a ProyectoConstructora para la UI */
@@ -606,6 +609,8 @@ export default function ConstructorasDashboard() {
               </div>
             )
           )}
+
+          {activeSection === 'seguridad' && <SeguridadTab />}
         </div>
       </div>
 

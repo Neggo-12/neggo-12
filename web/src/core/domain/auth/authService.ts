@@ -14,6 +14,8 @@ import { supabase } from '@/core/db/dbClient';
 import { insertClienteBancoProductos, insertAceptacionPolitica } from '@/core/db/repositories';
 import { calcularScoreEstimado } from '@/core/domain/auth/types';
 import { POLITICA_VERSION } from '@/core/domain/legal/politica';
+import { MFA_ENFORCEMENT_ENABLED, MFA_ENFORCED_ROLES } from '@/core/config/mfaConfig';
+import { checkAssuranceLevel, listFactors, challengeAndVerify } from '@/core/domain/auth/mfaService';
 import type {
   LoginInput,
   LoginResult,
@@ -179,9 +181,54 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   }
 
   const session = await buildSession(data.user.id, data.user.email ?? input.email);
+
+  // MFA_ENFORCEMENT_ENABLED gate — password ya fue verificado (aal1) y la
+  // sesión de Supabase ya existe; si el rol lo exige y hay un factor TOTP
+  // verificado, el login no se considera completo hasta que se resuelva el
+  // challenge vía completeMfaChallenge(). No se cierra la sesión: el aal1 se
+  // necesita para poder llamar mfa.challenge/verify.
+  if (MFA_ENFORCEMENT_ENABLED && session && (MFA_ENFORCED_ROLES as readonly string[]).includes(session.role)) {
+    const { currentLevel, nextLevel } = await checkAssuranceLevel();
+    if (nextLevel === 'aal2' && currentLevel === 'aal1') {
+      const { factors } = await listFactors();
+      const verifiedFactor = factors.find((f) => f.status === 'verified');
+      if (verifiedFactor) {
+        return { success: false, requiresMfaChallenge: true, mfaFactorId: verifiedFactor.id };
+      }
+    }
+  }
+
   lastLoginSession = session;
 
   // Best-effort last-login timestamp; ignore failures (RLS may restrict it).
+  void supabase
+    .from('users')
+    .update({ last_login_at: new Date().toISOString() })
+    .eq('id', data.user.id);
+
+  return {
+    success: true,
+    userId: data.user.id,
+    role: session?.role,
+    dashboardRoute: session?.dashboardRoute,
+  };
+}
+
+/** Completa un login que quedó pendiente de MFA — verifica el código TOTP
+ * contra el factor ya inscrito y, si es correcto, termina de construir la
+ * sesión exactamente igual que login(). */
+export async function completeMfaChallenge(factorId: string, code: string): Promise<LoginResult> {
+  if (!supabase) return { success: false, error: 'Base de datos no configurada.' };
+
+  const { error } = await challengeAndVerify(factorId, code);
+  if (error) return { success: false, error };
+
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return { success: false, error: 'No se pudo verificar la sesión.' };
+
+  const session = await buildSession(data.user.id, data.user.email ?? '');
+  lastLoginSession = session;
+
   void supabase
     .from('users')
     .update({ last_login_at: new Date().toISOString() })

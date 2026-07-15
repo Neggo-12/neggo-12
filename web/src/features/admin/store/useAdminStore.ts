@@ -89,7 +89,7 @@ interface AdminState {
   /** Current algorithm equity distribution */
   algorithmEquity: AlgorithmEquity;
   /** Active admin sidebar section */
-  activeSection: 'resumen' | 'autorizaciones' | 'bancos' | 'constructoras' | 'comercios' | 'analitica' | 'facturacion' | 'tarifas' | 'conciliacion' | 'senales-interes';
+  activeSection: 'resumen' | 'autorizaciones' | 'bancos' | 'constructoras' | 'comercios' | 'analitica' | 'facturacion' | 'tarifas' | 'conciliacion' | 'senales-interes' | 'seguridad';
 
   setActiveSection: (section: AdminState['activeSection']) => void;
   /** Carga usuarios desde Supabase — re-fetch en cada montaje para datos frescos */

@@ -6,19 +6,21 @@ import MisPropuestasTab from '@/features/comercios/components/MisPropuestasTab';
 import ComercioSolicitudesTab from '@/components/comercio/SolicitudesTab';
 import ComercioSuscripcionTab from '@/components/comercio/SuscripcionTab';
 import MiFacturacionTab from '@/components/facturacion/MiFacturacionTab';
+import SeguridadTab from '@/features/shared/components/SeguridadTab';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import KPICard from '@/components/KPICard';
-import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText, TrendingDown, AlertTriangle, Loader2, Inbox, Receipt } from 'lucide-react';
+import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText, TrendingDown, AlertTriangle, Loader2, Inbox, Receipt, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchOfertasComercios, type OfertaComercioRow } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useOrganizationName } from '@/hooks/useOrganizationName';
+import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 
-type ComercioSection = 'dashboard' | 'oportunidades' | 'mis-propuestas' | 'suscripcion' | 'solicitudes' | 'mi-facturacion' | 'feedback' | 'metricas-rechazo';
+type ComercioSection = 'dashboard' | 'oportunidades' | 'mis-propuestas' | 'suscripcion' | 'solicitudes' | 'mi-facturacion' | 'feedback' | 'metricas-rechazo' | 'seguridad';
 
 const COMERCIO_SECTIONS: SidebarNavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: Store },
@@ -29,6 +31,7 @@ const COMERCIO_SECTIONS: SidebarNavItem[] = [
   { key: 'mi-facturacion', label: 'Mi Facturación', icon: Receipt },
   { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText, badge: 5 },
   { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: TrendingDown },
+  ...(MFA_ENFORCEMENT_ENABLED ? [{ key: 'seguridad', label: 'Seguridad', icon: Lock }] : []),
 ];
 
 export default function ComerciosDashboard() {
@@ -289,6 +292,8 @@ export default function ComerciosDashboard() {
               )}
             </div>
           )}
+
+          {activeSection === 'seguridad' && <SeguridadTab />}
         </div>
       </div>
     </div>

@@ -4,6 +4,8 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
 import { resolveIsPlatformAdmin } from '@/core/domain/tenant/tenantContext';
+import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
+import { checkAssuranceLevel } from '@/core/domain/auth/mfaService';
 
 type GuardStatus = 'checking' | 'allowed' | 'denied';
 
@@ -12,6 +14,9 @@ type GuardStatus = 'checking' | 'allowed' | 'denied';
  * production session's user has `rol = 'Admin'`, re-verified server-side on
  * every mount via {@link resolveIsPlatformAdmin} — never trusts client-held
  * session.role or demo-mode state.
+ *
+ * When MFA_ENFORCEMENT_ENABLED, also requires aal2 — same fail-closed
+ * treatment as not being Admin.
  */
 export default function RequireAdmin({ children }: { children: React.ReactNode }) {
   const session = useAuthStore((s) => s.session);
@@ -25,9 +30,19 @@ export default function RequireAdmin({ children }: { children: React.ReactNode }
       return;
     }
     let cancelled = false;
-    resolveIsPlatformAdmin(session.userId).then((isAdmin) => {
-      if (!cancelled) setStatus(isAdmin ? 'allowed' : 'denied');
-    });
+    (async () => {
+      const isAdmin = await resolveIsPlatformAdmin(session.userId);
+      if (!isAdmin) {
+        if (!cancelled) setStatus('denied');
+        return;
+      }
+      if (MFA_ENFORCEMENT_ENABLED) {
+        const { currentLevel, nextLevel } = await checkAssuranceLevel();
+        if (!cancelled) setStatus(currentLevel === 'aal2' && nextLevel === 'aal2' ? 'allowed' : 'denied');
+        return;
+      }
+      if (!cancelled) setStatus('allowed');
+    })();
     return () => {
       cancelled = true;
     };

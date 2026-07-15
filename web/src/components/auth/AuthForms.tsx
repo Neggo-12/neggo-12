@@ -75,6 +75,9 @@ export function B2BLogin({
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [recoveryLoading, setRecoveryLoading] = useState(false);
   const [recoverySent, setRecoverySent] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaLoading, setMfaLoading] = useState(false);
 
   const canLogin = email.trim() !== "" && password.trim() !== "" && !loading;
 
@@ -97,6 +100,12 @@ export function B2BLogin({
           email: email.trim().toLowerCase(),
           password,
         });
+
+        if (!result.success && result.requiresMfaChallenge && result.mfaFactorId) {
+          setMfaFactorId(result.mfaFactorId);
+          setLoading(false);
+          return;
+        }
 
         if (!result.success) {
           if (result.pendingApproval) {
@@ -139,6 +148,33 @@ export function B2BLogin({
     [canLogin, email, password, navigate, expectedRole]
   );
 
+  const handleMfaSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!mfaFactorId || mfaCode.trim().length !== 6) return;
+      setMfaLoading(true);
+      const result = await useAuthStore.getState().completeMfaLogin(mfaFactorId, mfaCode.trim());
+      setMfaLoading(false);
+
+      if (!result.success) {
+        toast.error("Código incorrecto", { description: result.error ?? "Intenta de nuevo." });
+        return;
+      }
+      if (expectedRole && result.role !== expectedRole) {
+        await useAuthStore.getState().logout();
+        toast.error("Cuenta incorrecta para este portal", {
+          description: "Esta cuenta no corresponde a este portal. Usa el portal correcto para tu tipo de cuenta.",
+        });
+        return;
+      }
+      toast.success("¡Acceso exitoso!", {
+        description: `Bienvenido al ecosistema Neggo como ${result.role}.`,
+      });
+      setTimeout(() => navigate(result.dashboardRoute ?? "/"), 600);
+    },
+    [mfaFactorId, mfaCode, navigate, expectedRole]
+  );
+
   const handleRecovery = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -172,6 +208,42 @@ export function B2BLogin({
     },
     [recoveryEmail, recoveryLoading]
   );
+
+  if (mfaFactorId) {
+    return (
+      <form onSubmit={handleMfaSubmit} className="space-y-5 animate-fade-in">
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Código de verificación
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Ingresa el código de 6 dígitos de tu app de autenticación.
+          </p>
+          <Input
+            value={mfaCode}
+            onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            placeholder="000000"
+            className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm text-center tracking-widest"
+            autoFocus
+          />
+        </div>
+        <Button
+          type="submit"
+          disabled={mfaLoading || mfaCode.trim().length !== 6}
+          className={cn(
+            "w-full h-11 gap-2 font-semibold text-sm rounded-xl transition-all duration-300",
+            mfaCode.trim().length === 6 ? theme.button : "bg-muted text-muted-foreground cursor-not-allowed"
+          )}
+        >
+          {mfaLoading ? (
+            <><Loader2 className="h-4 w-4 animate-spin" /> Verificando...</>
+          ) : (
+            <><LogIn className="h-4 w-4" /> Verificar y continuar</>
+          )}
+        </Button>
+      </form>
+    );
+  }
 
   if (showRecovery) {
     return (

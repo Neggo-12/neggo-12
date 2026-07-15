@@ -3,6 +3,8 @@ import AuthorizationCenter from '@/features/admin/components/AuthorizationCenter
 import AlgorithmMonitor from '@/features/admin/components/AlgorithmMonitor';
 import KPICard from '@/components/KPICard';
 import ProfileSwitcher from '@/components/ProfileSwitcher';
+import SeguridadTab from '@/features/shared/components/SeguridadTab';
+import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -31,6 +33,7 @@ import {
   Loader2,
   Plus,
   Bell,
+  Lock,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Fragment, useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -70,7 +73,8 @@ const adminSections = [
   { key: 'tarifas' as const, label: 'Tarifas y Planes', icon: SlidersHorizontal },
   { key: 'conciliacion' as const, label: 'Conciliación de Pagos', icon: ClipboardCheck },
   { key: 'senales-interes' as const, label: 'Clientes en Espera', icon: Bell },
-] as const;
+  ...(MFA_ENFORCEMENT_ENABLED ? [{ key: 'seguridad' as const, label: 'Seguridad', icon: Lock }] : []),
+];
 
 // ───── helpers ─────
 
@@ -271,6 +275,8 @@ export default function AdminDashboard() {
           {activeSection === 'senales-interes' && <ClientesEnEsperaPanel />}
 
           {activeSection === 'analitica' && <AlgorithmMonitor />}
+
+          {activeSection === 'seguridad' && <SeguridadTab />}
 
           {/* ─── Módulo de Pruebas y Simulación — Modo Demo ─── */}
           {activeSection === 'resumen' && (

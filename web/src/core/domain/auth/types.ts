@@ -93,6 +93,11 @@ export interface LoginResult {
   pendingApproval?: boolean;
   /** True when the account was rejected by an admin. */
   rejected?: boolean;
+  /** True when MFA_ENFORCEMENT_ENABLED and this account has a verified TOTP
+   *  factor — the password was correct, but the login isn't complete until
+   *  completeMfaChallenge(mfaFactorId, code) succeeds. */
+  requiresMfaChallenge?: boolean;
+  mfaFactorId?: string;
 }
 
 /** Result of a session-restore attempt on app load. */

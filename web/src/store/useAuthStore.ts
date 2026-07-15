@@ -10,6 +10,7 @@ import {
   restoreSession as authServiceRestoreSession,
   registerB2B as authServiceRegisterB2B,
   registerB2C as authServiceRegisterB2C,
+  completeMfaChallenge as authServiceCompleteMfaChallenge,
   getLastLoginSession,
   clearLastLoginSession,
 } from '@/core/domain/auth/authService';
@@ -44,6 +45,8 @@ export interface AuthState {
   switchProfile: (profile: DemoProfileKey) => void;
   /** Authenticate via Supabase Auth (production mode) */
   loginWithCredentials: (input: LoginInput) => Promise<LoginResult>;
+  /** Finishes a login left pending by requiresMfaChallenge — verifies the TOTP code */
+  completeMfaLogin: (factorId: string, code: string) => Promise<LoginResult>;
   /** Register a B2B organization (production mode) */
   registerB2BOrganization: (input: RegisterB2BInput) => Promise<RegisterResult>;
   /** Register a B2C client (production mode) */
@@ -115,6 +118,34 @@ export const useAuthStore = create<AuthState>()(
               }
             : null;
 
+          set({
+            session,
+            sessionMode: 'production',
+            currentUser: demoUser,
+            activeProfile: null,
+          });
+        }
+        return result;
+      },
+
+      completeMfaLogin: async (factorId: string, code: string) => {
+        const result = await authServiceCompleteMfaChallenge(factorId, code);
+        if (result.success) {
+          const session = getLastLoginSession();
+          clearLastLoginSession();
+          const demoUser: UsuarioDB | null = session
+            ? {
+                id: session.userId,
+                nombre: session.email,
+                correo: session.email,
+                telefono: '',
+                ciudad: '',
+                rol: session.role as UsuarioDB['rol'],
+                rangoIngresos: '',
+                scoreEstimado: 0,
+                fechaRegistro: new Date().toISOString(),
+              }
+            : null;
           set({
             session,
             sessionMode: 'production',

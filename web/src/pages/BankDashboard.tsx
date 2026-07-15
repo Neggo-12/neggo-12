@@ -10,11 +10,13 @@ import FeedbackTab from '@/components/bank/FeedbackTab';
 import MiFacturacionTab from '@/components/facturacion/MiFacturacionTab';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
+import SeguridadTab from '@/features/shared/components/SeguridadTab';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Building2, BarChart3, Megaphone, MessageSquareText, FileText, TrendingDown, AlertTriangle, Loader2, Receipt } from 'lucide-react';
+import { Building2, BarChart3, Megaphone, MessageSquareText, FileText, TrendingDown, AlertTriangle, Loader2, Receipt, Lock } from 'lucide-react';
 import { useOrganizationName } from '@/hooks/useOrganizationName';
+import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 
-type BankTab = 'solicitudes' | 'campanas' | 'mi-facturacion' | 'analytics' | 'feedback' | 'metricas-rechazo';
+type BankTab = 'solicitudes' | 'campanas' | 'mi-facturacion' | 'analytics' | 'feedback' | 'metricas-rechazo' | 'seguridad';
 
 /** Extrae el nombre de entidad bancaria real desde el nombre compuesto del usuario demo */
 function extractBankIdentity(userName: string): { displayName: string; primaryBankName: string } {
@@ -72,6 +74,7 @@ export default function BankDashboard() {
     { key: 'analytics', label: 'Analítica', icon: BarChart3 },
     { key: 'feedback', label: 'Feedback', icon: MessageSquareText },
     { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: TrendingDown },
+    ...(MFA_ENFORCEMENT_ENABLED ? [{ key: 'seguridad', label: 'Seguridad', icon: Lock }] : []),
   ];
 
   return (
@@ -146,6 +149,9 @@ export default function BankDashboard() {
                   <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
                 </div>
               )}
+            </TabsContent>
+            <TabsContent value="seguridad" className="mt-0 animate-slide-up">
+              <SeguridadTab />
             </TabsContent>
           </Tabs>
         </div>
