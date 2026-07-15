@@ -471,9 +471,15 @@ Investigación completada sobre cómo verificar ingresos reales en Colombia (má
 - Fase 2 (posterior): Open Banking para independientes.
 - Complejidad estimada: 6-7/10 (incluye carga legal/compliance, no solo integración técnica).
 
-## 18. Pendiente — Política de Tratamiento de Datos Personales de Neggo
+## 18. Política de Tratamiento de Datos Personales de Neggo — BORRADOR COMPLETO + ACEPTACIÓN REGISTRADA (probado con evidencia real)
 
-Se necesita redactar la Política de Tratamiento de Datos Personales real de Neggo (marco: Ley 1581 de 2012, Ley 1266 de 2008), como documento legal formal — necesario antes de cualquier integración de verificación de ingresos (sección 17) y antes de cualquier lanzamiento real con clientes. Pendiente de trabajar en una sesión dedicada.
+Ya no es un pendiente — el documento (`docs/politica-tratamiento-datos-neggo.md`, marco: Ley 1581 de 2012, Decreto 1377 de 2013, Ley 1266 de 2008) está redactado completo y publicado en `/politica-de-datos`, y la prueba de aceptación exigida por la Ley 1581 quedó implementada de punta a punta:
+
+- Tabla `aceptaciones_politica` (registro inmutable: quién, cuándo, qué versión) con restricción `UNIQUE (user_id, version_politica)`.
+- Checkbox obligatorio en los 4 formularios de registro (B2B/B2C en `AuthForms.tsx` y `LoginEcosistema.tsx`) y en el onboarding de comercios.
+- `PoliticaAcceptanceGate`: verificación al iniciar sesión que bloquea la app con un aviso si el usuario autenticado no tiene aceptación registrada para la versión vigente — esta es la garantía real (corre siempre con JWT válido), cubre también usuarios que se registraron antes de que existiera esta política.
+
+**Falta un único paso antes de lanzamiento real**: revisión del documento por un abogado colombiano especializado en protección de datos — el documento tiene la nota "BORRADOR" explícita hasta que eso ocurra.
 
 ## 19. Escalabilidad de infraestructura — cuándo actuar (no ahora)
 
