@@ -449,9 +449,11 @@ Notificaciones a comercios (vía Supabase Realtime, no correo) siguen pendientes
 ### 16.2 Evaluación honesta de preparación para producción — 5-6/10
 
 Sólido: los 3 flujos de Me Interesa, CRM, facturación completa, RLS de base — todo probado con evidencia real.
-Pendiente antes de un lanzamiento real: notificaciones (16.1), MFA + pentest + tests automatizados (secciones 10-11), política de tratamiento de datos (Habeas Data), y más tiempo de prueba real para Metas/IFC (recién construido).
+Pendiente antes de un lanzamiento real: notificaciones (16.1), pentest + tests automatizados (secciones 10-11), política de tratamiento de datos (Habeas Data), y más tiempo de prueba real para Metas/IFC (recién construido).
 
-Recomendación: lanzamiento piloto controlado (pocos comercios/clientes reales, supervisión cercana) es razonable una vez resueltos notificaciones + MFA básico + política de datos. Lanzamiento abierto/escalado requiere además el pentest.
+**MFA para Admin/B2B — CONSTRUIDO, APAGADO tras flag `MFA_ENFORCEMENT_ENABLED = false`** (`core/config/mfaConfig.ts`). Ya no es un pendiente de diseño — todo el código existe y compila: TOTP nativo de Supabase (`supabase.auth.mfa.*`), pantalla "Seguridad" compartida en los 4 dashboards (Admin, Banco, Constructora, Comercio), challenge de código en el login B2B, y los guards (`RequireAdmin`/`RequireRole`) exigen `aal2` además del rol. Los clientes B2C nunca pasan por MFA, ni siquiera con el flag encendido. Probado con el flag apagado: comportamiento idéntico al actual, cero riesgo de bloqueo. **Pendiente antes de activarlo en producción**: probar el flujo completo de enroll (QR + código) con el flag en `true`.
+
+Recomendación: lanzamiento piloto controlado (pocos comercios/clientes reales, supervisión cercana) es razonable una vez resueltos notificaciones + política de datos + prueba real del enroll de MFA antes de encender el flag. Lanzamiento abierto/escalado requiere además el pentest.
 
 ### 16.3 Plan futuro — App móvil vía Capacitor
 
