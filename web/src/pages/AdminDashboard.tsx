@@ -4,6 +4,7 @@ import AlgorithmMonitor from '@/features/admin/components/AlgorithmMonitor';
 import KPICard from '@/components/KPICard';
 import ProfileSwitcher from '@/components/ProfileSwitcher';
 import SeguridadTab from '@/features/shared/components/SeguridadTab';
+import SaludSistemaPanel from '@/features/admin/components/SaludSistemaPanel';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 import { cn } from '@/lib/utils';
 import {
@@ -34,6 +35,7 @@ import {
   Plus,
   Bell,
   Lock,
+  HeartPulse,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Fragment, useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -73,6 +75,7 @@ const adminSections = [
   { key: 'tarifas' as const, label: 'Tarifas y Planes', icon: SlidersHorizontal },
   { key: 'conciliacion' as const, label: 'Conciliación de Pagos', icon: ClipboardCheck },
   { key: 'senales-interes' as const, label: 'Clientes en Espera', icon: Bell },
+  { key: 'salud-sistema' as const, label: 'Salud del Sistema', icon: HeartPulse },
   ...(MFA_ENFORCEMENT_ENABLED ? [{ key: 'seguridad' as const, label: 'Seguridad', icon: Lock }] : []),
 ];
 
@@ -277,6 +280,8 @@ export default function AdminDashboard() {
           {activeSection === 'analitica' && <AlgorithmMonitor />}
 
           {activeSection === 'seguridad' && <SeguridadTab />}
+
+          {activeSection === 'salud-sistema' && <SaludSistemaPanel />}
 
           {/* ─── Módulo de Pruebas y Simulación — Modo Demo ─── */}
           {activeSection === 'resumen' && (

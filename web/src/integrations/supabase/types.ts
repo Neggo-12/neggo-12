@@ -18,6 +18,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      fallos_app: {
+        Row: {
+          id: string
+          user_id: string | null
+          contexto: string
+          mensaje: string
+          detalle: Json | null
+          url_path: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          contexto: string
+          mensaje: string
+          detalle?: Json | null
+          url_path?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          contexto?: string
+          mensaje?: string
+          detalle?: Json | null
+          url_path?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       aceptaciones_politica: {
         Row: {
           id: string

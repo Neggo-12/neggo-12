@@ -19,6 +19,7 @@ import {
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
+import { logFalloApp } from '@/core/infrastructure/fallosApp';
 
 // ───── Tab types ─────
 
@@ -269,6 +270,7 @@ export const usePortalStore = create<PortalState>((set, get) => ({
     });
     if (solError) {
       set({ dbError: solError });
+      logFalloApp('insertMeInteresaSolicitud:banco', solError);
       toast.error('La solicitud se guardó localmente pero falló la sincronización', { description: solError });
       return false;
     }
@@ -350,6 +352,7 @@ export const usePortalStore = create<PortalState>((set, get) => ({
     });
     if (solError) {
       set({ dbError: solError });
+      logFalloApp('insertMeInteresaSolicitud:constructora', solError);
       toast.error('La solicitud se guardó localmente pero falló la sincronización', { description: solError });
       return false;
     }
@@ -417,6 +420,7 @@ export const usePortalStore = create<PortalState>((set, get) => ({
     });
     if (solError) {
       set({ dbError: solError });
+      logFalloApp('insertMeInteresaSolicitud:comercio', solError);
       toast.error('La solicitud se guardó localmente pero falló la sincronización', { description: solError });
       return false;
     }
@@ -476,6 +480,7 @@ export const usePortalStore = create<PortalState>((set, get) => ({
     });
     if (error) {
       set({ dbError: error });
+      logFalloApp('insertSenalInteres', error);
       toast.error('No se pudo registrar tu interés', { description: error });
       return false;
     }
@@ -590,6 +595,7 @@ export const usePortalStore = create<PortalState>((set, get) => ({
     const { error } = await insertMeta(meta, clienteId);
     if (error) {
       set({ dbError: error });
+      logFalloApp('insertMeta', error);
       toast.error('La meta se creó localmente pero falló la sincronización', {
         description: error,
       });

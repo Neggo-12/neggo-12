@@ -12,6 +12,7 @@
 import { supabase } from '@/core/db/dbClient';
 import type { Database, Json } from '@/integrations/supabase/types';
 import { reportDbError } from '@/core/infrastructure/sentry';
+import { logFalloApp } from '@/core/infrastructure/fallosApp';
 import type {
   GoalMeta,
   GoalCategory,
@@ -35,6 +36,7 @@ export type MeInteresaSolicitudRow = Database['public']['Tables']['me_interesa_s
 export type MeInteresaDestinatarioRow = Database['public']['Tables']['me_interesa_destinatarios']['Row'];
 export type ClienteBancoProductoRow = Database['public']['Tables']['cliente_banco_productos']['Row'];
 export type AceptacionPoliticaRow = Database['public']['Tables']['aceptaciones_politica']['Row'];
+export type FalloAppRow = Database['public']['Tables']['fallos_app']['Row'];
 
 // ───── Helpers ─────
 
@@ -293,7 +295,12 @@ export async function registrarCompraOferta(
     p_fecha_compra: fechaCompra,
     p_documento_url: documentoUrl,
   });
-  return { error: error ? errMessage(error) : null };
+  if (error) {
+    const message = errMessage(error);
+    logFalloApp('registrar_compra_oferta', message, error);
+    return { error: message };
+  }
+  return { error: null };
 }
 
 /**
@@ -371,7 +378,12 @@ async function responderOferta(
     p_estado: estado,
     p_motivo_rechazo: motivoRechazo ?? null,
   });
-  return { error: error ? errMessage(error) : null };
+  if (error) {
+    const message = errMessage(error);
+    logFalloApp('responder_oferta_comercio', message, error);
+    return { error: message };
+  }
+  return { error: null };
 }
 
 export function aceptarOferta(ofertaId: string): Promise<{ error: string | null }> {
@@ -1682,7 +1694,12 @@ export async function closeLeadWithCharge(input: CierreLeadInput): Promise<{ err
     p_monto_cierre: input.montoCierre,
     p_franquicia_tarjeta: input.franquiciaTarjeta ?? null,
   });
-  return { error: error ? errMessage(error) : null };
+  if (error) {
+    const message = errMessage(error);
+    logFalloApp('registrar_cierre_lead', message, error);
+    return { error: message };
+  }
+  return { error: null };
 }
 
 // ───── Facturas mensuales (Fase 9.3b/9.3c) ─────
@@ -1746,7 +1763,12 @@ export async function fetchFacturasLedgerByFacturaMensual(
 export async function reportarPagoFactura(facturaId: string): Promise<{ error: string | null }> {
   if (!supabase) return { error: NOT_CONFIGURED };
   const { error } = await supabase.rpc('reportar_pago_factura', { p_factura_id: facturaId });
-  return { error: error ? errMessage(error) : null };
+  if (error) {
+    const message = errMessage(error);
+    logFalloApp('reportar_pago_factura', message, error);
+    return { error: message };
+  }
+  return { error: null };
 }
 
 export interface FacturaMensualAdminRow {
@@ -1811,7 +1833,12 @@ export async function fetchTodasLasFacturasMensuales(): Promise<{
 export async function confirmarPagoFactura(facturaId: string): Promise<{ error: string | null }> {
   if (!supabase) return { error: NOT_CONFIGURED };
   const { error } = await supabase.rpc('confirmar_pago_factura', { p_factura_id: facturaId });
-  return { error: error ? errMessage(error) : null };
+  if (error) {
+    const message = errMessage(error);
+    logFalloApp('confirmar_pago_factura', message, error);
+    return { error: message };
+  }
+  return { error: null };
 }
 
 // ───── Cliente-banco-productos (registro B2C) ─────
@@ -1941,4 +1968,25 @@ export async function fetchMeInteresaSolicitudesByCliente(
     })),
     error: null,
   };
+}
+
+// ───── Salud del Sistema (Admin) ─────
+
+/** Últimos 50 fallos de escrituras críticas + conteo de las últimas 24h. Solo Admin (RLS). */
+export async function fetchFallosApp(): Promise<{
+  data: FalloAppRow[] | null;
+  count24h: number;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, count24h: 0, error: NOT_CONFIGURED };
+
+  const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const [{ data, error }, { count }] = await Promise.all([
+    supabase.from('fallos_app').select('*').order('created_at', { ascending: false }).limit(50),
+    supabase.from('fallos_app').select('*', { count: 'exact', head: true }).gte('created_at', hace24h),
+  ]);
+
+  if (error) return { data: null, count24h: 0, error: errMessage(error) };
+  return { data: data ?? [], count24h: count ?? 0, error: null };
 }
