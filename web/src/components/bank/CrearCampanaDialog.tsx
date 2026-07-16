@@ -19,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useOrganizationName } from '@/hooks/useOrganizationName';
 
 const campaignTypes: { value: string; label: string }[] = [
   { value: 'cdt', label: 'CDT' },
@@ -73,9 +74,10 @@ export default function CrearCampanaDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<CampanaForm>(initialForm);
   const [submitted, setSubmitted] = useState(false);
-  const currentUser = useAuthStore((s) => s.currentUser);
-  const bankName = currentUser?.nombre ?? 'Mi Banco';
-  const bankId = currentUser?.id ?? 'BANK-AUTO';
+  const getOrganizationId = useAuthStore((s) => s.getOrganizationId);
+  const { name: orgName, status: orgNameStatus } = useOrganizationName();
+  const bankName = orgNameStatus === 'ready' && orgName ? orgName : 'Mi Banco';
+  const bankId = getOrganizationId() ?? 'BANK-AUTO';
 
   const updateField = <K extends keyof CampanaForm>(key: K, value: CampanaForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));

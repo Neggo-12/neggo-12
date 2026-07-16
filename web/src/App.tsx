@@ -64,11 +64,7 @@ function SessionRestoreGate({ children }: { children: React.ReactNode }) {
 
       if (!shouldReactToForeignAuthChange(event, storeUserId, eventUserId)) return;
 
-      useAuthStore.setState({
-        session: null,
-        currentUser: null,
-        sessionMode: 'demo',
-      });
+      useAuthStore.setState({ session: null });
       toast.error('Tu sesión cambió', {
         description: 'Se inició sesión con otra cuenta en este navegador. Vuelve a iniciar sesión.',
       });

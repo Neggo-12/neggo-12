@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useOrganizationName } from '@/hooks/useOrganizationName';
 import { insertProyecto } from '@/core/db/repositories';
 import { CIUDADES, COMUNAS_MEDELLIN } from '@/types';
 
@@ -107,9 +108,9 @@ export default function CrearProyectoDialog({ onProjectCreated }: { onProjectCre
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const currentUser = useAuthStore((s) => s.currentUser);
   const session = useAuthStore((s) => s.session);
-  const constructoraName = currentUser?.nombre ?? 'Mi Constructora';
+  const { name: orgName, status: orgNameStatus } = useOrganizationName();
+  const constructoraName = orgNameStatus === 'ready' && orgName ? orgName : 'Mi Constructora';
   const constructoraId = session?.userId ?? null;
 
   const isValid =

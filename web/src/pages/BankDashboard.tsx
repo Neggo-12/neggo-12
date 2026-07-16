@@ -18,32 +18,16 @@ import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 
 type BankTab = 'solicitudes' | 'campanas' | 'mi-facturacion' | 'analytics' | 'feedback' | 'metricas-rechazo' | 'seguridad';
 
-/** Extrae el nombre de entidad bancaria real desde el nombre compuesto del usuario demo */
-function extractBankIdentity(userName: string): { displayName: string; primaryBankName: string } {
-  // El nombre del usuario banco viene como "Mesa de Alianzas Bancolombia / Davivienda"
-  // Extraemos el primer banco como nombre principal para filtrar solicitudes
-  const parts = userName.split(' / ');
-  const displayName = parts.length > 1 ? parts.slice(1).join(' / ') : userName;
-  // Tomamos el primer nombre de banco real (después de "Mesa de Alianzas ")
-  const afterPrefix = userName.replace(/^Mesa de Alianzas /, '').replace(/^Mesa de /, '');
-  const primaryBankName = afterPrefix.split(' / ')[0].trim();
-  return { displayName: displayName || userName, primaryBankName };
-}
-
 export default function BankDashboard() {
   const [activeTab, setActiveTab] = useState<BankTab>('solicitudes');
-  const currentUser = useAuthStore((s) => s.currentUser);
+  const session = useAuthStore((s) => s.session);
   const getOrganizationId = useAuthStore((s) => s.getOrganizationId);
   const organizationId = getOrganizationId();
   const { name: orgName, status: orgNameStatus } = useOrganizationName();
 
-  const bankIdentity = useMemo(() => {
-    if (!currentUser) return { displayName: 'Neggo Banca', primaryBankName: '' };
-    return extractBankIdentity(currentUser.nombre);
-  }, [currentUser]);
+  const bankNameForDisplay = orgNameStatus === 'ready' && orgName ? orgName : '';
 
   const sidebarBrand = useMemo(() => {
-    if (!currentUser) return { initials: 'NB', name: 'Neggo Banca', subtitle: 'Pipeline Bancario', icon: Building2 };
     const orgDisplayName =
       orgNameStatus === 'ready' && orgName
         ? orgName
@@ -51,21 +35,21 @@ export default function BankDashboard() {
           ? 'Error al cargar organización'
           : 'Cargando organización...';
     return {
-      initials: currentUser.nombre.slice(0, 2).toUpperCase(),
+      initials: orgNameStatus === 'ready' && orgName ? orgName.slice(0, 2).toUpperCase() : 'NB',
       name: orgDisplayName,
       subtitle: 'Pipeline Bancario',
       icon: Building2,
     };
-  }, [currentUser, orgName, orgNameStatus]);
+  }, [orgName, orgNameStatus]);
 
   const sidebarFooter = useMemo(() => {
-    if (!currentUser) return { initials: 'OE', name: 'Operador Banca', role: 'Ejecutivo Senior' };
+    if (!session) return { initials: 'OE', name: 'Operador Banca', role: 'Ejecutivo Senior' };
     return {
-      initials: currentUser.nombre.slice(0, 2).toUpperCase(),
-      name: currentUser.nombre.length > 25 ? currentUser.nombre.slice(0, 25) + '...' : currentUser.nombre,
-      role: currentUser.rol,
+      initials: session.email.slice(0, 2).toUpperCase(),
+      name: session.email.length > 25 ? session.email.slice(0, 25) + '...' : session.email,
+      role: session.role,
     };
-  }, [currentUser]);
+  }, [session]);
 
   const BANK_SECTIONS: SidebarNavItem[] = [
     { key: 'solicitudes', label: 'Solicitudes', icon: FileText },
@@ -86,7 +70,6 @@ export default function BankDashboard() {
         onNavigate={(key) => setActiveTab(key as BankTab)}
         footer={sidebarFooter}
         accent="emerald"
-        backToHubLabel="Cambiar Entorno"
       />
 
       <div className="flex-1 min-w-0 overflow-y-auto lg:pl-64">
@@ -114,16 +97,19 @@ export default function BankDashboard() {
             </TabsList>
 
             <TabsContent value="solicitudes" className="mt-0 animate-slide-up">
-              <SolicitudesTab bankUser={currentUser} organizationId={organizationId} />
+              <SolicitudesTab
+                organizationName={orgNameStatus === 'ready' ? orgName : null}
+                organizationId={organizationId}
+              />
             </TabsContent>
             <TabsContent value="campanas" className="mt-0 animate-slide-up">
-              <CampanasTab bankName={bankIdentity.primaryBankName} />
+              <CampanasTab bankName={bankNameForDisplay} />
             </TabsContent>
             <TabsContent value="mi-facturacion" className="mt-0 animate-slide-up">
               <MiFacturacionTab organizationId={organizationId} />
             </TabsContent>
             <TabsContent value="analytics" className="mt-0 animate-slide-up">
-              <AnalyticsTab bankName={bankIdentity.primaryBankName} />
+              <AnalyticsTab bankName={bankNameForDisplay} />
             </TabsContent>
             <TabsContent value="feedback" className="mt-0 animate-slide-up">
               <div className="space-y-6">

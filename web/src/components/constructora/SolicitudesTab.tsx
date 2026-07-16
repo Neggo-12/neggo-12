@@ -17,13 +17,12 @@ import {
   type MeInteresaPipelineEstado,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
-import type { UsuarioDB } from '@/types';
 import PipelineStatusBadge from '@/components/crm/PipelineStatusBadge';
 import ExpandedLeadCRM from '@/components/crm/ExpandedLeadCRM';
 import { TIPO_VIVIENDA_LABELS } from '@/components/crm/leadLabels';
 import { ESTADOS_CIERRE } from '@/components/crm/pipelineConfig';
 
-export default function SolicitudesTab({ constructoraUser, organizationId }: { constructoraUser: UsuarioDB | null; organizationId: string | null }) {
+export default function SolicitudesTab({ organizationName, organizationId }: { organizationName: string | null; organizationId: string | null }) {
   const [leads, setLeads] = useState<MeInteresaLeadDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -147,10 +146,10 @@ export default function SolicitudesTab({ constructoraUser, organizationId }: { c
           </div>
           <div>
             <h2 className="text-base font-semibold text-foreground">
-              {constructoraUser?.nombre ?? 'Constructora'}
+              {organizationName ?? 'Constructora'}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {constructoraUser?.id ? `ID: ${constructoraUser.id}` : ''} · {constructoraUser?.ciudad ?? ''}
+              {organizationId ? `ID: ${organizationId}` : ''}
             </p>
           </div>
         </div>

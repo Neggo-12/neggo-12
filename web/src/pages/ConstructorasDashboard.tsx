@@ -143,7 +143,6 @@ export default function ConstructorasDashboard() {
   const [messageDialogLead, setMessageDialogLead] = useState<LeadInmobiliario | null>(null);
 
   const session = useAuthStore((s) => s.session);
-  const currentUser = useAuthStore((s) => s.currentUser);
   const getOrganizationId = useAuthStore((s) => s.getOrganizationId);
   const organizationId = getOrganizationId();
   const { name: orgName, status: orgNameStatus } = useOrganizationName();
@@ -259,7 +258,6 @@ export default function ConstructorasDashboard() {
           onNavigate={(key) => setActiveSection(key as ConstTab)}
           footer={{ initials: 'OI', name: 'Operador Inmobiliario', role: 'Gerente de Proyecto' }}
           accent="blue"
-          backToHubLabel="Cambiar Entorno"
         />
         <div className="flex-1 min-w-0 overflow-y-auto lg:pl-64">
           <div className="flex flex-col items-center justify-center py-32 text-center">
@@ -288,7 +286,6 @@ export default function ConstructorasDashboard() {
           onNavigate={(key) => setActiveSection(key as ConstTab)}
           footer={{ initials: 'OI', name: 'Operador Inmobiliario', role: 'Gerente de Proyecto' }}
           accent="blue"
-          backToHubLabel="Cambiar Entorno"
         />
         <div className="flex-1 min-w-0 overflow-y-auto lg:pl-64">
           <div className="flex flex-col items-center justify-center py-32 text-center">
@@ -311,7 +308,6 @@ export default function ConstructorasDashboard() {
           onNavigate={(key) => setActiveSection(key as ConstTab)}
           footer={{ initials: 'OI', name: 'Operador Inmobiliario', role: 'Gerente de Proyecto' }}
           accent="blue"
-          backToHubLabel="Cambiar Entorno"
         />
         <div className="flex-1 min-w-0 overflow-y-auto lg:pl-64">
           <div className="flex flex-col items-center justify-center py-32 text-center">
@@ -336,7 +332,6 @@ export default function ConstructorasDashboard() {
         onNavigate={(key) => setActiveSection(key as ConstTab)}
         footer={{ initials: 'OI', name: 'Operador Inmobiliario', role: 'Gerente de Proyecto' }}
         accent="blue"
-        backToHubLabel="Cambiar Entorno"
       />
 
       <div className="flex-1 min-w-0 overflow-y-auto lg:pl-64">
@@ -561,7 +556,7 @@ export default function ConstructorasDashboard() {
           {/* Section: Solicitudes (Me Interesa) */}
           {activeSection === 'solicitudes' && (
             <ConstructoraSolicitudesTab
-              constructoraUser={currentUser}
+              organizationName={orgNameStatus === 'ready' ? orgName : null}
               organizationId={organizationId}
             />
           )}
