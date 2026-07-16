@@ -18,6 +18,7 @@ import { fetchOfertasComercios, type OfertaComercioRow } from '@/core/db/reposit
 import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useOrganizationName } from '@/hooks/useOrganizationName';
+import { useOfertaComercioRealtime } from '@/hooks/useOfertaComercioRealtime';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 
 type ComercioSection = 'dashboard' | 'oportunidades' | 'mis-propuestas' | 'suscripcion' | 'solicitudes' | 'mi-facturacion' | 'feedback' | 'metricas-rechazo' | 'seguridad';
@@ -75,6 +76,10 @@ export default function ComerciosDashboard() {
   useEffect(() => {
     if (isOnboardingComplete) { void loadOfertas(); }
   }, [isOnboardingComplete, loadOfertas]);
+
+  // Notifica al comercio en tiempo real cuando un cliente responde una oferta
+  // (aceptada/rechazada) y refresca la lista, sin recargar la página.
+  useOfertaComercioRealtime(isOnboardingComplete ? session?.userId ?? null : null, loadOfertas);
 
   if (!isOnboardingHydrated || isOnboardingChecking) {
     return (
