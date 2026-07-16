@@ -2,7 +2,6 @@ import { useAdminStore } from '@/features/admin/store/useAdminStore';
 import AuthorizationCenter from '@/features/admin/components/AuthorizationCenter';
 import AlgorithmMonitor from '@/features/admin/components/AlgorithmMonitor';
 import KPICard from '@/components/KPICard';
-import ProfileSwitcher from '@/components/ProfileSwitcher';
 import SeguridadTab from '@/features/shared/components/SeguridadTab';
 import SaludSistemaPanel from '@/features/admin/components/SaludSistemaPanel';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
@@ -25,7 +24,6 @@ import {
   DollarSign,
   CheckCircle2,
   XCircle,
-  FlaskConical,
   SlidersHorizontal,
   ChevronRight,
   ChevronDown,
@@ -282,22 +280,6 @@ export default function AdminDashboard() {
           {activeSection === 'seguridad' && <SeguridadTab />}
 
           {activeSection === 'salud-sistema' && <SaludSistemaPanel />}
-
-          {/* ─── Módulo de Pruebas y Simulación — Modo Demo ─── */}
-          {activeSection === 'resumen' && (
-            <section className="mt-10 pt-8 border-t border-border/30">
-              <div className="flex items-center gap-2 mb-4">
-                <FlaskConical className="h-4 w-4 text-amber-400" />
-                <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-                  Módulo de Pruebas y Simulación — Modo Demo
-                </h2>
-                <div className="h-px flex-1 bg-gradient-to-r from-border/50 to-transparent" />
-              </div>
-              <div className="max-w-md">
-                <ProfileSwitcher />
-              </div>
-            </section>
-          )}
         </div>
       </div>
     </div>

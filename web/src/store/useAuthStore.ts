@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { UsuarioDB } from '@/types';
-// Demo-only: used exclusively by ProfileSwitcher on the /admin page
-// Production users authenticate via /login-ecosistema → Supabase Auth
-import { USUARIOS_DEMO, type DemoProfileKey } from '@/core/db/mockDb';
 import {
   login as authServiceLogin,
   logout as authServiceLogout,
@@ -32,8 +29,6 @@ export type SessionMode = 'demo' | 'production';
 export interface AuthState {
   /** Currently active demo user — null when not in demo mode */
   currentUser: UsuarioDB | null;
-  /** Key of the active demo profile for quick-switching */
-  activeProfile: DemoProfileKey | null;
   /** Real Supabase Auth session — null when not in production mode */
   session: AuthSession | null;
   /** Whether we're in demo or production mode */
@@ -41,8 +36,6 @@ export interface AuthState {
   /** Whether the session restore has been attempted on app load */
   isSessionRestored: boolean;
 
-  /** Switch to a specific demo profile (demo mode) */
-  switchProfile: (profile: DemoProfileKey) => void;
   /** Authenticate via Supabase Auth (production mode) */
   loginWithCredentials: (input: LoginInput) => Promise<LoginResult>;
   /** Finishes a login left pending by requiresMfaChallenge — verifies the TOTP code */
@@ -55,46 +48,17 @@ export interface AuthState {
   restoreSession: () => Promise<void>;
   /** Clear the session (logout) */
   logout: () => Promise<void>;
-  /** Get the redirect path for the current session (demo or production) */
-  getRedirectPath: () => string;
-  /** True when a real production session is active */
-  isAuthenticated: () => boolean;
   /** Returns the active organization ID from the production session, or null */
   getOrganizationId: () => string | null;
 }
-
-// ───── Role → route mapping ─────
-
-const ROLE_ROUTES: Record<UserRole, string> = {
-  Cliente: '/portal',
-  Admin: '/admin',
-  Comercio: '/comercios',
-  Constructora: '/constructoras',
-  Banco: '/banca',
-  Fiduciaria: '/admin',
-};
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       currentUser: null,
-      activeProfile: null,
       session: null,
       sessionMode: 'demo' as SessionMode,
       isSessionRestored: false,
-
-      switchProfile: (profile: DemoProfileKey) => {
-        const user = USUARIOS_DEMO[profile];
-        if (!user) return;
-        // Switching to demo mode clears any production session
-        set({
-          currentUser: user,
-          activeProfile: profile,
-          session: null,
-          sessionMode: 'demo',
-        });
-
-      },
 
       loginWithCredentials: async (input: LoginInput) => {
         // Clear the previous identity BEFORE calling signInWithPassword —
@@ -105,7 +69,7 @@ export const useAuthStore = create<AuthState>()(
         // Without this, logging into a different portal in the SAME tab
         // (store still holds the previous session) trips that rule mid-login
         // and resets the store before the new session is ever set.
-        set({ session: null, currentUser: null, activeProfile: null });
+        set({ session: null, currentUser: null });
         const result = await authServiceLogin(input);
         if (result.success) {
           // Pick up the session established by authService
@@ -131,7 +95,6 @@ export const useAuthStore = create<AuthState>()(
             session,
             sessionMode: 'production',
             currentUser: demoUser,
-            activeProfile: null,
           });
         }
         return result;
@@ -159,7 +122,6 @@ export const useAuthStore = create<AuthState>()(
             session,
             sessionMode: 'production',
             currentUser: demoUser,
-            activeProfile: null,
           });
         }
         return result;
@@ -180,7 +142,7 @@ export const useAuthStore = create<AuthState>()(
           // Same reasoning as loginWithCredentials: clear any previous
           // identity before signing in, so the onAuthStateChange listener
           // never mistakes this auto-login for a foreign cross-tab sign-in.
-          set({ session: null, currentUser: null, activeProfile: null });
+          set({ session: null, currentUser: null });
           // Auto-login so the client goes straight to the portal
           const loginResult = await authServiceLogin({
             email: input.email,
@@ -206,7 +168,6 @@ export const useAuthStore = create<AuthState>()(
               session,
               sessionMode: 'production',
               currentUser: demoUser,
-              activeProfile: null,
             });
           }
         }
@@ -234,7 +195,6 @@ export const useAuthStore = create<AuthState>()(
               session,
               sessionMode: 'production',
               currentUser: demoUser,
-              activeProfile: null,
               isSessionRestored: true,
             });
             return;
@@ -253,29 +213,12 @@ export const useAuthStore = create<AuthState>()(
         const wasProduction = get().sessionMode === 'production';
         set({
           currentUser: null,
-          activeProfile: null,
           session: null,
           sessionMode: 'demo',
         });
         if (wasProduction) {
           await authServiceLogout();
         }
-      },
-
-      getRedirectPath: () => {
-        const state = get();
-        // Production session takes priority
-        if (state.session) {
-          return state.session.dashboardRoute;
-        }
-        // Demo profile
-        const user = state.currentUser;
-        if (!user) return '/';
-        return ROLE_ROUTES[user.rol] || '/';
-      },
-
-      isAuthenticated: () => {
-        return get().session !== null;
       },
 
       getOrganizationId: () => {
@@ -289,7 +232,6 @@ export const useAuthStore = create<AuthState>()(
       // (Supabase Auth manages its own session persistence via localStorage)
       partialize: (state) => ({
         currentUser: state.currentUser,
-        activeProfile: state.activeProfile,
         sessionMode: state.sessionMode,
       }),
     }

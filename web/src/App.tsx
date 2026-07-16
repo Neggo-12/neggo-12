@@ -67,7 +67,6 @@ function SessionRestoreGate({ children }: { children: React.ReactNode }) {
       useAuthStore.setState({
         session: null,
         currentUser: null,
-        activeProfile: null,
         sessionMode: 'demo',
       });
       toast.error('Tu sesión cambió', {
