@@ -24,9 +24,9 @@ import {
 } from '@/components/ui/select';
 // Production: no mock data — campaigns are fetched from Supabase when available
 const campaigns: Campaign[] = [];
-import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import { cn } from '@/lib/utils';
 import { useRejectionTracking } from '@/hooks/useRejectionTracking';
+import { useClienteProfile } from '@/hooks/useClienteProfile';
 import type { Campaign } from '@/types';
 import type { GoalCategory } from '@/types';
 
@@ -428,24 +428,23 @@ const OFFER_SECTORS: { id: OfferSector; label: string; emoji: string }[] = [
 // ───── Main OfertasView ─────
 
 export default function OfertasView() {
-  const { currentClient } = usePortalStore();
+  const { ciudad, scoreEstimado, status: perfilStatus } = useClienteProfile();
   const [isCrearMetaOpen, setCrearMetaOpen] = useState(false);
   const [activeSector, setActiveSector] = useState<OfferSector>('bancarios');
 
+  // Cuentas antiguas pueden no tener ciudad/score poblados — mejor mostrar
+  // todas las ofertas activas sin filtrar que inventar un valor por defecto.
+  const perfilCompleto = perfilStatus === 'ready' && ciudad !== null && scoreEstimado !== null;
+
   const matchingCampaigns = useMemo(() => {
+    if (!perfilCompleto) return campaigns.filter((c) => c.status === 'activa');
     return campaigns.filter((c) => {
-      // Only active campaigns
       if (c.status !== 'activa') return false;
-      // City must match
-      const cityMatch = c.cities.includes(currentClient.city);
+      const cityMatch = c.cities.includes(ciudad);
       if (!cityMatch) return false;
-      // Score must be in range
-      const scoreMatch =
-        currentClient.score >= c.minScore &&
-        currentClient.score <= c.maxScore;
-      return scoreMatch;
+      return scoreEstimado >= c.minScore && scoreEstimado <= c.maxScore;
     });
-  }, [currentClient.city, currentClient.score]);
+  }, [perfilCompleto, ciudad, scoreEstimado]);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -461,9 +460,15 @@ export default function OfertasView() {
             </h2>
           </div>
           <p className="text-xs text-muted-foreground">
-            Campañas financieras que coinciden con tu perfil en{' '}
-            <span className="font-semibold text-cyan-400">{currentClient.city}</span>{' '}
-            — Score <span className="font-mono text-cyan-400">{currentClient.score}</span>
+            {perfilCompleto ? (
+              <>
+                Campañas financieras que coinciden con tu perfil en{' '}
+                <span className="font-semibold text-cyan-400">{ciudad}</span>{' '}
+                — Score <span className="font-mono text-cyan-400">{scoreEstimado}</span>
+              </>
+            ) : (
+              'No pudimos determinar tu ciudad o score todavía — mostrando todas las campañas activas.'
+            )}
           </p>
         </div>
 
@@ -504,16 +509,12 @@ export default function OfertasView() {
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tu ciudad</p>
             <p className="text-sm font-semibold text-emerald-400 flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5" />
-              {currentClient.city}
+              {ciudad ?? 'No disponible'}
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tu score</p>
-            <p className="text-sm font-semibold text-blue-400 font-mono">{currentClient.score}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Perfil</p>
-            <p className="text-sm font-semibold text-foreground">{currentClient.type}</p>
+            <p className="text-sm font-semibold text-blue-400 font-mono">{scoreEstimado ?? '—'}</p>
           </div>
         </div>
       </div>
@@ -559,7 +560,9 @@ export default function OfertasView() {
                 Sin ofertas bancarias disponibles
               </h3>
               <p className="text-sm text-muted-foreground max-w-sm">
-                No encontramos campañas activas que coincidan con tu perfil en {currentClient.city}.
+                {perfilCompleto
+                  ? `No encontramos campañas activas que coincidan con tu perfil en ${ciudad}.`
+                  : 'No encontramos campañas activas por el momento.'}{' '}
                 Revisa más tarde o actualiza tus preferencias.
               </p>
             </div>

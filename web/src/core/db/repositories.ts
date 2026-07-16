@@ -1220,6 +1220,40 @@ export async function fetchClienteContactInfo(
   return { data: { nombre: data?.nombre ?? '', telefono: data?.telefono ?? '' }, error: null };
 }
 
+/**
+ * Perfil real del cliente para el portal — first_name/nombre (poblados por
+ * registrar_b2c_completo) para el saludo, y ciudad/score_estimado para el
+ * matching de ofertas/proyectos. ciudad y scoreEstimado pueden venir null en
+ * cuentas antiguas que se registraron antes de que esos campos existieran —
+ * los callers deben tratar null como "dato no disponible", nunca inventar un
+ * valor por defecto.
+ */
+export async function fetchClientePerfil(
+  clienteId: string,
+): Promise<{
+  data: { nombre: string; firstName: string | null; ciudad: string | null; scoreEstimado: number | null } | null;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('users')
+    .select('nombre, first_name, ciudad, score_estimado')
+    .eq('id', clienteId)
+    .limit(1)
+    .maybeSingle();
+  if (error) return { data: null, error: errMessage(error) };
+  if (!data) return { data: null, error: null };
+  return {
+    data: {
+      nombre: data.nombre,
+      firstName: data.first_name,
+      ciudad: data.ciudad,
+      scoreEstimado: data.score_estimado,
+    },
+    error: null,
+  };
+}
+
 // ───── Proyectos (constructoras) ─────
 
 /** Fetches only the projects owned by this constructora (scoped by `constructora_id`, the constructora's own user id). */

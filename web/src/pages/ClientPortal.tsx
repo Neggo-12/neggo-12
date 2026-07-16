@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react';
 import { Sparkles, Loader2, LayoutDashboard, TrendingUp, BarChart3, Gift, Home, Target, Receipt, Landmark, MessageSquareText } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import PortalNavigation from '@/features/portal/components/PortalNavigation';
@@ -8,6 +7,7 @@ import AntiPhishingBanner from '@/features/portal/components/AntiPhishingBanner'
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import type { PortalTab } from '@/features/portal/store/usePortalStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useClienteProfile } from '@/hooks/useClienteProfile';
 
 // ───── Lazy-loaded tab views ─────
 
@@ -85,18 +85,25 @@ function ActiveTabContent({ tab }: { tab: PortalTab }) {
 // ───── Main Page ─────
 
 export default function ClientPortal() {
-  const { currentClient, activeTab, setActiveTab } = usePortalStore();
+  const { activeTab, setActiveTab } = usePortalStore();
   const session = useAuthStore((s) => s.session);
-  const clientDisplayName = session?.email ?? null;
+  const { name: clienteNombre, status: clienteNombreStatus } = useClienteProfile();
+  const clientDisplayName =
+    clienteNombreStatus === 'ready' && clienteNombre ? clienteNombre : session?.email ?? null;
 
   return (
     <div className="min-h-screen bg-background flex">
       {/* ─── Isolated Portal Sidebar ─── */}
       <WorkspaceSidebar
         brand={{
-          initials: 'NP',
-          name: 'Neggo Portal',
-          subtitle: 'Cliente B2C',
+          initials: clienteNombreStatus === 'ready' && clienteNombre ? clienteNombre.slice(0, 2).toUpperCase() : 'NP',
+          name:
+            clienteNombreStatus === 'ready' && clienteNombre
+              ? clienteNombre
+              : clienteNombreStatus === 'error'
+                ? 'Error al cargar perfil'
+                : 'Cargando...',
+          subtitle: 'Portal Cliente',
           icon: LayoutDashboard,
         }}
         navItems={PORTAL_SECTIONS}
@@ -107,8 +114,8 @@ export default function ClientPortal() {
         }}
         footer={
           clientDisplayName
-            ? { initials: clientDisplayName.slice(0, 2).toUpperCase(), name: clientDisplayName, role: currentClient.type }
-            : { initials: '··', name: 'Cargando sesión...', role: currentClient.type }
+            ? { initials: clientDisplayName.slice(0, 2).toUpperCase(), name: clientDisplayName, role: session?.role ?? 'Cliente' }
+            : { initials: '··', name: 'Cargando sesión...', role: session?.role ?? 'Cliente' }
         }
         accent="cyan"
       />
@@ -135,14 +142,7 @@ export default function ClientPortal() {
                 Bienvenido de vuelta,{' '}
                 <span className="text-cyan-400">{clientDisplayName ?? 'Cargando...'}</span>
               </h1>
-              <p className="text-sm text-muted-foreground">
-                {currentClient.type} — Cliente {currentClient.id}
-              </p>
             </div>
-
-            <Badge className="self-start bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-xs px-3 py-1.5 font-medium">
-              Perfil {currentClient.type}
-            </Badge>
           </div>
 
           {/* ── Anti-Phishing Security Banner ── */}

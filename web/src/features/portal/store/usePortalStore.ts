@@ -33,16 +33,6 @@ export type PortalTab =
   | 'solicitudes'
   | 'feedback';
 
-// ───── Client type ─────
-
-export interface PortalClient {
-  id: string;
-  name: string;
-  type: string;
-  city: string;
-  score: number;
-}
-
 // ───── Solicitud types ─────
 
 export type SolicitudProductType =
@@ -145,17 +135,6 @@ export interface AddSenalInteresInput {
   ciudad?: string;
 }
 
-// ───── Deterministic 6-digit security code ─────
-
-function generateSecurityCode(clientId: string): string {
-  let hash = 0;
-  for (let i = 0; i < clientId.length; i++) {
-    hash = ((hash << 5) - hash + clientId.charCodeAt(i)) | 0;
-  }
-  const code = ((Math.abs(hash) % 900000) + 100000).toString();
-  return `${code.slice(0, 3)} ${code.slice(3, 6)}`;
-}
-
 // ───── Store ─────
 
 /** Resuelve el id real del cliente autenticado desde la sesión — nunca un id demo hardcodeado. */
@@ -168,10 +147,6 @@ interface PortalState {
   activeTab: PortalTab;
   /** Controls the "Nueva Solicitud" creation dialog */
   isNuevaSolicitudOpen: boolean;
-  /** Mock client currently logged in */
-  currentClient: PortalClient;
-  /** Deterministic 6-digit security code based on client ID */
-  securityCode: string;
   /** Submitted solicitudes history */
   solicitudes: SolicitudCliente[];
   /** true mientras se cargan las solicitudes desde la base de datos */
@@ -211,14 +186,6 @@ interface PortalState {
   completeMeta: (metaId: string) => Promise<void>;
 }
 
-const DEFAULT_CLIENT: PortalClient = {
-  id: 'L-1818',
-  name: 'Jhon Edison Florez',
-  type: 'Alto Patrimonio',
-  city: 'Medellín',
-  score: 726,
-};
-
 /**
  * Combina las metas de la base de datos con las ofertas mock existentes
  * (las ofertas de comercios se mantienen del catálogo local por id de meta).
@@ -233,8 +200,6 @@ function mergeMetasWithOffers(dbMetas: GoalMeta[]): GoalMeta[] {
 export const usePortalStore = create<PortalState>((set, get) => ({
   activeTab: 'finanzas',
   isNuevaSolicitudOpen: false,
-  currentClient: DEFAULT_CLIENT,
-  securityCode: generateSecurityCode(DEFAULT_CLIENT.id),
   solicitudes: [],
   isSolicitudesLoading: false,
   isSolicitudesHydrated: false,

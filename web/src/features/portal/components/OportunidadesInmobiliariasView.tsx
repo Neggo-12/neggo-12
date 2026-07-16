@@ -12,9 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 // Production: proyectos are fetched from Supabase, not mock data
 const proyectos: ProyectoConstructora[] = [];
-import { usePortalStore } from '@/features/portal/store/usePortalStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { cn } from '@/lib/utils';
 import { useRejectionTracking } from '@/hooks/useRejectionTracking';
+import { useClienteProfile } from '@/hooks/useClienteProfile';
 import type { ProyectoConstructora } from '@/types';
 
 // ───── Helpers ─────
@@ -428,14 +429,17 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
 // ───── Main View ─────
 
 export default function OportunidadesInmobiliariasView() {
-  const { currentClient } = usePortalStore();
+  const { ciudad, scoreEstimado, status: perfilStatus } = useClienteProfile();
+  const userId = useAuthStore((s) => s.session?.userId);
+
+  // Cuentas antiguas pueden no tener ciudad poblada — mejor mostrar todos los
+  // proyectos activos sin filtrar que inventar un valor por defecto.
+  const perfilCompleto = perfilStatus === 'ready' && ciudad !== null;
 
   const matchingProjects = useMemo(() => {
-    return proyectos.filter((p) => {
-      if (p.status !== 'activo') return false;
-      return p.city === currentClient.city;
-    });
-  }, [currentClient.city]);
+    if (!perfilCompleto) return proyectos.filter((p) => p.status === 'activo');
+    return proyectos.filter((p) => p.status === 'activo' && p.city === ciudad);
+  }, [perfilCompleto, ciudad]);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -451,9 +455,15 @@ export default function OportunidadesInmobiliariasView() {
             </h2>
           </div>
           <p className="text-xs text-muted-foreground">
-            Proyectos de constructoras en{' '}
-            <span className="font-semibold text-purple-400">{currentClient.city}</span>{' '}
-            que encajan con tu perfil financiero. Incluyen condiciones comerciales detalladas.
+            {perfilCompleto ? (
+              <>
+                Proyectos de constructoras en{' '}
+                <span className="font-semibold text-purple-400">{ciudad}</span>{' '}
+                que encajan con tu perfil financiero. Incluyen condiciones comerciales detalladas.
+              </>
+            ) : (
+              'No pudimos determinar tu ciudad todavía — mostrando todos los proyectos activos.'
+            )}
           </p>
         </div>
 
@@ -470,20 +480,16 @@ export default function OportunidadesInmobiliariasView() {
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tu ciudad</p>
             <p className="text-sm font-semibold text-emerald-400 flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5" />
-              {currentClient.city}
+              {ciudad ?? 'No disponible'}
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tu score</p>
-            <p className="text-sm font-semibold text-blue-400 font-mono">{currentClient.score}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Perfil</p>
-            <p className="text-sm font-semibold text-foreground">{currentClient.type}</p>
+            <p className="text-sm font-semibold text-blue-400 font-mono">{scoreEstimado ?? '—'}</p>
           </div>
           <div className="space-y-1">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">ID Cliente</p>
-            <p className="text-sm font-semibold text-muted-foreground font-mono">{currentClient.id}</p>
+            <p className="text-sm font-semibold text-muted-foreground font-mono">{userId ?? '—'}</p>
           </div>
         </div>
       </div>
@@ -537,7 +543,9 @@ export default function OportunidadesInmobiliariasView() {
             Sin proyectos disponibles
           </h3>
           <p className="text-sm text-muted-foreground max-w-sm">
-            No encontramos proyectos activos de constructoras en {currentClient.city}.
+            {perfilCompleto
+              ? `No encontramos proyectos activos de constructoras en ${ciudad}.`
+              : 'No encontramos proyectos activos por el momento.'}{' '}
             Revisa más tarde o amplía tu búsqueda a otras ciudades.
           </p>
         </div>

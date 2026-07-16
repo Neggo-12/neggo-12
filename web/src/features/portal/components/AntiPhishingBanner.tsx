@@ -1,8 +1,21 @@
+import { useMemo } from 'react';
 import { ShieldCheck } from 'lucide-react';
-import { usePortalStore } from '@/features/portal/store/usePortalStore';
+import { useAuthStore } from '@/store/useAuthStore';
+
+/** Código determinístico de 6 dígitos derivado del id real de sesión — nunca
+ * de un id demo compartido, o todos los clientes verían el mismo código. */
+function generateSecurityCode(clientId: string): string {
+  let hash = 0;
+  for (let i = 0; i < clientId.length; i++) {
+    hash = ((hash << 5) - hash + clientId.charCodeAt(i)) | 0;
+  }
+  const code = ((Math.abs(hash) % 900000) + 100000).toString();
+  return `${code.slice(0, 3)} ${code.slice(3, 6)}`;
+}
 
 export default function AntiPhishingBanner() {
-  const securityCode = usePortalStore((s) => s.securityCode);
+  const userId = useAuthStore((s) => s.session?.userId);
+  const securityCode = useMemo(() => (userId ? generateSecurityCode(userId) : '··· ···'), [userId]);
 
   return (
     <div className="flex items-center justify-between gap-4 rounded-lg border border-cyan-500/15 bg-cyan-500/5 px-4 py-2">

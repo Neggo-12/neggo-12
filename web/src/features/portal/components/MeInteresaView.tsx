@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import type { SolicitudProductType, SolicitudCliente } from '@/features/portal/store/usePortalStore';
+import { useClienteProfile } from '@/hooks/useClienteProfile';
 import { cn, normalizeCiudad } from '@/lib/utils';
 import { fetchBancosAprobados, fetchNegociosCuradosBySector } from '@/core/db/repositories';
 import type { NegocioCuradoRow } from '@/core/db/repositories';
@@ -956,7 +957,9 @@ function solicitudResumen(sol: SolicitudCliente): string {
 type Sector = 'banco' | 'constructora' | 'comercio';
 
 export default function MeInteresaView() {
-  const { solicitudes, currentClient, hydrateSolicitudes } = usePortalStore();
+  const { solicitudes, hydrateSolicitudes } = usePortalStore();
+  const { ciudad, scoreEstimado, status: perfilStatus } = useClienteProfile();
+  const perfilCompleto = perfilStatus === 'ready' && ciudad !== null && scoreEstimado !== null;
   const [sector, setSector] = useState<Sector>('banco');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -1047,8 +1050,8 @@ export default function MeInteresaView() {
           <p className="text-sm font-semibold text-blue-400">Contacto directo, no anónimo</p>
           <p className="text-xs text-muted-foreground leading-relaxed">
             A diferencia de Metas/IFC, aquí el negocio que elijas ve tu nombre y teléfono de
-            inmediato para poder contactarte (score {currentClient.score}, ciudad{' '}
-            {currentClient.city}).
+            inmediato para poder contactarte
+            {perfilCompleto ? ` (score ${scoreEstimado}, ciudad ${ciudad})` : ''}.
           </p>
         </div>
       </div>
