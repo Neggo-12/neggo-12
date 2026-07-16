@@ -1,7 +1,8 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Menu, X, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { LucideIcon } from 'lucide-react';
 
 // ───── Types ─────
@@ -39,10 +40,6 @@ interface WorkspaceSidebarProps {
   footer: SidebarFooter;
   /** Accent color for active states */
   accent: 'emerald' | 'blue' | 'cyan' | 'red' | 'amber' | 'purple';
-  /** URL for the "back to hub" link */
-  backToHubUrl?: string;
-  /** Label for the back-to-hub button */
-  backToHubLabel?: string;
 }
 
 // ───── Accent color map ─────
@@ -100,12 +97,16 @@ export default function WorkspaceSidebar({
   onNavigate,
   footer,
   accent,
-  backToHubUrl = '/',
-  backToHubLabel = 'Volver al Hub Central',
 }: WorkspaceSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
   const colors = accentClasses[accent];
   const BrandIcon = brand.icon;
+
+  const handleLogout = async () => {
+    await useAuthStore.getState().logout();
+    navigate('/login-ecosistema', { replace: true });
+  };
 
   return (
     <>
@@ -145,14 +146,14 @@ export default function WorkspaceSidebar({
           </div>
         </div>
 
-        {/* Back to hub */}
-        <Link
-          to={backToHubUrl}
+        {/* Cerrar sesión */}
+        <button
+          onClick={handleLogout}
           className="mx-3 mt-3 flex items-center gap-2 rounded-lg border border-border/40 bg-card/40 px-3 py-2 text-xs font-medium text-muted-foreground transition-all hover:border-border/60 hover:bg-card hover:text-foreground"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          {backToHubLabel}
-        </Link>
+          <LogOut className="h-3.5 w-3.5" />
+          Cerrar sesión
+        </button>
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">

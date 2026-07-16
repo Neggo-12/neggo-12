@@ -18,7 +18,6 @@ import {
   Store,
   TrendingUp,
   Radio,
-  ArrowLeft,
   Receipt,
   Percent,
   DollarSign,
@@ -34,9 +33,11 @@ import {
   Bell,
   Lock,
   HeartPulse,
+  LogOut,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Fragment, useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -94,11 +95,17 @@ export default function AdminDashboard() {
     isOnboardingLoading,
     refreshOnboarding,
   } = useAdminStore();
+  const navigate = useNavigate();
 
   // Re-fetch en cada montaje para ver los nuevos registros en tiempo real
   useEffect(() => {
     void refreshOnboarding();
   }, [refreshOnboarding]);
+
+  const handleLogout = async () => {
+    await useAuthStore.getState().logout();
+    navigate('/login-ecosistema', { replace: true });
+  };
 
   const pendingAuths = onboardingRequests.filter(
     (r: OnboardingRequest) => r.status === 'pendiente' || r.status === 'en-revision'
@@ -131,14 +138,14 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Back to hub */}
-        <Link
-          to="/"
+        {/* Cerrar sesión */}
+        <button
+          onClick={handleLogout}
           className="mx-3 mt-3 flex items-center gap-2 rounded-lg border border-border/40 bg-card/40 px-3 py-2 text-xs font-medium text-muted-foreground transition-all hover:border-border/60 hover:bg-card hover:text-foreground"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Cambiar Entorno
-        </Link>
+          <LogOut className="h-3.5 w-3.5" />
+          Cerrar sesión
+        </button>
 
         {/* Nav items */}
         <nav className="flex-1 space-y-1 p-3">
@@ -196,10 +203,10 @@ export default function AdminDashboard() {
           </div>
           <span className="text-sm font-bold text-foreground">Admin Neggo</span>
         </div>
-        <Link to="/" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-          <ArrowLeft className="h-3 w-3" />
+        <button onClick={handleLogout} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+          <LogOut className="h-3 w-3" />
           Salir
-        </Link>
+        </button>
       </div>
 
       {/* ─── Main content ─── */}

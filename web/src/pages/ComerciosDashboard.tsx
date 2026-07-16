@@ -98,8 +98,13 @@ export default function ComerciosDashboard() {
       {/* ─── Isolated Comercios Sidebar ─── */}
       <WorkspaceSidebar
         brand={{
-          initials: 'NC',
-          name: 'Neggo Comercios',
+          initials: orgNameStatus === 'ready' && orgName ? orgName.slice(0, 2).toUpperCase() : 'NC',
+          name:
+            orgNameStatus === 'ready' && orgName
+              ? orgName
+              : orgNameStatus === 'error'
+                ? 'Error al cargar organización'
+                : 'Cargando organización...',
           subtitle: 'Portal Aliado B2B',
           icon: Store,
         }}
@@ -108,7 +113,6 @@ export default function ComerciosDashboard() {
         onNavigate={(key) => setActiveSection(key as ComercioSection)}
         footer={{ initials: currentComercio.nombre.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase(), name: currentComercio.nombre, role: currentComercio.plan === 'premium' ? 'Plan Premium' : 'Plan Básico' }}
         accent="emerald"
-        backToHubLabel="Cambiar Entorno"
       />
 
       {/* ─── Main Content ─── */}

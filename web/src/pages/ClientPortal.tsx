@@ -111,7 +111,6 @@ export default function ClientPortal() {
             : { initials: '··', name: 'Cargando sesión...', role: currentClient.type }
         }
         accent="cyan"
-        backToHubLabel="Cambiar Entorno"
       />
 
       {/* ─── Main Content ─── */}
