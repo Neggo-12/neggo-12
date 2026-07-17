@@ -31,7 +31,8 @@ ALTER TABLE fallos_app ENABLE ROW LEVEL SECURITY;
 -- ~6KB), así que el peor abuso posible es "muchas filas pequeñas", no un
 -- ataque de payload gigante. No hay UPDATE/DELETE expuestos — es un log de
 -- solo-inserción, de solo-lectura para Admin.
-CREATE POLICY "cualquiera_inserta_fallo"
+-- renombrada en la base, nombre real: cualquiera_inserta_fallos
+CREATE POLICY "cualquiera_inserta_fallos"
 ON fallos_app
 FOR INSERT
 TO authenticated, anon
