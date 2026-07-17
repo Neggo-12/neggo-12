@@ -265,10 +265,9 @@ export default function LandingHub() {
             accent="emerald"
             tag="Enterprise"
             benefits={[
-              "Pipeline de leads con scoring Datacrédito",
-              "Campañas comerciales con ROI en tiempo real",
-              "Alertas de riesgo y feedback automatizado",
-              "Asignación inteligente de ejecutivos",
+              "Scoring Datacrédito real, ya integrado",
+              "Tarifas por banco versionadas por periodo",
+              "Pipeline con estados reales (solicitudes_banca)",
             ]}
           />
 
@@ -280,10 +279,9 @@ export default function LandingHub() {
             accent="blue"
             tag="Growth"
             benefits={[
-              "Matching de leads por capacidad de compra",
-              "Visualización de interés hipotecario",
-              "Seguimiento de proyectos en tiempo real",
-              "Conexión directa con bancos aliados",
+              "Success Fee 2.25% sobre cierre, en producción",
+              "Algoritmo de equidad 40-30-20-10 en la distribución de leads",
+              "Matching por capacidad de compra real del cliente",
             ]}
           />
 
@@ -310,10 +308,10 @@ export default function LandingHub() {
             accent="amber"
             tag="Personal"
             benefits={[
-              "Campañas bancarias activas en un solo lugar",
-              "Proyectos inmobiliarios con precios reales",
-              "Simulación de crédito y capacidad de compra",
-              "Solicitudes directas sin intermediarios",
+              "Bóveda del Cliente con historial de compras",
+              "Ofertas comparadas de múltiples comercios",
+              "Código anti-phishing único por sesión",
+              "Banca privada con selector real de bancos aprobados",
             ]}
           />
         </div>
