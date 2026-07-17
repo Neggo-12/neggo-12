@@ -41,7 +41,6 @@ CREATE POLICY metricas_insert_authenticated ON metricas_rechazo FOR INSERT WITH 
 CREATE POLICY metricas_select_admin_only ON metricas_rechazo FOR SELECT USING (is_platform_admin());
 
 -- organizations
-CREATE POLICY org_insert_self ON organizations FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 CREATE POLICY org_update_members ON organizations FOR UPDATE USING ((id IN (SELECT user_org_ids() AS user_org_ids)) OR is_platform_admin());
 
 -- planes_comercio
@@ -50,7 +49,6 @@ CREATE POLICY planes_comercio_update_admin ON planes_comercio FOR UPDATE USING (
 
 -- proyectos
 CREATE POLICY proyectos_insert_owner ON proyectos FOR INSERT WITH CHECK (constructora_id = (auth.uid())::text);
-CREATE POLICY proyectos_select_public ON proyectos FOR SELECT USING (true);
 CREATE POLICY proyectos_update_owner ON proyectos FOR UPDATE USING (constructora_id = (auth.uid())::text) WITH CHECK (constructora_id = (auth.uid())::text);
 
 -- solicitudes_banca
@@ -59,7 +57,6 @@ CREATE POLICY solicitudes_select_cliente_o_banco ON solicitudes_banca FOR SELECT
 CREATE POLICY solicitudes_update_banco ON solicitudes_banca FOR UPDATE USING (is_platform_admin() OR (EXISTS (SELECT 1 FROM organizations o WHERE (o.id IN (SELECT user_org_ids() AS user_org_ids)) AND ((o.id = ANY (solicitudes_banca.bancos)) OR (o.name = ANY (solicitudes_banca.bancos))))));
 
 -- tarifas_bancos
-CREATE POLICY tarifas_bancos_select_all ON tarifas_bancos FOR SELECT USING (true);
 CREATE POLICY tarifas_bancos_update_admin ON tarifas_bancos FOR UPDATE USING (is_platform_admin()) WITH CHECK (is_platform_admin());
 
 -- users
