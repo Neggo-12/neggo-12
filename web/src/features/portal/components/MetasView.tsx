@@ -33,7 +33,7 @@ import {
   rechazarOferta,
 } from '@/core/db/repositories';
 import { SUBCATEGORIAS } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, formatCOPCompact } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useRejectionTracking } from '@/hooks/useRejectionTracking';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -51,11 +51,6 @@ const CATEGORY_CONFIG: Record<string, { icon: string; color: string; bgColor: st
   Computador: { icon: '💻', color: 'text-purple-400', bgColor: 'bg-purple-500/10 border-purple-500/20' },
   Remodelación: { icon: '🔨', color: 'text-rose-400', bgColor: 'bg-rose-500/10 border-rose-500/20' },
 };
-
-function formatCOP(value: number): string {
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-  return `$${value.toLocaleString('es-CO')}`;
-}
 
 function formatSubcatLabel(category: GoalCategory, subcatValue: string): string {
   const opts = SUBCATEGORIAS[category];
@@ -483,7 +478,7 @@ function GoalCard({
                 )}
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Meta: {formatCOP(goal.targetAmount)}
+                Meta: {formatCOPCompact(goal.targetAmount)}
                 {goal.metadataAdicional?.personas && (
                   <span className="ml-1.5 text-muted-foreground/60">
                     — {goal.metadataAdicional.personas} personas
@@ -525,7 +520,7 @@ function GoalCard({
               Progreso de ahorro
             </span>
             <span className="font-mono font-semibold text-foreground">
-              {formatCOP(goal.savedAmount)} / {formatCOP(goal.targetAmount)}
+              {formatCOPCompact(goal.savedAmount)} / {formatCOPCompact(goal.targetAmount)}
             </span>
           </div>
           <Progress
@@ -543,7 +538,7 @@ function GoalCard({
             <span className="text-muted-foreground">
               Faltan{' '}
               <span className="font-mono font-semibold text-foreground">
-                {formatCOP(remaining)}
+                {formatCOPCompact(remaining)}
               </span>
             </span>
             <span className="font-mono font-semibold text-foreground">{progressPercent}%</span>
@@ -556,7 +551,7 @@ function GoalCard({
             <Clock className="h-3 w-3" />
             Ahorro mensual:{' '}
             <span className="font-mono font-semibold text-foreground">
-              {formatCOP(goal.monthlyGoal)}
+              {formatCOPCompact(goal.monthlyGoal)}
             </span>
           </div>
 
@@ -931,7 +926,7 @@ function CompletedGoalCard({ goal, factura }: { goal: GoalMeta; factura?: Factur
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
           </div>
           <p className="text-[10px] text-muted-foreground">
-            Meta completada: {formatCOP(goal.targetAmount)}
+            Meta completada: {formatCOPCompact(goal.targetAmount)}
             {goal.completedAt && (
               <span className="ml-1 text-emerald-400/60">
                 — {new Date(goal.completedAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -950,7 +945,7 @@ function CompletedGoalCard({ goal, factura }: { goal: GoalMeta; factura?: Factur
           <span className="text-foreground font-medium">
             {factura.ofertas_comercios?.comercio_nombre ?? 'un comercio'}
           </span>
-          : {formatCOP(factura.monto)} el{' '}
+          : {formatCOPCompact(factura.monto)} el{' '}
           {new Date(factura.fecha_compra).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
         </p>
       )}
@@ -1053,11 +1048,11 @@ export default function MetasView() {
         </div>
         <div className="rounded-xl border border-border/40 bg-card/60 p-4 text-center">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Ahorro total</p>
-          <p className="text-2xl font-bold text-emerald-400 font-mono">{formatCOP(totalSaved)}</p>
+          <p className="text-2xl font-bold text-emerald-400 font-mono">{formatCOPCompact(totalSaved)}</p>
         </div>
         <div className="rounded-xl border border-border/40 bg-card/60 p-4 text-center">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Meta total</p>
-          <p className="text-2xl font-bold text-blue-400 font-mono">{formatCOP(totalTarget)}</p>
+          <p className="text-2xl font-bold text-blue-400 font-mono">{formatCOPCompact(totalTarget)}</p>
         </div>
       </div>
 

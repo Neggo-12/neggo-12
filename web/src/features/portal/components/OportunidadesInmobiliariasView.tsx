@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 // Production: proyectos are fetched from Supabase, not mock data
 const proyectos: ProyectoConstructora[] = [];
 import { useAuthStore } from '@/store/useAuthStore';
-import { cn } from '@/lib/utils';
+import { cn, formatCOPCompact } from '@/lib/utils';
 import { useRejectionTracking } from '@/hooks/useRejectionTracking';
 import { useClienteProfile } from '@/hooks/useClienteProfile';
 import type { ProyectoConstructora } from '@/types';
@@ -26,12 +26,6 @@ const TIPO_LABELS: Record<string, string> = {
   local: 'Local Comercial',
   oficina: 'Oficina',
 };
-
-function formatCOP(value: number): string {
-  if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}MMM`;
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(0)}M`;
-  return `$${value.toLocaleString('es-CO')}`;
-}
 
 // ───── Project Card ─────
 
@@ -124,7 +118,7 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
             Rango de Precios
           </p>
           <p className="text-xl font-bold font-mono text-purple-300 tracking-tight">
-            {formatCOP(proyecto.priceRangeMin)} — {formatCOP(proyecto.priceRangeMax)}
+            {formatCOPCompact(proyecto.priceRangeMin)} — {formatCOPCompact(proyecto.priceRangeMax)}
           </p>
         </div>
 
@@ -138,7 +132,7 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
               <PiggyBank className="h-3.5 w-3.5 text-blue-400 mx-auto" />
               <p className="text-[10px] text-muted-foreground">Separación</p>
               <p className="text-xs font-bold font-mono text-blue-400">
-                {formatCOP(proyecto.valorSeparacion)}
+                {formatCOPCompact(proyecto.valorSeparacion)}
               </p>
             </div>
             <div className="space-y-0.5">
@@ -342,7 +336,7 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
                     className="h-10 rounded-lg border-border/60 bg-secondary/50 text-sm font-mono text-center"
                   />
                   <p className="text-[9px] text-muted-foreground text-center italic">
-                    Valor de separación sugerido: {formatCOP(proyecto.valorSeparacion)}
+                    Valor de separación sugerido: {formatCOPCompact(proyecto.valorSeparacion)}
                   </p>
                 </div>
                 <div className="flex gap-2">

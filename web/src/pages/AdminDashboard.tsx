@@ -5,7 +5,7 @@ import KPICard from '@/components/KPICard';
 import SeguridadTab from '@/features/shared/components/SeguridadTab';
 import SaludSistemaPanel from '@/features/admin/components/SaludSistemaPanel';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
-import { cn } from '@/lib/utils';
+import { cn, formatCOP } from '@/lib/utils';
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -77,12 +77,6 @@ const adminSections = [
   { key: 'salud-sistema' as const, label: 'Salud del Sistema', icon: HeartPulse },
   ...(MFA_ENFORCEMENT_ENABLED ? [{ key: 'seguridad' as const, label: 'Seguridad', icon: Lock }] : []),
 ];
-
-// ───── helpers ─────
-
-function formatCOP(value: number): string {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
-}
 
 // ───── Main component ─────
 

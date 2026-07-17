@@ -1,6 +1,6 @@
 import { useAdminStore } from '@/features/admin/store/useAdminStore';
 import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
+import { cn, formatCOP } from '@/lib/utils';
 import {
   BarChart3,
   FileText,
@@ -20,15 +20,6 @@ const equityBars: { key: keyof AlgorithmEquity; label: string; color: string }[]
 ];
 
 // ───── Format helpers ─────
-
-function formatCOP(value: number): string {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();

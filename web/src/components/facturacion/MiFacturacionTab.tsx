@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronRight, ChevronDown, Receipt, Loader2, AlertTriangle, Clock, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, formatCOP } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   fetchFacturasMensualesByOrganization,
@@ -18,10 +18,6 @@ const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', '
 function formatPeriodo(periodo: string): string {
   const [year, month] = periodo.split('-');
   return `${MESES[Number(month) - 1] ?? month} ${year}`;
-}
-
-export function formatCOP(value: number): string {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
 }
 
 function formatDetalleProducto(detalle: unknown): string {

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Send, Loader2, AlertTriangle, Clock, CheckCircle2, XCircle, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn, formatCOP } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   fetchOfertasComercios,
@@ -21,10 +21,6 @@ const ESTADO_CONFIG: Record<string, { label: string; bg: string; text: string; b
 
 function formatFecha(iso: string): string {
   return new Date(iso).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function formatCOP(value: number): string {
-  return `$${value.toLocaleString('es-CO')} COP`;
 }
 
 function PropuestaRow({

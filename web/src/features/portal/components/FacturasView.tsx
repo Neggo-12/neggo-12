@@ -13,10 +13,7 @@ import {
 import { fetchFacturasCliente, getFacturaSignedUrl, type FacturaClienteConOferta } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
-
-function formatCOP(value: number): string {
-  return `$${value.toLocaleString('es-CO')} COP`;
-}
+import { formatCOP } from '@/lib/utils';
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
