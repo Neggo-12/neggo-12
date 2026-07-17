@@ -3,17 +3,15 @@ import {
   Building2,
   HomeIcon,
   UserCircle,
+  Store,
   Sparkles,
   TrendingUp,
   Shield,
   Zap,
-  Gauge,
-  Target,
   BarChart3,
   ArrowRight,
   CheckCircle2,
   Activity,
-  Users,
   ShieldCheck,
   Lock,
 } from "lucide-react";
@@ -62,7 +60,7 @@ interface AudienceCardProps {
   title: string;
   subtitle: string;
   benefits: string[];
-  accent: "emerald" | "blue" | "amber";
+  accent: "emerald" | "blue" | "amber" | "purple";
   tag: string;
 }
 
@@ -91,6 +89,14 @@ function AudienceCard({ to, icon: Icon, title, subtitle, benefits, accent, tag }
       accent: "bg-amber-500",
       tag: "bg-amber-500/10 text-amber-400 border-amber-500/20",
       line: "from-transparent via-amber-500/50 to-transparent",
+    },
+    purple: {
+      border: "border-purple-500/20 hover:border-purple-500/40",
+      glow: "hover:shadow-purple-500/10",
+      iconBg: "bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20",
+      accent: "bg-purple-500",
+      tag: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+      line: "from-transparent via-purple-500/50 to-transparent",
     },
   }[accent];
 
@@ -123,13 +129,13 @@ function AudienceCard({ to, icon: Icon, title, subtitle, benefits, accent, tag }
         <ul className="space-y-2.5 mb-6">
           {benefits.map((b) => (
             <li key={b} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-              <CheckCircle2 className={cn("h-4 w-4 shrink-0 mt-0.5", accent === "emerald" ? "text-emerald-400" : accent === "blue" ? "text-blue-400" : "text-amber-400")} />
+              <CheckCircle2 className={cn("h-4 w-4 shrink-0 mt-0.5", accent === "emerald" ? "text-emerald-400" : accent === "blue" ? "text-blue-400" : accent === "amber" ? "text-amber-400" : "text-purple-400")} />
               <span>{b}</span>
             </li>
           ))}
         </ul>
 
-        <div className="mt-auto flex items-center gap-2 text-sm font-semibold transition-colors" style={{ color: accent === "emerald" ? "hsl(160 84% 39%)" : accent === "blue" ? "hsl(217 91% 60%)" : "hsl(38 92% 50%)" }}>
+        <div className="mt-auto flex items-center gap-2 text-sm font-semibold transition-colors" style={{ color: accent === "emerald" ? "hsl(160 84% 39%)" : accent === "blue" ? "hsl(217 91% 60%)" : accent === "amber" ? "hsl(38 92% 50%)" : "hsl(271 91% 65%)" }}>
           <span>Explorar plataforma</span>
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </div>
@@ -243,14 +249,14 @@ export default function LandingHub() {
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-20">
         <div className="text-center mb-10">
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground font-semibold mb-3">
-            Tres plataformas, un ecosistema
+            Cuatro plataformas, un ecosistema
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
             Elige tu perfil
           </h2>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <AudienceCard
             to="/landing/bancos"
             icon={Building2}
@@ -282,6 +288,21 @@ export default function LandingHub() {
           />
 
           <AudienceCard
+            to="/corporativo/comercios"
+            icon={Store}
+            title="Soy un Comercio"
+            subtitle="Canal de crecimiento con clientes ya verificados, Sello de Confianza y notificaciones en tiempo real cuando responden tus ofertas."
+            accent="purple"
+            tag="Aliado"
+            benefits={[
+              "Sello de Confianza Neggo verificado por Admin",
+              "Comisión transparente según tu plan de negociación",
+              "Notificación en tiempo real al responder una oferta",
+              "Conexión directa con clientes del ecosistema",
+            ]}
+          />
+
+          <AudienceCard
             to="/landing/clientes"
             icon={UserCircle}
             title="Soy Cliente"
@@ -305,10 +326,10 @@ export default function LandingHub() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {[
-              { icon: Shield, label: "Cumplimiento", value: "100%", desc: "Normativa financiera" },
-              { icon: Gauge, label: "Latencia", value: "<50ms", desc: "API Core" },
-              { icon: Target, label: "Precisión", value: "99.7%", desc: "Scoring Datacrédito" },
-              { icon: Users, label: "Bancos", value: "6+", desc: "En plataforma" },
+              { icon: Lock, label: "Autenticación", value: "MFA", desc: "TOTP obligatorio en cuentas B2B" },
+              { icon: Shield, label: "Tablas con RLS", value: "24", desc: "37 políticas de seguridad auditadas" },
+              { icon: Zap, label: "Notificaciones", value: "Realtime", desc: "Eventos entregados al instante" },
+              { icon: ShieldCheck, label: "Registro Validado", value: "Ley 1581", desc: "Protección de datos personales" },
             ].map((item) => (
               <div key={item.label} className="flex flex-col items-center text-center gap-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border/40">
@@ -362,6 +383,7 @@ export default function LandingHub() {
             <div className="flex items-center gap-6">
               <Link to="/landing/bancos" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Bancos</Link>
               <Link to="/landing/constructoras" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Constructoras</Link>
+              <Link to="/corporativo/comercios" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Comercios</Link>
               <Link to="/landing/clientes" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Clientes</Link>
               <Link to="/login-ecosistema" className="text-xs text-muted-foreground hover:text-emerald-400 transition-colors">Acceso Seguro</Link>
             </div>
