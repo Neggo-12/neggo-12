@@ -1487,20 +1487,21 @@ export async function insertMeInteresaDestinatarios(
   return { error: null };
 }
 
-/** Fetches approved banks (`organizations` with `type='banco'`) for the Banca Privada selector. */
+/**
+ * Bancos aprobados para el selector de Banca Privada — vía RPC
+ * bancos_aprobados_publicos() (SECURITY DEFINER, expone solo id+name) en vez
+ * de un SELECT directo sobre organizations, que trae columnas con PII
+ * (nit, representante_legal) y se lee desde pantallas sin sesión
+ * (registro, login). Callable por anon y authenticated.
+ */
 export async function fetchBancosAprobados(): Promise<{
   data: { id: string; name: string }[] | null;
   error: string | null;
 }> {
   if (!supabase) return { data: null, error: NOT_CONFIGURED };
-  const { data, error } = await supabase
-    .from('organizations')
-    .select('id, name')
-    .eq('type', 'banco')
-    .eq('status', 'approved')
-    .order('name', { ascending: true });
+  const { data, error } = await supabase.rpc('bancos_aprobados_publicos');
   if (error) return { data: null, error: errMessage(error) };
-  return { data: data ?? [], error: null };
+  return { data: (data ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)), error: null };
 }
 
 export interface ComerciosMatchInput {

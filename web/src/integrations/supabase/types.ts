@@ -1096,6 +1096,10 @@ export type Database = {
       }
     }
     Functions: {
+      bancos_aprobados_publicos: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: string; name: string }[]
+      }
       resolve_organization_ids_for_users: {
         Args: { p_user_ids: string[] }
         Returns: { user_id: string; organization_id: string }[]
