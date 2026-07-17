@@ -10,6 +10,7 @@ import {
   getLastLoginSession,
   clearLastLoginSession,
 } from '@/core/domain/auth/authService';
+import { logFalloApp } from '@/core/infrastructure/fallosApp';
 import type {
   LoginInput,
   AuthSession,
@@ -133,7 +134,16 @@ export const useAuthStore = create<AuthState>()(
         const wasAuthenticated = get().session !== null;
         set({ session: null });
         if (wasAuthenticated) {
-          await authServiceLogout();
+          // Fire-and-forget: no esperar el round-trip de red antes de
+          // devolver el control — RequireRole/RequireAdmin ven session=null
+          // de inmediato y, si signOut() tarda, alcanzan a mostrar "acceso
+          // denegado" antes de que el caller (WorkspaceSidebar/AdminDashboard)
+          // navegue lejos. El catch solo registra un fallo silencioso (el
+          // JWT de Supabase Auth podría no limpiarse del localStorage si
+          // signOut() falla) — nunca bloquea ni afecta la navegación.
+          void authServiceLogout().catch((err) => {
+            logFalloApp('logout', err instanceof Error ? err.message : 'Fallo desconocido al cerrar sesión', err);
+          });
         }
       },
 
