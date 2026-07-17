@@ -17,7 +17,6 @@ import LandingBancos from "./pages/LandingBancos";
 import LandingConstructoras from "./pages/LandingConstructoras";
 import LandingClientes from "./pages/LandingClientes";
 import CorporativoComercios from "./pages/CorporativoComercios";
-import HomePage from "./pages/Home";
 import BankDashboard from "./pages/BankDashboard";
 import ConstructorasDashboard from "./pages/ConstructorasDashboard";
 import ClientPortal from "./pages/ClientPortal";
@@ -183,7 +182,6 @@ const App = () => (
             <Route path="/corporativo/comercios" element={<CorporativoComercios />} />
 
             {/* Workspaces — each self-contained with its own sidebar */}
-            <Route path="/app" element={<HomePage />} />
             <Route
               path="/banca"
               element={

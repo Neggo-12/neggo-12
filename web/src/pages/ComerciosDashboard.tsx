@@ -25,12 +25,12 @@ type ComercioSection = 'dashboard' | 'oportunidades' | 'mis-propuestas' | 'suscr
 
 const COMERCIO_SECTIONS: SidebarNavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: Store },
-  { key: 'oportunidades', label: 'Oportunidades IFC', icon: Radio, badge: 3 },
+  { key: 'oportunidades', label: 'Oportunidades IFC', icon: Radio },
   { key: 'mis-propuestas', label: 'Mis Propuestas', icon: Send },
   { key: 'suscripcion', label: 'Suscripción', icon: CreditCard },
   { key: 'solicitudes', label: 'Solicitudes (Me Interesa)', icon: Inbox },
   { key: 'mi-facturacion', label: 'Mi Facturación', icon: Receipt },
-  { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText, badge: 5 },
+  { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText },
   { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: TrendingDown },
   ...(MFA_ENFORCEMENT_ENABLED ? [{ key: 'seguridad', label: 'Seguridad', icon: Lock }] : []),
 ];
