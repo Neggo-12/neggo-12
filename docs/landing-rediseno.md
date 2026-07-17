@@ -1,6 +1,6 @@
-# Rediseño LandingHub — plan aprobado, pendiente de ejecución
+# Rediseño LandingHub — ✅ COMPLETADO
 
-Diagnóstico hecho el 2026-07-17 sobre `web/src/pages/LandingHub.tsx` (home público de Neggo). Puntos 1 y 2 ya implementados y probados (`tsc`/tests/lint limpios); 3 y 4 quedan pendientes para la próxima sesión.
+Diagnóstico hecho el 2026-07-17 sobre `web/src/pages/LandingHub.tsx` (home público de Neggo). Los 4 puntos del plan quedaron implementados y probados (`tsc`/tests/lint limpios en cada ronda). El H1 del hero también se actualizó para reflejar las 4 verticales (Comercios había quedado fuera al agregar su tarjeta).
 
 ## 1. Agregar la 4ta tarjeta faltante: "Soy un Comercio" — ✅ COMPLETADO
 
@@ -18,31 +18,37 @@ Implementado (mismo patrón visual: ícono + valor en mono + label + descripció
 - Realtime — "Eventos entregados al instante" (notificaciones).
 - Ley 1581 — "Registro validado, protección de datos personales".
 
-## 3. Reemplazar beneficios genéricos por diferenciadores reales, por vertical — PENDIENTE
+## 3. Reemplazar beneficios genéricos por diferenciadores reales, por vertical — ✅ COMPLETADO
 
-**Bancos:**
-- Scoring Datacrédito real (no simulado).
-- Success Fee 2.25% versionado por tarifa (histórico de cambios, nunca se pisa una tarifa vieja).
-- Pipeline con estados reales (`solicitudes_banca`), no una demo.
+**Bancos** (3 bullets):
+- Scoring Datacrédito real, ya integrado.
+- Tarifas por banco versionadas por periodo.
+- Pipeline con estados reales (`solicitudes_banca`).
 
-**Constructoras:**
-- Algoritmo de equidad 40-30-20-10 para distribución de leads entre proyectos.
-- Matching por capacidad de compra real del cliente, no un formulario genérico.
+**Constructoras** (3 bullets):
+- Success Fee 2.25% sobre cierre, en producción.
+- Algoritmo de equidad 40-30-20-10 en la distribución de leads.
+- Matching por capacidad de compra real del cliente.
 
-**Comercios:**
-- Sello de Confianza Neggo (verificación real, emitido por Admin — no autodeclarado).
-- Comisión transparente por plan de negociación (`planes_comercio`).
-- Notificación en tiempo real (Realtime) al responder una oferta — el comercio se entera al instante, sin recargar.
+**Comercios** (4 bullets — ya estaban consistentes en tono, sin cambios):
+- Sello de Confianza Neggo verificado por Admin.
+- Comisión transparente según tu plan de negociación.
+- Notificación en tiempo real al responder una oferta.
+- Conexión directa con clientes del ecosistema.
 
-**Clientes:**
-- Bóveda del Cliente (facturas reales asociadas a sus compras).
-- Ofertas comparadas de múltiples bancos/comercios en un solo lugar.
-- Código anti-phishing único por sesión, derivado del id real del cliente (no compartido entre usuarios).
-- Banca privada con selector de bancos aprobados real (vía RPC `bancos_aprobados_publicos`, no un listado hardcodeado).
+**Clientes** (4 bullets):
+- Bóveda del Cliente con historial de compras.
+- Ofertas comparadas de múltiples comercios.
+- Código anti-phishing único por sesión.
+- Banca privada con selector real de bancos aprobados.
 
-## 4. Decisión sobre el hero: quitar el conteo mock — PENDIENTE
+## 4. Decisión sobre el hero: quitar el conteo mock — ✅ COMPLETADO
 
-El hero hoy calcula sus `AnimatedStat` (`totalLeads`, `avgScore`, `activeCampaigns + activeProjects`) desde `leads`, `campaigns`, `proyectos`, `leadsInmobiliarios` importados de `@/data/mock` — datos ficticios, no reales. Decisión: **quitar el conteo**, no inventar una cifra ni conectar una fuente real todavía (no existe hoy una vista/RPC pública agregada para esto). Reemplazar por copy cualitativo en su lugar — mismo criterio de honestidad ya aplicado en el resto de la auditoría (portal de clientes, badges de navegación, RLS).
+El hero calculaba `AnimatedStat` (`totalLeads`, `avgScore`, `activeCampaigns + activeProjects`) desde `leads`, `campaigns`, `proyectos`, `leadsInmobiliarios` importados de `@/data/mock` — datos ficticios, no reales.
+
+Implementado: se quitó el conteo por completo (sin inventar cifra ni conectar una fuente real todavía — no existe hoy una vista/RPC pública agregada para esto), junto con `useAnimatedValue`, `AnimatedStat`, el import de `@/data/mock` y `useState`/`useEffect` (quedaron sin otro uso en el archivo). Reemplazado por 3 afirmaciones cualitativas cortas ("Un solo ecosistema, cuatro sectores conectados", "Seguridad de nivel bancario, auditada", "Match en tiempo real entre oferta y demanda") — mismo criterio de honestidad ya aplicado en el resto de la auditoría (portal de clientes, badges de navegación, RLS).
+
+Además, se actualizó el H1 del hero ("El sistema operativo que conecta bancos, constructoras, comercios y clientes") — había quedado desactualizado sin mencionar Comercios desde que se agregó esa vertical en el punto 1.
 
 ## 5. Sistema de diseño — reutilizar, no crear nada nuevo
 

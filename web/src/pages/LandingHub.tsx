@@ -16,42 +16,6 @@ import {
   Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { leads, campaigns, proyectos, leadsInmobiliarios } from "@/data/mock";
-import { useState, useEffect } from "react";
-
-// ── Animated counter hook ─────────────────────────────────────
-function useAnimatedValue(value: number, duration = 900) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    const steps = 30;
-    const increment = value / steps;
-    let current = 0;
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= value) {
-        setDisplay(value);
-        clearInterval(timer);
-      } else {
-        setDisplay(Math.floor(current));
-      }
-    }, duration / steps);
-    return () => clearInterval(timer);
-  }, [value, duration]);
-  return display;
-}
-
-function AnimatedStat({ value, suffix = "", label }: { value: number; suffix?: string; label: string }) {
-  const display = useAnimatedValue(value);
-  return (
-    <div className="text-center">
-      <div className="text-3xl font-extrabold font-mono text-foreground sm:text-4xl">
-        {display.toLocaleString()}
-        {suffix}
-      </div>
-      <div className="text-xs uppercase tracking-wider text-muted-foreground mt-1">{label}</div>
-    </div>
-  );
-}
 
 // ── Audience Card ─────────────────────────────────────────────
 interface AudienceCardProps {
@@ -146,13 +110,6 @@ function AudienceCard({ to, icon: Icon, title, subtitle, benefits, accent, tag }
 
 // ── Landing Hub ───────────────────────────────────────────────
 export default function LandingHub() {
-  const totalLeads = leads.length + leadsInmobiliarios.length;
-  const activeCampaigns = campaigns.filter((c) => c.status === "activa").length;
-  const activeProjects = proyectos.filter((p) => p.status === "activo").length;
-  const avgScore = Math.round(
-    [...leads, ...leadsInmobiliarios].reduce((s, l) => s + l.score, 0) / (totalLeads || 1)
-  );
-
   return (
     <div className="min-h-screen bg-background">
       {/* ═════════════════════════════════════════════════════════
@@ -223,7 +180,7 @@ export default function LandingHub() {
           <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-6xl lg:text-7xl max-w-4xl mx-auto leading-[1.1]">
             El sistema operativo que{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-300 to-blue-400">
-              conecta bancos, constructoras y clientes
+              conecta bancos, constructoras, comercios y clientes
             </span>
           </h1>
 
@@ -232,13 +189,18 @@ export default function LandingHub() {
             y matching inmobiliario. Todo en una plataforma diseñada para mover dinero y decisiones.
           </p>
 
-          {/* Stats strip */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-8 sm:gap-12">
-            <AnimatedStat value={totalLeads} suffix="+" label="Leads procesados" />
-            <div className="hidden sm:block h-8 w-px bg-border/50" />
-            <AnimatedStat value={avgScore} label="Score promedio" />
-            <div className="hidden sm:block h-8 w-px bg-border/50" />
-            <AnimatedStat value={activeCampaigns + activeProjects} label="Campañas activas" />
+          {/* Value props strip */}
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 sm:gap-x-12">
+            {[
+              "Un solo ecosistema, cuatro sectores conectados",
+              "Seguridad de nivel bancario, auditada",
+              "Match en tiempo real entre oferta y demanda",
+            ].map((claim) => (
+              <div key={claim} className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                <span>{claim}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
