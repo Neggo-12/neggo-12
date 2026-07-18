@@ -34,6 +34,8 @@ import {
   Lock,
   HeartPulse,
   LogOut,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Fragment, useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -90,6 +92,7 @@ export default function AdminDashboard() {
     refreshOnboarding,
   } = useAdminStore();
   const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Re-fetch en cada montaje para ver los nuevos registros en tiempo real
   useEffect(() => {
@@ -119,8 +122,21 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background flex">
+      {/* Mobile overlay — dims the content and closes the menu on click outside */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
       {/* ─── Internal Admin Sidebar ─── */}
-      <aside className="hidden lg:flex flex-col w-64 border-r border-border/40 bg-card/50 shrink-0">
+      <aside
+        className={cn(
+          'fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-border/40 bg-card/50 shrink-0 transition-transform lg:translate-x-0',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
         {/* Brand */}
         <div className="flex items-center gap-3 h-16 border-b border-border/40 px-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20">
@@ -152,7 +168,10 @@ export default function AdminDashboard() {
             return (
               <button
                 key={section.key}
-                onClick={() => setActiveSection(section.key)}
+                onClick={() => {
+                  setActiveSection(section.key);
+                  setMobileOpen(false);
+                }}
                 className={cn(
                   'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all text-left',
                   isActive
@@ -192,6 +211,13 @@ export default function AdminDashboard() {
       {/* Mobile header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-30 border-b border-border/40 bg-card/95 backdrop-blur-xl px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMobileOpen((prev) => !prev)}
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-border/40 text-muted-foreground hover:text-foreground"
+            aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
+          >
+            {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20">
             <ShieldCheck className="h-3.5 w-3.5 text-red-400" />
           </div>
@@ -204,7 +230,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Main content ─── */}
-      <div className="flex-1 min-w-0 overflow-y-auto">
+      <div className="flex-1 min-w-0 overflow-y-auto lg:pl-64">
         <div className="pt-16 lg:pt-0 p-4 sm:p-6 lg:p-8 space-y-6 animate-fade-in">
           {/* KPIs — always visible */}
           <KPIBar metrics={ecosistemaMetrics} />
