@@ -29,3 +29,17 @@ export function reportDbError(message: string, rawError?: unknown): void {
     extra: { message, rawError },
   });
 }
+
+/**
+ * Reporta a Sentry un error no manejado capturado por el Error Boundary de
+ * React (ej. un chunk lazy que falla al cargar tras un deploy nuevo mientras
+ * la pestaña estaba descargada de memoria). No-op cuando Sentry no está activo.
+ */
+export function reportReactError(error: unknown, componentStack?: string | null): void {
+  if (!isSentryConfigured || !import.meta.env.PROD) return;
+  const err = error instanceof Error ? error : new Error(String(error));
+  Sentry.captureException(err, {
+    tags: { source: 'error-boundary' },
+    extra: { componentStack },
+  });
+}
