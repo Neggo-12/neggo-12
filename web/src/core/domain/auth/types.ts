@@ -111,3 +111,14 @@ export interface PasswordResetResult {
   success: boolean;
   error?: string;
 }
+
+/**
+ * Result of confirming a password reset (updateUser with the new password).
+ * Supabase rejects this with `insufficient_aal` when the account has a
+ * verified TOTP factor — the recovery session is only aal1, and changing
+ * the password requires aal2. Same shape/intent as LoginResult's MFA fields.
+ */
+export interface ConfirmPasswordResetResult extends PasswordResetResult {
+  requiresMfaChallenge?: boolean;
+  mfaFactorId?: string;
+}

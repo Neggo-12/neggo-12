@@ -26,6 +26,7 @@ import type {
   RegisterResult,
   RestoreResult,
   PasswordResetResult,
+  ConfirmPasswordResetResult,
   AuthSession,
 } from '@/core/domain/auth/types';
 
@@ -514,13 +515,26 @@ export async function hasActiveSession(): Promise<boolean> {
   return data.session !== null;
 }
 
-/** Fija la nueva contraseña sobre la sesión de recuperación activa. */
-export async function confirmPasswordReset(newPassword: string): Promise<PasswordResetResult> {
+/**
+ * Fija la nueva contraseña sobre la sesión de recuperación activa. Supabase
+ * exige aal2 para cambiar la contraseña cuando la cuenta tiene MFA — la
+ * sesión de recuperación por link de correo solo llega a aal1, así que
+ * rechaza con `insufficient_aal` (mismo patrón que login(), arriba).
+ */
+export async function confirmPasswordReset(newPassword: string): Promise<ConfirmPasswordResetResult> {
   if (!supabase) {
     return { success: false, error: 'Base de datos no configurada.' };
   }
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) {
+    const code = (error as { code?: string }).code;
+    if (code === 'insufficient_aal') {
+      const { factors } = await listFactors();
+      const verifiedFactor = factors.find((f) => f.status === 'verified');
+      if (verifiedFactor) {
+        return { success: false, requiresMfaChallenge: true, mfaFactorId: verifiedFactor.id };
+      }
+    }
     return { success: false, error: errMessage(error, 'No se pudo actualizar la contraseña.') };
   }
   return { success: true };

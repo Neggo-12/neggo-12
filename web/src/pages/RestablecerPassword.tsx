@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { KeyRound, Eye, EyeOff, CheckCircle2, AlertCircle, ShieldCheck, Loader2, Sparkles } from 'lucide-react';
+import { KeyRound, Eye, EyeOff, CheckCircle2, AlertCircle, ShieldCheck, Loader2, Sparkles, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,9 +11,10 @@ import {
   hasActiveSession,
   confirmPasswordReset,
 } from '@/core/domain/auth/authService';
+import { challengeAndVerify } from '@/core/domain/auth/mfaService';
 import { cn } from '@/lib/utils';
 
-type FlowStatus = 'checking' | 'ready' | 'invalid' | 'done';
+type FlowStatus = 'checking' | 'ready' | 'mfa' | 'invalid' | 'done';
 
 // ───── Password Field with toggle visibility (mismo patrón que LoginEcosistema) ─────
 
@@ -67,6 +68,9 @@ export default function RestablecerPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaSubmitting, setMfaSubmitting] = useState(false);
 
   useEffect(() => {
     // Supabase agrega error/error_description al hash cuando el link de
@@ -118,6 +122,15 @@ export default function RestablecerPassword() {
       setSubmitting(true);
       const result = await confirmPasswordReset(password);
       setSubmitting(false);
+
+      if (!result.success && result.requiresMfaChallenge && result.mfaFactorId) {
+        // La cuenta tiene MFA activo — la sesión de recuperación por correo
+        // solo llega a aal1, hace falta subir a aal2 antes de reintentar.
+        setMfaFactorId(result.mfaFactorId);
+        setStatus('mfa');
+        return;
+      }
+
       if (!result.success) {
         toast.error('No se pudo actualizar la contraseña', { description: result.error });
         return;
@@ -126,6 +139,34 @@ export default function RestablecerPassword() {
       setTimeout(() => navigate('/login-ecosistema', { replace: true }), 2500);
     },
     [canSubmit, password, navigate],
+  );
+
+  const handleMfaSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!mfaFactorId || mfaCode.trim().length !== 6 || mfaSubmitting) return;
+      setMfaSubmitting(true);
+
+      const { error: mfaError } = await challengeAndVerify(mfaFactorId, mfaCode.trim());
+      if (mfaError) {
+        setMfaSubmitting(false);
+        toast.error('Código inválido', { description: mfaError });
+        return;
+      }
+
+      // aal2 ya está establecida — reintenta con la misma contraseña que el
+      // usuario ya escribió, sin pedírsela de nuevo.
+      const result = await confirmPasswordReset(password);
+      setMfaSubmitting(false);
+
+      if (!result.success) {
+        toast.error('No se pudo actualizar la contraseña', { description: result.error });
+        return;
+      }
+      setStatus('done');
+      setTimeout(() => navigate('/login-ecosistema', { replace: true }), 2500);
+    },
+    [mfaFactorId, mfaCode, mfaSubmitting, password, navigate],
   );
 
   return (
@@ -230,6 +271,47 @@ export default function RestablecerPassword() {
                   </>
                 ) : (
                   'Actualizar contraseña'
+                )}
+              </Button>
+            </form>
+          )}
+
+          {status === 'mfa' && (
+            <form onSubmit={handleMfaSubmit} className="space-y-5 animate-fade-in">
+              <div className="text-center mb-2">
+                <h1 className="text-lg font-bold text-foreground mb-1">Verificación adicional</h1>
+                <p className="text-sm text-muted-foreground">
+                  Tu cuenta tiene verificación en dos pasos activa. Ingresa el código de 6 dígitos de tu
+                  app de autenticación para confirmar el cambio de contraseña.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Código de verificación
+                </Label>
+                <Input
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm text-center tracking-widest"
+                  autoFocus
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={mfaSubmitting || mfaCode.trim().length !== 6}
+                className="w-full h-11 rounded-xl"
+              >
+                {mfaSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Verificando...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Verificar y actualizar contraseña
+                  </>
                 )}
               </Button>
             </form>
