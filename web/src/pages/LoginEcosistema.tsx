@@ -12,7 +12,6 @@ import {
   Loader2,
   ArrowLeft,
   Lock,
-  Crown,
   Eye,
   EyeOff,
   Mail,
@@ -1704,9 +1703,19 @@ function B2CPortal() {
 
 // ───── Main Page ─────
 
-export default function LoginEcosistema() {
+/**
+ * `initialB2bAuthMode` permite que una ruta distinta (ej. el acceso interno
+ * de Admin) precargue el formulario de login B2B ya en modo "login" — es
+ * exactamente el mismo formulario/lógica de siempre, solo cambia el punto
+ * de entrada. La seguridad real (contraseña + MFA) no cambia en nada.
+ */
+export default function LoginEcosistema({
+  initialB2bAuthMode = "register",
+}: {
+  initialB2bAuthMode?: AuthMode;
+} = {}) {
   const [activeTab, setActiveTab] = useState<LoginTab>("b2b");
-  const [b2bAuthMode, setB2bAuthMode] = useState<AuthMode>("register");
+  const [b2bAuthMode, setB2bAuthMode] = useState<AuthMode>(initialB2bAuthMode);
 
   return (
     <div className="min-h-screen bg-background">
@@ -1767,8 +1776,8 @@ export default function LoginEcosistema() {
               )}
             >
               <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Portales de Negocio B2B</span>
-              <span className="sm:hidden">B2B</span>
+              <span className="hidden sm:inline">Soy un negocio</span>
+              <span className="sm:hidden">Negocio</span>
               {activeTab === "b2b" && (
                 <div className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-blue-500 shadow-[0_0_8px_hsl(217_91%_60%/0.5)]" />
               )}
@@ -1784,8 +1793,8 @@ export default function LoginEcosistema() {
               )}
             >
               <UserCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Portal Clientes B2C</span>
-              <span className="sm:hidden">B2C</span>
+              <span className="hidden sm:inline">Soy cliente</span>
+              <span className="sm:hidden">Cliente</span>
               {activeTab === "b2c" && (
                 <div className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-cyan-500 shadow-[0_0_8px_hsl(189_94%_43%/0.5)]" />
               )}
@@ -1799,24 +1808,6 @@ export default function LoginEcosistema() {
             )}
             {activeTab === "b2c" && <B2CPortal />}
           </div>
-        </div>
-
-        {/* ── Admin login link (routes through the same authService.login() flow) ── */}
-        <div className="mt-8 flex items-center justify-center">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("b2b");
-              setB2bAuthMode("login");
-            }}
-            className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-card/40 px-5 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-slate-500/40 hover:bg-card/60 transition-all duration-200"
-          >
-            <Crown className="h-4 w-4 text-slate-400" />
-            <span className="font-semibold">Iniciar sesión Admin Neggo</span>
-            <span className="text-[10px] text-muted-foreground/50">
-              — requiere cuenta con rol Admin
-            </span>
-          </button>
         </div>
 
         {/* ── Security footer ── */}

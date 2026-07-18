@@ -230,6 +230,12 @@ const App = () => (
                 account for the master admin; never grants the Admin role. */}
             <Route path="/admin-signup" element={<AdminSignup />} />
 
+            {/* Unlinked on purpose — no navbar/footer link anywhere in the
+                public site. Same exact login form/logic as /login-ecosistema
+                (just pre-set to the B2B login tab) — password + MFA are the
+                real security boundary, this route is only obscurity on top. */}
+            <Route path="/neggo-panel-interno" element={<LoginEcosistema initialB2bAuthMode="login" />} />
+
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
