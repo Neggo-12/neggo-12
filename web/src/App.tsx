@@ -24,6 +24,7 @@ import ComerciosDashboard from "./pages/ComerciosDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminSignup from "./pages/AdminSignup";
 import LoginEcosistema from "./pages/LoginEcosistema";
+import RestablecerPassword from "./pages/RestablecerPassword";
 import NotFound from "./pages/NotFound";
 import PoliticaDatos from "./pages/PoliticaDatos";
 import RequireAdmin from "@/components/RequireAdmin";
@@ -225,6 +226,7 @@ const App = () => (
 
             {/* Auth / Login */}
             <Route path="/login-ecosistema" element={<LoginEcosistema />} />
+            <Route path="/restablecer-password" element={<RestablecerPassword />} />
 
             {/* Unlinked — reachable only by typing the URL. Creates the base
                 account for the master admin; never grants the Admin role. */}

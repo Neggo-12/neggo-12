@@ -44,10 +44,18 @@ function dashboardRouteForRole(role: string): string {
   return ROLE_ROUTES[role] ?? '/';
 }
 
+/**
+ * Nunca deja pasar un objeto serializado como si fuera un mensaje legible
+ * (ej. "{}", "[object Object]", o vacío) — algunos errores de Supabase
+ * llegan con `message` así de mal formado; en esos casos usa el fallback.
+ */
 function errMessage(error: unknown, fallback = 'Ocurrió un error inesperado.'): string {
   if (error && typeof error === 'object' && 'message' in error) {
     const msg = (error as { message?: unknown }).message;
-    if (typeof msg === 'string') return msg;
+    const trimmed = typeof msg === 'string' ? msg.trim() : '';
+    if (trimmed !== '' && trimmed !== '{}' && trimmed !== '[object Object]') {
+      return trimmed;
+    }
   }
   return fallback;
 }
@@ -451,15 +459,69 @@ export async function registerAdminMaster(
 
 // ───── Password reset ─────
 
+const PASSWORD_RESET_INFRA_ERROR = 'No pudimos procesar tu solicitud, intenta de nuevo.';
+
+/**
+ * SIEMPRE responde éxito cuando Supabase efectivamente respondió — nunca
+ * revela si el correo existe o no (ni ningún otro detalle: rate limiting,
+ * redirectTo mal configurado, etc.), para no permitir enumerar cuentas
+ * reales. El único caso que se reporta como error real es que la solicitud
+ * ni siquiera haya llegado a Supabase (sin conexión, Supabase caído). Los
+ * errores que sí devuelve Supabase se registran para observabilidad interna
+ * (fallos_app), nunca se muestran al usuario.
+ */
 export async function requestPasswordReset(email: string): Promise<PasswordResetResult> {
+  if (!supabase) {
+    return { success: false, error: PASSWORD_RESET_INFRA_ERROR };
+  }
+  const redirectTo =
+    typeof window !== 'undefined' ? `${window.location.origin}/restablecer-password` : undefined;
+
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) {
+      logFalloApp('request_password_reset', errMessage(error), error);
+    }
+    return { success: true };
+  } catch (err) {
+    logFalloApp('request_password_reset', 'Excepción no controlada', err);
+    return { success: false, error: PASSWORD_RESET_INFRA_ERROR };
+  }
+}
+
+/**
+ * Escucha el evento PASSWORD_RECOVERY que Supabase emite al procesar el link
+ * de recuperación del correo (ver GoTrueClient.onAuthStateChange). Devuelve
+ * la función de limpieza de la suscripción — llamar en el cleanup del efecto.
+ */
+export function onPasswordRecovery(callback: () => void): () => void {
+  if (!supabase) return () => {};
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') callback();
+  });
+  return () => subscription.unsubscribe();
+}
+
+/**
+ * true si ya existe una sesión activa — red de seguridad para el caso donde
+ * el evento PASSWORD_RECOVERY ya disparó antes de que el componente alcanzara
+ * a suscribirse (detectSessionInUrl procesa el hash de la URL apenas se crea
+ * el cliente, que puede ocurrir antes del primer render de React).
+ */
+export async function hasActiveSession(): Promise<boolean> {
+  if (!supabase) return false;
+  const { data } = await supabase.auth.getSession();
+  return data.session !== null;
+}
+
+/** Fija la nueva contraseña sobre la sesión de recuperación activa. */
+export async function confirmPasswordReset(newPassword: string): Promise<PasswordResetResult> {
   if (!supabase) {
     return { success: false, error: 'Base de datos no configurada.' };
   }
-  const redirectTo =
-    typeof window !== 'undefined' ? `${window.location.origin}/login-ecosistema` : undefined;
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) {
-    return { success: false, error: errMessage(error, 'No se pudo enviar el correo.') };
+    return { success: false, error: errMessage(error, 'No se pudo actualizar la contraseña.') };
   }
   return { success: true };
 }
