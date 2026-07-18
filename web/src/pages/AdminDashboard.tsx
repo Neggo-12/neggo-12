@@ -267,28 +267,6 @@ export default function AdminDashboard() {
                 icon={Home}
                 statusLabel="Estado Fiduciario"
               />
-              {/* Fase 3 placeholder */}
-              <div className="rounded-xl border border-border/40 bg-card/50 p-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 border border-purple-500/20">
-                    <Home className="h-5 w-5 text-purple-400" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-foreground">
-                      Módulo Fiduciario & Matriz de Átomos
-                    </h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Listo para vinculación de desglose inmobiliario en la <span className="font-semibold text-purple-400">Fase 3</span>.
-                      Este módulo permitirá la trazabilidad de cada unidad vendida, la auditoría de fiducia en tiempo real
-                      y la matriz de átomos para desagregar proyectos en unidades financiables individuales.
-                    </p>
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-full border border-purple-500/20">
-                      <Radio className="h-3 w-3" />
-                      Próximamente
-                    </span>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
