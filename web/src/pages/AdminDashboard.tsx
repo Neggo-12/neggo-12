@@ -58,7 +58,7 @@ import {
   fetchTarifasBancos, updateTarifaBanco, fetchPlanesComercio, updatePlanComercio,
   fetchOrganizationIdsByUserIds, fetchOrganizationsByIds,
   fetchTarifasVigentesPorComercios, type TarifaComercioNegociadaRow,
-  resolverCplComercio, insertTarifaComercioNegociada,
+  insertTarifaComercioNegociada,
   fetchFacturasResumenPorNegocio, fetchFacturasTotalesGlobales, fetchFacturasLedgerByOrganization,
   fetchBancosAprobados, fetchTarifasBancoOrganizacion, upsertTarifaBancoOrganizacion,
   fetchTodasLasFacturasMensuales, confirmarPagoFactura,
@@ -609,7 +609,6 @@ function ComerciosAdminPanel() {
   const session = useAuthStore((s) => s.session);
   const [comercios, setComercios] = useState<ComercioAdmin[]>([]);
   const [tarifasVigentes, setTarifasVigentes] = useState<Map<string, TarifaComercioNegociadaRow>>(new Map());
-  const [cplResuelto, setCplResuelto] = useState<Map<string, number>>(new Map());
   const [planes, setPlanes] = useState<PlanComercioRow[]>([]);
   const [pendingPlantilla, setPendingPlantilla] = useState<{ organizationId: string; nombre: string; clave: string } | null>(null);
   const [isApplyingPlantilla, setIsApplyingPlantilla] = useState(false);
@@ -620,12 +619,8 @@ function ComerciosAdminPanel() {
   }, []);
 
   const refreshTarifas = useCallback(async (orgIds: string[]) => {
-    const [{ data: vigentes }, cplEntries] = await Promise.all([
-      fetchTarifasVigentesPorComercios(orgIds),
-      Promise.all(orgIds.map(async (id) => [id, (await resolverCplComercio(id)).data ?? 0] as const)),
-    ]);
+    const { data: vigentes } = await fetchTarifasVigentesPorComercios(orgIds);
     setTarifasVigentes(vigentes ?? new Map());
-    setCplResuelto(new Map(cplEntries));
   }, []);
 
   useEffect(() => {
@@ -770,9 +765,6 @@ function ComerciosAdminPanel() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex flex-col items-center gap-1">
-                      <span className="font-mono text-xs text-foreground">
-                        {formatCOP(cplResuelto.get(c.organizationId) ?? 0)} CPL
-                      </span>
                       {tarifasVigentes.has(c.organizationId) && (
                         <button
                           type="button"
