@@ -38,6 +38,7 @@ import {
   LogOut,
   Menu,
   X,
+  Handshake,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Fragment, useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -55,6 +56,7 @@ import type { OnboardingRequest, EcosistemaMetrics, ComercioAdmin } from '@/type
 import {
   fetchTarifasBancos, updateTarifaBanco, fetchPlanesComercio, updatePlanComercio,
   fetchOrganizationIdsByUserIds, fetchOrganizationsByIds, updateOrganizationPlanNegociacion,
+  fetchTarifasVigentesPorComercios, type TarifaComercioNegociadaRow,
   fetchFacturasResumenPorNegocio, fetchFacturasTotalesGlobales, fetchFacturasLedgerByOrganization,
   fetchBancosAprobados, fetchTarifasBancoOrganizacion, upsertTarifaBancoOrganizacion,
   fetchTodasLasFacturasMensuales, confirmarPagoFactura,
@@ -595,8 +597,9 @@ function EntityView({
 // ───── Comercios Admin Panel ─────
 
 function ComerciosAdminPanel() {
-  const { onboardingRequests } = useAdminStore();
+  const { onboardingRequests, setActiveSection, setTarifasPreseleccionComercioId } = useAdminStore();
   const [comercios, setComercios] = useState<ComercioAdmin[]>([]);
+  const [tarifasVigentes, setTarifasVigentes] = useState<Map<string, TarifaComercioNegociadaRow>>(new Map());
   const rawComercios = useMemo(() => onboardingRequests.filter((r) => r.entityType === 'comercio'), [onboardingRequests]);
 
   useEffect(() => {
@@ -606,6 +609,7 @@ function ComerciosAdminPanel() {
       const orgIds = Array.from(orgIdMap.values());
       const { data: orgs } = await fetchOrganizationsByIds(orgIds);
       const orgById = new Map((orgs ?? []).map((o) => [o.id, o]));
+      fetchTarifasVigentesPorComercios(orgIds).then(({ data }) => setTarifasVigentes(data ?? new Map()));
       setComercios(rawComercios.map((r) => {
         const organizationId = orgIdMap.get(r.id) ?? '';
         const org = orgById.get(organizationId);
@@ -646,6 +650,11 @@ function ComerciosAdminPanel() {
     }
     setComercios((prev) => prev.map((c) => (c.organizationId === organizationId ? { ...c, planNegociacion: plan as ComercioAdmin['planNegociacion'] } : c)));
   }, []);
+
+  const handleVerTarifaNegociada = useCallback((organizationId: string) => {
+    setTarifasPreseleccionComercioId(organizationId);
+    setActiveSection('tarifas');
+  }, [setTarifasPreseleccionComercioId, setActiveSection]);
 
   const totalComercios = comercios.length;
   const conSello = comercios.filter((c) => c.hasTrustSeal).length;
@@ -712,16 +721,29 @@ function ComerciosAdminPanel() {
                     <Badge variant="outline" className="text-[10px] border-border/40 bg-secondary/40">{c.categoria}</Badge>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <Select value={c.planNegociacion} onValueChange={(v) => handleChangePlan(c.organizationId, v)}>
-                      <SelectTrigger className="h-7 w-36 text-[10px] mx-auto">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="solo_pauta" className="text-xs">Solo Pauta</SelectItem>
-                        <SelectItem value="balanceado" className="text-xs">Balanceado</SelectItem>
-                        <SelectItem value="solo_resultados" className="text-xs">Solo Resultados</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex flex-col items-center gap-1">
+                      <Select value={c.planNegociacion} onValueChange={(v) => handleChangePlan(c.organizationId, v)}>
+                        <SelectTrigger className="h-7 w-36 text-[10px] mx-auto">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="solo_pauta" className="text-xs">Solo Pauta</SelectItem>
+                          <SelectItem value="balanceado" className="text-xs">Balanceado</SelectItem>
+                          <SelectItem value="solo_resultados" className="text-xs">Solo Resultados</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {tarifasVigentes.has(c.organizationId) && (
+                        <button
+                          type="button"
+                          onClick={() => handleVerTarifaNegociada(c.organizationId)}
+                          title="Este comercio tiene una tarifa negociada que sobreescribe el plan global — click para ver el historial"
+                          className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 text-[9px] font-semibold text-purple-400 hover:bg-purple-500/20 transition-colors"
+                        >
+                          <Handshake className="h-2.5 w-2.5" />
+                          Tarifa negociada activa
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-center">
                     {c.hasTrustSeal ? (

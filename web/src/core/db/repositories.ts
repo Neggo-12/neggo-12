@@ -1138,6 +1138,45 @@ export async function insertTarifaComercioNegociada(input: {
   return { error: null };
 }
 
+/**
+ * Para una lista de comercios, resuelve cuáles tienen una tarifa negociada
+ * VIGENTE hoy — una sola consulta (no N+1). Usado por el panel de Comercios
+ * para avisar que el "Plan de Negociación" global mostrado puede no ser lo
+ * que realmente se está cobrando.
+ */
+export async function fetchTarifasVigentesPorComercios(
+  organizationIds: string[],
+): Promise<{ data: Map<string, TarifaComercioNegociadaRow> | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  if (organizationIds.length === 0) return { data: new Map(), error: null };
+  const periodoActual = new Date().toISOString().slice(0, 7);
+  const { data, error } = await supabase
+    .from('tarifas_comercio_negociadas')
+    .select('id, comercio_organization_id, cpl, comision_pct, periodo_vigente_desde, creado_por, motivo, created_at')
+    .in('comercio_organization_id', organizationIds)
+    .lte('periodo_vigente_desde', periodoActual)
+    .order('comercio_organization_id', { ascending: true })
+    .order('periodo_vigente_desde', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+
+  const vigentePorComercio = new Map<string, TarifaComercioNegociadaRow>();
+  for (const r of data ?? []) {
+    if (vigentePorComercio.has(r.comercio_organization_id)) continue; // ya tiene la más reciente (ordenado desc)
+    vigentePorComercio.set(r.comercio_organization_id, {
+      id: r.id,
+      comercioOrganizationId: r.comercio_organization_id,
+      cpl: Number(r.cpl),
+      comisionPct: Number(r.comision_pct) * 100,
+      periodoVigenteDesde: r.periodo_vigente_desde,
+      creadoPor: r.creado_por,
+      creadoPorNombre: null,
+      motivo: r.motivo,
+      createdAt: r.created_at,
+    });
+  }
+  return { data: vigentePorComercio, error: null };
+}
+
 /** Bulk-fetches display fields (name, type, plan_negociacion) for a list of organization ids. */
 export async function fetchOrganizationsByIds(
   organizationIds: string[],
