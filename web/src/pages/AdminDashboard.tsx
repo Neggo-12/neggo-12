@@ -533,21 +533,39 @@ function EntityView({
               {/* Contact detail card + validation actions */}
               {isExpanded && e.contacto && (
                 <div className="mt-2 rounded-xl border border-border/40 bg-card/60 p-4 animate-slide-up">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Users className="h-3.5 w-3.5 text-cyan-400" />
-                    <h4 className="text-xs font-semibold text-foreground">Ficha de Contacto Institucional</h4>
-                  </div>
-                  <div className="space-y-2.5 text-xs">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Representante</span><span className="font-medium text-foreground">{e.contacto.nombre}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Cargo</span><span className="text-foreground">{e.contacto.cargo}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Correo</span><span className="font-mono text-blue-400">{e.contacto.correo}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Teléfono</span><span className="font-mono text-blue-400">{e.contacto.telefono}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Documentos</span>
-                      <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border', e.contacto.estadoDocumentos === 'verificado' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20')}>
-                        {e.contacto.estadoDocumentos === 'verificado' ? 'Verificado' : 'Pendiente'}
-                      </span>
-                    </div>
-                  </div>
+                  {e.rol === 'Cliente' ? (
+                    <>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Users className="h-3.5 w-3.5 text-cyan-400" />
+                        <h4 className="text-xs font-semibold text-foreground">Ficha de Persona Natural</h4>
+                      </div>
+                      <div className="space-y-2.5 text-xs">
+                        <div className="flex justify-between"><span className="text-muted-foreground">Nombre</span><span className="font-medium text-foreground">{e.name}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Documento</span><span className="font-mono text-foreground">{e.numeroDocumento ?? '—'}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Teléfono</span><span className="font-mono text-blue-400">{e.contacto.telefono || '—'}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Correo</span><span className="font-mono text-blue-400">{e.contacto.correo}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Ciudad</span><span className="text-foreground">{e.city}</span></div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Users className="h-3.5 w-3.5 text-cyan-400" />
+                        <h4 className="text-xs font-semibold text-foreground">Ficha de Contacto Institucional</h4>
+                      </div>
+                      <div className="space-y-2.5 text-xs">
+                        <div className="flex justify-between"><span className="text-muted-foreground">Representante</span><span className="font-medium text-foreground">{e.contacto.nombre}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Cargo</span><span className="text-foreground">{e.contacto.cargo}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Correo</span><span className="font-mono text-blue-400">{e.contacto.correo}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Teléfono</span><span className="font-mono text-blue-400">{e.contacto.telefono}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Documentos</span>
+                          <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border', e.contacto.estadoDocumentos === 'verificado' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20')}>
+                            {e.contacto.estadoDocumentos === 'verificado' ? 'Verificado' : 'Pendiente'}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                   {e.status !== 'autorizado' && e.status !== 'rechazado' && (
                     <div className="flex gap-2 mt-4 pt-3 border-t border-border/30">
                       <Button size="sm" onClick={(ev) => { ev.stopPropagation(); authorizeEntity(e.id); toast.success(`${e.name} autorizado`, { description: 'La entidad ya puede operar en el ecosistema.' }); }} className="flex-1 h-8 text-[10px] font-semibold gap-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg"><CheckCircle2 className="h-3 w-3" />Autorizar</Button>

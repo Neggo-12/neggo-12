@@ -378,10 +378,13 @@ export interface ContactPerson {
 export interface OnboardingRequest {
   id: string;
   entityType: AdminEntityType;
+  /** Rol real del usuario en la tabla `users` (p. ej. "Cliente", "Banco") */
+  rol?: string;
   name: string;
   detail: string;
   city: string;
   nit?: string;
+  numeroDocumento?: string;
   status: AuthorizationStatus;
   submittedAt: string;
   reviewedAt?: string;

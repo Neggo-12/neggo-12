@@ -49,7 +49,6 @@ function userToOnboardingRequest(user: UserRow): OnboardingRequest {
     Constructora: 'constructora',
     Comercio: 'comercio',
     Admin: 'banco', // fallback
-    Cliente: 'banco', // fallback
     Fiduciaria: 'banco',
   };
 
@@ -58,9 +57,11 @@ function userToOnboardingRequest(user: UserRow): OnboardingRequest {
   return {
     id: user.id,
     entityType: roleToEntityType[user.rol] ?? 'banco',
+    rol: user.rol,
     name: user.nombre,
     detail: `${user.rol} — ${user.email}`,
     city: user.ciudad ?? 'Sin ciudad',
+    numeroDocumento: user.numero_documento ?? undefined,
     status: uiStatus,
     submittedAt: user.created_at,
     contacto: {
@@ -155,7 +156,10 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }
 
     const users = allUsers ?? [];
-    const requests = users.map(userToOnboardingRequest);
+    // Los Cliente (B2C) no pasan por autorización institucional — no deben
+    // aparecer en la consola de Autorizaciones ni en las pestañas Bancos/
+    // Constructoras/Comercios.
+    const requests = users.filter((u) => u.rol !== 'Cliente').map(userToOnboardingRequest);
 
     // Merge with any pending requests added via fallback (addPendingRequest)
     // that haven't been persisted to Supabase yet
