@@ -1555,6 +1555,7 @@ export interface ComercioBuscadorRow {
   ciudad: string | null;
   categoria: string | null;
   afiliadoDesde: string;
+  codigoNeggo: string;
 }
 
 /** Busca comercios con Sello de Confianza activo por nombre — RPC SECURITY DEFINER, solo devuelve verificados. */
@@ -1571,6 +1572,7 @@ export async function buscarComerciosVerificados(
       ciudad: r.ciudad,
       categoria: r.categoria,
       afiliadoDesde: r.afiliado_desde,
+      codigoNeggo: r.codigo_neggo,
     })),
     error: null,
   };

@@ -198,10 +198,15 @@ function ComercioCard({
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-500/10">
           <Store className="h-5 w-5 text-purple-400" />
         </div>
-        <span className="inline-flex items-center gap-1 rounded-full border border-purple-500/20 bg-purple-500/10 px-2.5 py-1 text-[10px] font-semibold text-purple-400">
-          <ShieldCheck className="h-3 w-3" />
-          Sello de Confianza
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          <span className="inline-flex items-center gap-1 rounded-full border border-purple-500/20 bg-purple-500/10 px-2.5 py-1 text-[10px] font-semibold text-purple-400">
+            <ShieldCheck className="h-3 w-3" />
+            Sello de Confianza
+          </span>
+          <span className="text-[10px] font-mono text-muted-foreground/60" title="Código único Neggo — confírmalo con el comercio para verificar su identidad">
+            Código: {comercio.codigoNeggo}
+          </span>
+        </div>
       </div>
 
       <h3 className="text-sm font-bold text-foreground mb-1">{comercio.name}</h3>

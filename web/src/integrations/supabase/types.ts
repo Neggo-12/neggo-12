@@ -1249,6 +1249,7 @@ export type Database = {
           ciudad: string | null
           categoria: string | null
           afiliado_desde: string
+          codigo_neggo: string
         }[]
       }
       registrar_contacto_comercio: {
