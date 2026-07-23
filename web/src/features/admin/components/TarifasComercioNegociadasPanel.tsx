@@ -80,6 +80,7 @@ export default function TarifasComercioNegociadasPanel() {
 
   const [historial, setHistorial] = useState<TarifaComercioNegociadaRow[]>([]);
   const [vigente, setVigente] = useState<VigenteInfo | null>(null);
+  const [vigenteId, setVigenteId] = useState<string | null>(null);
   const [isLoadingVigente, setIsLoadingVigente] = useState(false);
 
   const [cpl, setCpl] = useState('');
@@ -105,11 +106,13 @@ export default function TarifasComercioNegociadasPanel() {
     setHistorial(hist ?? []);
 
     const periodoActual = currentPeriodo();
-    const vigenteNegociada = (hist ?? [])
-      .filter((t) => t.periodoVigenteDesde <= periodoActual)
-      .sort((a, b) => b.periodoVigenteDesde.localeCompare(a.periodoVigenteDesde))[0];
+    // hist ya viene ordenado desc por periodo_vigente_desde y luego created_at
+    // desde el repositorio (fetchTarifasNegociadasComercio) — no hace falta
+    // reordenar aquí, solo filtrar lo ya vigente y tomar el primero.
+    const vigenteNegociada = (hist ?? []).find((t) => t.periodoVigenteDesde <= periodoActual);
 
     if (vigenteNegociada) {
+      setVigenteId(vigenteNegociada.id);
       setVigente({
         cpl: cplResuelto ?? vigenteNegociada.cpl,
         comisionPct: vigenteNegociada.comisionPct,
@@ -117,6 +120,7 @@ export default function TarifasComercioNegociadasPanel() {
         planOrigen: vigenteNegociada.planOrigen,
       });
     } else {
+      setVigenteId(null);
       const { data: planClave } = await fetchOrganizationPlanNegociacion(comercioId);
       const { data: planes } = await fetchPlanesComercio();
       const plan = (planes ?? []).find((p: PlanComercioRow) => p.clave === (planClave ?? 'balanceado'));
@@ -284,8 +288,18 @@ export default function TarifasComercioNegociadasPanel() {
                     </thead>
                     <tbody className="divide-y divide-border/30">
                       {historial.map((t) => (
-                        <tr key={t.id}>
-                          <td className="px-3 py-2 text-xs font-medium text-foreground capitalize">{formatPeriodo(t.periodoVigenteDesde)}</td>
+                        <tr key={t.id} className={cn(t.id === vigenteId && 'bg-emerald-500/[0.04]')}>
+                          <td className="px-3 py-2 text-xs font-medium text-foreground capitalize">
+                            <div className="flex items-center gap-2">
+                              {formatPeriodo(t.periodoVigenteDesde)}
+                              {t.id === vigenteId && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[9px] font-semibold text-emerald-400 normal-case">
+                                  <ShieldCheck className="h-2.5 w-2.5" />
+                                  Vigente ahora
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td className="px-3 py-2 text-right font-mono text-xs text-foreground">{formatCOP(t.cpl)}</td>
                           <td className="px-3 py-2 text-right font-mono text-xs text-foreground">{t.comisionPct}%</td>
                           <td className="px-3 py-2 text-xs">

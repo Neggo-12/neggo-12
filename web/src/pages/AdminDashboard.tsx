@@ -766,15 +766,23 @@ function ComerciosAdminPanel() {
                   <td className="px-4 py-3 text-center">
                     <div className="flex flex-col items-center gap-1">
                       {tarifasVigentes.has(c.organizationId) && (
-                        <button
-                          type="button"
-                          onClick={() => handleVerTarifaNegociada(c.organizationId)}
-                          title="Este comercio tiene una tarifa negociada que sobreescribe el plan global — click para ver el historial"
-                          className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 text-[9px] font-semibold text-purple-400 hover:bg-purple-500/20 transition-colors"
-                        >
-                          <Handshake className="h-2.5 w-2.5" />
-                          Tarifa negociada activa
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleVerTarifaNegociada(c.organizationId)}
+                            title="Este comercio tiene una tarifa negociada que sobreescribe el plan global — click para ver el historial"
+                            className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 text-[9px] font-semibold text-purple-400 hover:bg-purple-500/20 transition-colors"
+                          >
+                            <Handshake className="h-2.5 w-2.5" />
+                            Tarifa negociada activa
+                          </button>
+                          <span className="text-[9px] text-muted-foreground">
+                            {(() => {
+                              const origen = tarifasVigentes.get(c.organizationId)?.planOrigen ?? null;
+                              return origen ? (PLAN_TEMPLATE_LABELS[origen] ?? origen) : 'Personalizado';
+                            })()}
+                          </span>
+                        </>
                       )}
                       <Select value="" onValueChange={(v) => handleSeleccionarPlantilla(c.organizationId, c.nombre, v)}>
                         <SelectTrigger className="h-7 w-36 text-[10px] mx-auto">

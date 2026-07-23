@@ -1063,7 +1063,10 @@ export async function fetchTarifasNegociadasComercio(
     .from('tarifas_comercio_negociadas')
     .select('id, comercio_organization_id, cpl, comision_pct, periodo_vigente_desde, creado_por, motivo, created_at, plan_origen')
     .eq('comercio_organization_id', comercioId)
-    .order('periodo_vigente_desde', { ascending: false });
+    // Desempate por created_at: dos filas pueden compartir periodo_vigente_desde
+    // (mismo mes) y sin esto Postgres no garantiza cuál sale primero.
+    .order('periodo_vigente_desde', { ascending: false })
+    .order('created_at', { ascending: false });
   if (error) return { data: null, error: errMessage(error) };
   const rows = data ?? [];
 
@@ -1144,7 +1147,10 @@ export async function fetchTarifasVigentesPorComercios(
     .in('comercio_organization_id', organizationIds)
     .lte('periodo_vigente_desde', periodoActual)
     .order('comercio_organization_id', { ascending: true })
-    .order('periodo_vigente_desde', { ascending: false });
+    .order('periodo_vigente_desde', { ascending: false })
+    // Desempate: sin esto, dos filas del mismo comercio en el mismo periodo
+    // quedan en orden no determinista y "la vigente" podría variar entre cargas.
+    .order('created_at', { ascending: false });
   if (error) return { data: null, error: errMessage(error) };
 
   const vigentePorComercio = new Map<string, TarifaComercioNegociadaRow>();
@@ -1183,6 +1189,7 @@ export async function resolverComisionComercio(
     .eq('comercio_organization_id', comercioId)
     .lte('periodo_vigente_desde', periodoActual)
     .order('periodo_vigente_desde', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(1);
   if (error) return { data: null, error: errMessage(error) };
   if (negociadas && negociadas.length > 0) {
