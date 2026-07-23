@@ -1082,6 +1082,7 @@ export type Database = {
           whatsapp: string | null
           status: string
           created_at: string
+          codigo_verificacion: string
         }
         Insert: {
           id?: string
@@ -1093,6 +1094,7 @@ export type Database = {
           whatsapp?: string | null
           status?: string
           created_at?: string
+          codigo_verificacion?: string
         }
         Update: {
           id?: string
@@ -1104,6 +1106,7 @@ export type Database = {
           whatsapp?: string | null
           status?: string
           created_at?: string
+          codigo_verificacion?: string
         }
         Relationships: [
           {

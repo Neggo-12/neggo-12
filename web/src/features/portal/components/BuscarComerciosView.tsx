@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   Search, Store, ShieldCheck, MapPin, Calendar, MessageCircle,
-  Loader2, CheckCircle2, Sparkles, Frown,
+  Loader2, CheckCircle2, Sparkles, Frown, AlertTriangle, ChevronDown, ChevronRight, KeyRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,10 @@ import {
   buscarComerciosVerificados,
   registrarBusquedaSinMatch,
   registrarContactoComercio,
+  fetchClienteComercioContactos,
+  fetchOrganizationsByIds,
   type ComercioBuscadorRow,
+  type ClienteComercioContactoRow,
 } from '@/core/db/repositories';
 
 function formatFecha(iso: string): string {
@@ -32,9 +35,11 @@ function formatFecha(iso: string): string {
 function ContactarDialog({
   comercio,
   onOpenChange,
+  onSuccess,
 }: {
   comercio: ComercioBuscadorRow | null;
   onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
 }) {
   const { name, telefono: perfilTelefono } = useClienteProfile();
   const [descripcion, setDescripcion] = useState('');
@@ -42,6 +47,7 @@ function ContactarDialog({
   const [whatsapp, setWhatsapp] = useState('');
   const [submitState, setSubmitState] = useState<'idle' | 'loading' | 'done'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [codigoVerificacion, setCodigoVerificacion] = useState<string | null>(null);
 
   // Cada vez que se abre el modal para un comercio nuevo, precarga teléfono y
   // WhatsApp con el número real del perfil — el cliente los confirma o
@@ -52,6 +58,7 @@ function ContactarDialog({
       setWhatsapp(perfilTelefono ?? '');
       setDescripcion('');
       setError(null);
+      setCodigoVerificacion(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comercio]);
@@ -62,6 +69,7 @@ function ContactarDialog({
     setDescripcion('');
     setSubmitState('idle');
     setError(null);
+    setCodigoVerificacion(null);
     onOpenChange(false);
   }, [onOpenChange]);
 
@@ -69,21 +77,22 @@ function ContactarDialog({
     if (!canSubmit || !comercio || !name) return;
     setSubmitState('loading');
     setError(null);
-    const { error: submitError } = await registrarContactoComercio({
+    const { data, error: submitError } = await registrarContactoComercio({
       comercioId: comercio.id,
       descripcion: descripcion.trim(),
       nombre: name,
       telefono: telefono.trim(),
       whatsapp: whatsapp.trim() || null,
     });
-    if (submitError) {
-      setError(submitError);
+    if (submitError || !data) {
+      setError(submitError ?? 'No se pudo registrar el contacto.');
       setSubmitState('idle');
       return;
     }
+    setCodigoVerificacion(data.codigoVerificacion);
     setSubmitState('done');
-    setTimeout(resetAndClose, 1800);
-  }, [canSubmit, comercio, name, descripcion, telefono, whatsapp, resetAndClose]);
+    onSuccess();
+  }, [canSubmit, comercio, name, descripcion, telefono, whatsapp, onSuccess]);
 
   return (
     <Dialog open={comercio !== null} onOpenChange={(open) => !open && resetAndClose()}>
@@ -98,15 +107,47 @@ function ContactarDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {submitState === 'done' ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center animate-fade-in">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
-              <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+        {submitState === 'done' && codigoVerificacion ? (
+          <div className="flex flex-col items-center text-center animate-fade-in space-y-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+              <CheckCircle2 className="h-7 w-7 text-emerald-400" />
             </div>
-            <p className="text-base font-semibold text-foreground mb-1">Solicitud enviada</p>
-            <p className="text-xs text-muted-foreground max-w-xs">
-              {comercio?.name} recibió tus datos y te contactará pronto.
+            <div>
+              <p className="text-base font-semibold text-foreground mb-1">Solicitud enviada</p>
+              <p className="text-xs text-muted-foreground max-w-xs">
+                {comercio?.name} recibió tus datos y te contactará por WhatsApp.
+              </p>
+            </div>
+
+            <div className="w-full rounded-xl border border-purple-500/30 bg-purple-500/5 p-4 space-y-2">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-purple-400 flex items-center justify-center gap-1.5">
+                <KeyRound className="h-3 w-3" />
+                Tu código de verificación
+              </p>
+              <p className="text-2xl font-bold font-mono tracking-widest text-foreground">
+                {codigoVerificacion}
+              </p>
+            </div>
+
+            <div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex gap-2.5 text-left">
+              <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-200/90 leading-relaxed">
+                Cuando {comercio?.name} te escriba por WhatsApp, debe decirte este código:{' '}
+                <span className="font-mono font-semibold">{codigoVerificacion}</span>. Si no coincide,
+                o te piden pagar o dar datos antes de decírtelo, no continúes.
+              </p>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground/70">
+              Puedes volver a ver este código en "Mis Solicitudes", más abajo.
             </p>
+
+            <Button
+              onClick={resetAndClose}
+              className="w-full h-10 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm"
+            >
+              Entendido
+            </Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -239,6 +280,97 @@ function ComercioCard({
   );
 }
 
+// ───── Mis Solicitudes (historial con código de verificación) ─────
+
+function MisSolicitudes({ clienteId, refreshKey }: { clienteId: string | null; refreshKey: number }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [contactos, setContactos] = useState<ClienteComercioContactoRow[]>([]);
+  const [nombresPorComercio, setNombresPorComercio] = useState<Record<string, string>>({});
+
+  const load = useCallback(async () => {
+    if (!clienteId) return;
+    setIsLoading(true);
+    setError(null);
+    const { data, error: fetchError } = await fetchClienteComercioContactos(clienteId);
+    if (fetchError) {
+      setError(fetchError);
+      setIsLoading(false);
+      return;
+    }
+    const rows = data ?? [];
+    setContactos(rows);
+    const ids = Array.from(new Set(rows.map((r) => r.comercioId)));
+    if (ids.length > 0) {
+      const { data: orgs } = await fetchOrganizationsByIds(ids);
+      setNombresPorComercio(Object.fromEntries((orgs ?? []).map((o) => [o.id, o.name])));
+    }
+    setIsLoading(false);
+  }, [clienteId]);
+
+  // Recarga al abrir la sección y cada vez que se registra un contacto nuevo
+  // (refreshKey), para que el código recién generado aparezca de inmediato.
+  useEffect(() => {
+    if (isOpen) void load();
+  }, [isOpen, load, refreshKey]);
+
+  return (
+    <div className="rounded-xl border border-border/40 bg-card/40 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setIsOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-card/60 transition-colors"
+      >
+        <span className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <KeyRound className="h-3.5 w-3.5 text-purple-400" />
+          Mis Solicitudes
+        </span>
+        {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+      </button>
+
+      {isOpen && (
+        <div className="border-t border-border/30 p-4 space-y-3">
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Cargando tus solicitudes...
+            </div>
+          ) : error ? (
+            <p className="text-xs text-red-400">{error}</p>
+          ) : contactos.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Aún no has contactado a ningún comercio desde aquí.</p>
+          ) : (
+            contactos.map((c) => (
+              <div key={c.id} className="rounded-lg border border-border/30 bg-card/60 p-3 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-foreground">
+                    {nombresPorComercio[c.comercioId] ?? 'Comercio'}
+                  </p>
+                  <span className="text-[10px] text-muted-foreground shrink-0">{formatFecha(c.createdAt)}</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground line-clamp-2">{c.descripcion}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-mono font-semibold text-purple-400">{c.codigoVerificacion}</span>
+                  <span
+                    className={cn(
+                      'text-[10px] font-medium px-2 py-0.5 rounded-full border',
+                      c.status === 'atendido'
+                        ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                        : 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+                    )}
+                  >
+                    {c.status === 'atendido' ? 'Atendido' : 'Pendiente'}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ───── Main view ─────
 
 type SearchStatus = 'idle' | 'loading' | 'done';
@@ -251,6 +383,7 @@ export default function BuscarComerciosView() {
   const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
   const [hasSearched, setHasSearched] = useState(false);
   const [contactando, setContactando] = useState<ComercioBuscadorRow | null>(null);
+  const [misSolicitudesRefresh, setMisSolicitudesRefresh] = useState(0);
 
   const handleSearch = useCallback(async () => {
     const q = termino.trim();
@@ -348,7 +481,13 @@ export default function BuscarComerciosView() {
         </div>
       )}
 
-      <ContactarDialog comercio={contactando} onOpenChange={(open) => !open && setContactando(null)} />
+      <MisSolicitudes clienteId={session?.userId ?? null} refreshKey={misSolicitudesRefresh} />
+
+      <ContactarDialog
+        comercio={contactando}
+        onOpenChange={(open) => !open && setContactando(null)}
+        onSuccess={() => setMisSolicitudesRefresh((n) => n + 1)}
+      />
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, AlertTriangle, Clock, CheckCircle2, MessageCircle } from 'lucide-react';
+import { Loader2, AlertTriangle, Clock, CheckCircle2, MessageCircle, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
   fetchComercioContactos,
   marcarComercioContactoAtendido,
+  fetchOrganizationTelefono,
   type ComercioContactoRow,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
@@ -13,11 +14,20 @@ function formatFecha(iso: string): string {
   return new Date(iso).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+/** Normaliza a formato wa.me con código de país Colombia — mismo criterio que ExpandedLeadCRM. */
+function toWhatsAppUrl(telefono: string, mensaje: string): string {
+  const digits = telefono.replace(/\D/g, '');
+  const withCountryCode = digits.startsWith('57') && digits.length > 10 ? digits : `57${digits}`;
+  return `https://wa.me/${withCountryCode}?text=${encodeURIComponent(mensaje)}`;
+}
+
 function ContactoCard({
   contacto,
+  comercioTelefono,
   onMarcarAtendido,
 }: {
   contacto: ComercioContactoRow;
+  comercioTelefono: string | null;
   onMarcarAtendido: (id: string) => Promise<void>;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,6 +37,8 @@ function ContactoCard({
     await onMarcarAtendido(contacto.id);
     setIsSubmitting(false);
   }, [contacto.id, onMarcarAtendido]);
+
+  const mensajeWhatsApp = `Hola ${contacto.nombre}, nos escribiste por Neggo sobre: ${contacto.descripcion}. Tu código de verificación es: ${contacto.codigoVerificacion}.`;
 
   return (
     <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-2.5">
@@ -43,28 +55,50 @@ function ContactoCard({
 
       <p className="text-xs text-muted-foreground leading-relaxed">{contacto.descripcion}</p>
 
-      {contacto.status === 'pendiente' ? (
-        <Button
-          size="sm"
-          onClick={handleClick}
-          disabled={isSubmitting}
-          className="h-8 gap-1.5 text-xs bg-purple-600 hover:bg-purple-500 text-white"
-        >
-          {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-          Marcar Atendido
-        </Button>
-      ) : (
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400">
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          Atendido
-        </span>
-      )}
+      <div className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/20 bg-purple-500/5 px-2.5 py-1.5">
+        <KeyRound className="h-3 w-3 text-purple-400" />
+        <span className="text-[10px] text-muted-foreground">Código de verificación:</span>
+        <span className="text-xs font-mono font-semibold text-purple-400">{contacto.codigoVerificacion}</span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {comercioTelefono && (
+          <a
+            href={toWhatsAppUrl(comercioTelefono, mensajeWhatsApp)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+              <MessageCircle className="h-3.5 w-3.5" />
+              Contactar por WhatsApp
+            </Button>
+          </a>
+        )}
+
+        {contacto.status === 'pendiente' ? (
+          <Button
+            size="sm"
+            onClick={handleClick}
+            disabled={isSubmitting}
+            className="h-8 gap-1.5 text-xs bg-purple-600 hover:bg-purple-500 text-white"
+          >
+            {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+            Marcar Atendido
+          </Button>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Atendido
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
 export default function SolicitudesClientesTab({ organizationId }: { organizationId: string | null }) {
   const [contactos, setContactos] = useState<ComercioContactoRow[]>([]);
+  const [comercioTelefono, setComercioTelefono] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +117,13 @@ export default function SolicitudesClientesTab({ organizationId }: { organizatio
   }, [organizationId]);
 
   useEffect(() => { loadContactos(); }, [loadContactos]);
+
+  // Teléfono verificado de la organización — nunca un campo libre, para
+  // construir un link de WhatsApp confiable en cada solicitud.
+  useEffect(() => {
+    if (!isDbConfigured || !organizationId) return;
+    fetchOrganizationTelefono(organizationId).then(({ data }) => setComercioTelefono(data));
+  }, [organizationId]);
 
   const handleMarcarAtendido = useCallback(async (id: string) => {
     if (!organizationId) return;
@@ -158,7 +199,7 @@ export default function SolicitudesClientesTab({ organizationId }: { organizatio
                 Pendientes ({pendientes.length})
               </h3>
               {pendientes.map((c) => (
-                <ContactoCard key={c.id} contacto={c} onMarcarAtendido={handleMarcarAtendido} />
+                <ContactoCard key={c.id} contacto={c} comercioTelefono={comercioTelefono} onMarcarAtendido={handleMarcarAtendido} />
               ))}
             </div>
           )}
@@ -170,7 +211,7 @@ export default function SolicitudesClientesTab({ organizationId }: { organizatio
                 Atendidas ({atendidos.length})
               </h3>
               {atendidos.map((c) => (
-                <ContactoCard key={c.id} contacto={c} onMarcarAtendido={handleMarcarAtendido} />
+                <ContactoCard key={c.id} contacto={c} comercioTelefono={comercioTelefono} onMarcarAtendido={handleMarcarAtendido} />
               ))}
             </div>
           )}

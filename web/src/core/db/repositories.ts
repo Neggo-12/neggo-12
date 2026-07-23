@@ -1601,9 +1601,9 @@ export async function registrarContactoComercio(input: {
   nombre: string;
   telefono: string;
   whatsapp?: string | null;
-}): Promise<{ data: string | null; error: string | null }> {
+}): Promise<{ data: { contactoId: string; codigoVerificacion: string } | null; error: string | null }> {
   if (!supabase) return { data: null, error: NOT_CONFIGURED };
-  const { data, error } = await supabase.rpc('registrar_contacto_comercio', {
+  const { data: contactoId, error } = await supabase.rpc('registrar_contacto_comercio', {
     p_comercio_id: input.comercioId,
     p_descripcion: input.descripcion,
     p_nombre: input.nombre,
@@ -1611,7 +1611,22 @@ export async function registrarContactoComercio(input: {
     p_whatsapp: input.whatsapp ?? null,
   });
   if (error) return { data: null, error: errMessage(error) };
-  return { data, error: null };
+  // El trigger set_codigo_verificacion lo genera en el INSERT — el RPC solo
+  // devuelve el id, así que lo recuperamos con una lectura propia (RLS ya
+  // permite cliente_id = auth.uid()).
+  const { data: row, error: fetchError } = await supabase
+    .from('comercio_contactos')
+    .select('codigo_verificacion')
+    .eq('id', contactoId)
+    .limit(1)
+    .maybeSingle();
+  if (fetchError || !row) {
+    return {
+      data: { contactoId, codigoVerificacion: '' },
+      error: fetchError ? errMessage(fetchError) : 'No se pudo recuperar el código de verificación.',
+    };
+  }
+  return { data: { contactoId, codigoVerificacion: row.codigo_verificacion }, error: null };
 }
 
 // ───── Solicitudes de Clientes (comercio) ─────
@@ -1625,6 +1640,7 @@ export interface ComercioContactoRow {
   descripcion: string;
   status: 'pendiente' | 'atendido';
   createdAt: string;
+  codigoVerificacion: string;
 }
 
 /** Solicitudes de clientes recibidas por un comercio a través del Buscador de Comercios. */
@@ -1634,7 +1650,7 @@ export async function fetchComercioContactos(
   if (!supabase) return { data: null, error: NOT_CONFIGURED };
   const { data, error } = await supabase
     .from('comercio_contactos')
-    .select('id, cliente_id, nombre, telefono, whatsapp, descripcion, status, created_at')
+    .select('id, cliente_id, nombre, telefono, whatsapp, descripcion, status, created_at, codigo_verificacion')
     .eq('comercio_id', comercioId)
     .order('created_at', { ascending: false });
   if (error) return { data: null, error: errMessage(error) };
@@ -1646,6 +1662,57 @@ export async function fetchComercioContactos(
       telefono: r.telefono,
       whatsapp: r.whatsapp,
       descripcion: r.descripcion,
+      status: r.status as 'pendiente' | 'atendido',
+      createdAt: r.created_at,
+      codigoVerificacion: r.codigo_verificacion,
+    })),
+    error: null,
+  };
+}
+
+/** Teléfono verificado de una organización (p. ej. para construir un link wa.me confiable, nunca un campo libre). */
+export async function fetchOrganizationTelefono(
+  organizationId: string,
+): Promise<{ data: string | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('telefono')
+    .eq('id', organizationId)
+    .limit(1)
+    .maybeSingle();
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: data?.telefono ?? null, error: null };
+}
+
+// ───── Mis Solicitudes (cliente, Buscador de Comercios) ─────
+
+export interface ClienteComercioContactoRow {
+  id: string;
+  comercioId: string;
+  descripcion: string;
+  codigoVerificacion: string;
+  status: 'pendiente' | 'atendido';
+  createdAt: string;
+}
+
+/** Historial de contactos que un cliente ha iniciado desde el Buscador de Comercios — para recuperar el código de verificación después. */
+export async function fetchClienteComercioContactos(
+  clienteId: string,
+): Promise<{ data: ClienteComercioContactoRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('comercio_contactos')
+    .select('id, comercio_id, descripcion, codigo_verificacion, status, created_at')
+    .eq('cliente_id', clienteId)
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      id: r.id,
+      comercioId: r.comercio_id,
+      descripcion: r.descripcion,
+      codigoVerificacion: r.codigo_verificacion,
       status: r.status as 'pendiente' | 'atendido',
       createdAt: r.created_at,
     })),
