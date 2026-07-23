@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Search, Store, ShieldCheck, MapPin, Calendar, MessageCircle,
   Loader2, CheckCircle2, Sparkles, Frown,
@@ -38,13 +38,25 @@ function ContactarDialog({
 }) {
   const { name, telefono: perfilTelefono } = useClienteProfile();
   const [descripcion, setDescripcion] = useState('');
-  const [nombre, setNombre] = useState(name ?? '');
-  const [telefono, setTelefono] = useState(perfilTelefono ?? '');
+  const [telefono, setTelefono] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [submitState, setSubmitState] = useState<'idle' | 'loading' | 'done'>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = descripcion.trim() !== '' && nombre.trim() !== '' && telefono.trim() !== '' && submitState === 'idle';
+  // Cada vez que se abre el modal para un comercio nuevo, precarga teléfono y
+  // WhatsApp con el número real del perfil — el cliente los confirma o
+  // corrige, nunca los digita de cero.
+  useEffect(() => {
+    if (comercio) {
+      setTelefono(perfilTelefono ?? '');
+      setWhatsapp(perfilTelefono ?? '');
+      setDescripcion('');
+      setError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comercio]);
+
+  const canSubmit = descripcion.trim() !== '' && telefono.trim() !== '' && !!name && submitState === 'idle';
 
   const resetAndClose = useCallback(() => {
     setDescripcion('');
@@ -54,13 +66,13 @@ function ContactarDialog({
   }, [onOpenChange]);
 
   const handleSubmit = useCallback(async () => {
-    if (!canSubmit || !comercio) return;
+    if (!canSubmit || !comercio || !name) return;
     setSubmitState('loading');
     setError(null);
     const { error: submitError } = await registrarContactoComercio({
       comercioId: comercio.id,
       descripcion: descripcion.trim(),
-      nombre: nombre.trim(),
+      nombre: name,
       telefono: telefono.trim(),
       whatsapp: whatsapp.trim() || null,
     });
@@ -71,7 +83,7 @@ function ContactarDialog({
     }
     setSubmitState('done');
     setTimeout(resetAndClose, 1800);
-  }, [canSubmit, comercio, descripcion, nombre, telefono, whatsapp, resetAndClose]);
+  }, [canSubmit, comercio, name, descripcion, telefono, whatsapp, resetAndClose]);
 
   return (
     <Dialog open={comercio !== null} onOpenChange={(open) => !open && resetAndClose()}>
@@ -111,23 +123,16 @@ function ContactarDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nombre</label>
-                <Input
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  className="h-10 rounded-xl border-border/60 bg-secondary/50 text-sm"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Teléfono</label>
-                <Input
-                  value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
-                  className="h-10 rounded-xl border-border/60 bg-secondary/50 text-sm"
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Teléfono</label>
+              <Input
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+                className="h-10 rounded-xl border-border/60 bg-secondary/50 text-sm"
+              />
+              <p className="text-[11px] text-muted-foreground/70">
+                Confirma o actualiza tu teléfono si cambió.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -140,6 +145,9 @@ function ContactarDialog({
                 placeholder="Si prefieres que te escriban por WhatsApp"
                 className="h-10 rounded-xl border-border/60 bg-secondary/50 text-sm"
               />
+              <p className="text-[11px] text-muted-foreground/70">
+                Confirma o actualiza tu WhatsApp si cambió.
+              </p>
             </div>
 
             {error && (
