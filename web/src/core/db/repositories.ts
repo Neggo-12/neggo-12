@@ -621,6 +621,40 @@ export async function fetchAllUsers(): Promise<{
   return { data: data ?? [], error: null };
 }
 
+export interface ClienteAdminRow {
+  id: string;
+  nombre: string;
+  email: string;
+  ciudad: string | null;
+  createdAt: string;
+  lastLoginAt: string | null;
+}
+
+/** Todos los usuarios rol='Cliente' — para la pestaña Clientes del Admin. */
+export async function fetchClientesAdmin(): Promise<{
+  data: ClienteAdminRow[] | null;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, nombre, email, ciudad, created_at, last_login_at')
+    .eq('rol', 'Cliente')
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      id: r.id,
+      nombre: r.nombre,
+      email: r.email,
+      ciudad: r.ciudad,
+      createdAt: r.created_at,
+      lastLoginAt: r.last_login_at,
+    })),
+    error: null,
+  };
+}
+
 export async function fetchUsersByStatus(
   status: string,
 ): Promise<{ data: UserRow[] | null; error: string | null }> {

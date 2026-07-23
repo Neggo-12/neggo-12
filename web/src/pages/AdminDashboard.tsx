@@ -4,6 +4,7 @@ import AlgorithmMonitor from '@/features/admin/components/AlgorithmMonitor';
 import KPICard from '@/components/KPICard';
 import SeguridadTab from '@/features/shared/components/SeguridadTab';
 import SaludSistemaPanel from '@/features/admin/components/SaludSistemaPanel';
+import ClientesPanel from '@/features/admin/components/ClientesPanel';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 import { cn, formatCOP } from '@/lib/utils';
 import {
@@ -71,6 +72,7 @@ const adminSections = [
   { key: 'bancos' as const, label: 'Bancos', icon: Building2 },
   { key: 'constructoras' as const, label: 'Constructoras', icon: Home },
   { key: 'comercios' as const, label: 'Comercios', icon: ShoppingBag },
+  { key: 'clientes' as const, label: 'Clientes', icon: Users },
   { key: 'analitica' as const, label: 'Analítica IFC', icon: BarChart3 },
   { key: 'facturacion' as const, label: 'Facturación Ecosistema', icon: Receipt },
   { key: 'tarifas' as const, label: 'Tarifas y Planes', icon: SlidersHorizontal },
@@ -271,6 +273,8 @@ export default function AdminDashboard() {
           )}
 
           {activeSection === 'comercios' && <ComerciosAdminPanel />}
+
+          {activeSection === 'clientes' && <ClientesPanel />}
 
           {activeSection === 'facturacion' && <FacturacionLedger />}
 
