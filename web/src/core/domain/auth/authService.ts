@@ -220,11 +220,19 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   lastLoginSession = session;
   if (session) identifyUser(session.userId, { role: session.role });
 
-  // Best-effort last-login timestamp; ignore failures (RLS may restrict it).
-  void supabase
+  // Best-effort last-login timestamp — informativo, nunca debe fallar el login.
+  const { data: lastLoginRows, error: lastLoginError } = await supabase
     .from('users')
     .update({ last_login_at: new Date().toISOString() })
-    .eq('id', data.user.id);
+    .eq('id', data.user.id)
+    .select('id');
+  if (lastLoginError || !lastLoginRows || lastLoginRows.length === 0) {
+    logFalloApp(
+      'actualizar_last_login',
+      lastLoginError ? errMessage(lastLoginError) : 'UPDATE afectó 0 filas (posible bloqueo de RLS).',
+      lastLoginError,
+    );
+  }
 
   return {
     success: true,
@@ -250,10 +258,19 @@ export async function completeMfaChallenge(factorId: string, code: string): Prom
   lastLoginSession = session;
   if (session) identifyUser(session.userId, { role: session.role });
 
-  void supabase
+  // Best-effort last-login timestamp — informativo, nunca debe fallar el login.
+  const { data: lastLoginRows, error: lastLoginError } = await supabase
     .from('users')
     .update({ last_login_at: new Date().toISOString() })
-    .eq('id', data.user.id);
+    .eq('id', data.user.id)
+    .select('id');
+  if (lastLoginError || !lastLoginRows || lastLoginRows.length === 0) {
+    logFalloApp(
+      'actualizar_last_login',
+      lastLoginError ? errMessage(lastLoginError) : 'UPDATE afectó 0 filas (posible bloqueo de RLS).',
+      lastLoginError,
+    );
+  }
 
   return {
     success: true,
