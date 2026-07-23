@@ -24,3 +24,9 @@ export const SENTRY_DSN: string = import.meta.env.VITE_SENTRY_DSN ?? '';
 
 /** True solo cuando hay un DSN de Sentry presente. */
 export const isSentryConfigured: boolean = SENTRY_DSN.trim() !== '';
+
+/** PostHog project API key — pública por diseño, segura de exponer en el bundle (string vacío cuando no está configurada). */
+export const POSTHOG_KEY: string = import.meta.env.VITE_POSTHOG_KEY ?? '';
+
+/** True solo cuando hay una key de PostHog presente. */
+export const isPostHogConfigured: boolean = POSTHOG_KEY.trim() !== '';

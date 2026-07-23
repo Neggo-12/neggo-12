@@ -17,6 +17,7 @@ import { MFA_ENFORCEMENT_ENABLED, MFA_ENFORCED_ROLES } from '@/core/config/mfaCo
 import { checkAssuranceLevel, listFactors, challengeAndVerify } from '@/core/domain/auth/mfaService';
 import { shouldDenyForMfa } from '@/core/domain/auth/mfaGuardRule';
 import { logFalloApp } from '@/core/infrastructure/fallosApp';
+import { identifyUser, resetIdentity } from '@/core/infrastructure/posthog';
 import type {
   LoginInput,
   LoginResult,
@@ -44,6 +45,12 @@ const ROLE_ROUTES: Record<string, string> = {
 function dashboardRouteForRole(role: string): string {
   return ROLE_ROUTES[role] ?? '/';
 }
+
+const SECTOR_TO_ROLE: Record<string, string> = {
+  banca: 'Banco',
+  constructora: 'Constructora',
+  comercio: 'Comercio',
+};
 
 /**
  * Nunca deja pasar un objeto serializado como si fuera un mensaje legible
@@ -211,6 +218,7 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   }
 
   lastLoginSession = session;
+  if (session) identifyUser(session.userId, { role: session.role });
 
   // Best-effort last-login timestamp; ignore failures (RLS may restrict it).
   void supabase
@@ -240,6 +248,7 @@ export async function completeMfaChallenge(factorId: string, code: string): Prom
 
   const session = await buildSession(data.user.id, data.user.email ?? '');
   lastLoginSession = session;
+  if (session) identifyUser(session.userId, { role: session.role });
 
   void supabase
     .from('users')
@@ -258,6 +267,7 @@ export async function completeMfaChallenge(factorId: string, code: string): Prom
 
 export async function logout(): Promise<void> {
   lastLoginSession = null;
+  resetIdentity();
   if (!supabase) return;
   await supabase.auth.signOut();
 }
@@ -285,6 +295,7 @@ export async function restoreSession(): Promise<RestoreResult> {
 
   const session = await buildSession(user.id, user.email ?? '');
   lastLoginSession = session;
+  if (session) identifyUser(session.userId, { role: session.role });
   return { success: true, userId: user.id };
 }
 
@@ -339,6 +350,12 @@ export async function registerB2B(input: RegisterB2BInput): Promise<RegisterResu
     // puede borrar desde el cliente, requiere la Admin API.
     await supabase.auth.signOut();
     return { success: false, error: message };
+  }
+
+  // Solo identifica si signUp() dejó una sesión activa (sin confirmación de
+  // correo pendiente) — de lo contrario auth.uid() aún no existe.
+  if (!requiresEmailConfirmation) {
+    identifyUser(userId, { role: SECTOR_TO_ROLE[input.sector] ?? 'Cliente' });
   }
 
   return {
@@ -399,6 +416,12 @@ export async function registerB2C(input: RegisterB2CInput): Promise<RegisterResu
     // fantasma" en PoliticaAcceptanceGate.
     await supabase.auth.signOut();
     return { success: false, error: message };
+  }
+
+  // Solo identifica si signUp() dejó una sesión activa (sin confirmación de
+  // correo pendiente) — de lo contrario auth.uid() aún no existe.
+  if (!requiresEmailConfirmation) {
+    identifyUser(userId, { role: 'Cliente' });
   }
 
   return {
