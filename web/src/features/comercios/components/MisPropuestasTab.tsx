@@ -70,7 +70,7 @@ function PropuestaRow({
       </div>
 
       {oferta.descripcion && (
-        <p className="text-xs text-muted-foreground">{oferta.descripcion}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2">{oferta.descripcion}</p>
       )}
 
       {oferta.estado === 'rechazada' && oferta.respondida_at && (

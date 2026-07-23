@@ -139,12 +139,12 @@ export default function SolicitudesTab({ organizationName, organizationId }: { o
     <div className="space-y-5">
       {/* Bank identity header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-xl border border-border/40 bg-card/40">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20">
             <Building2 className="h-5 w-5 text-emerald-400" />
           </div>
-          <div>
-            <h2 className="text-base font-semibold text-foreground">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-foreground truncate">
               {organizationName ?? 'Banco'}
             </h2>
             <p className="text-xs text-muted-foreground">

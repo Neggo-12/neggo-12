@@ -130,14 +130,14 @@ export default function ComerciosDashboard() {
           {/* Header */}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-foreground">
+              <div className="flex items-center gap-2 min-w-0">
+                <h1 className="text-xl font-bold tracking-tight text-foreground truncate min-w-0">
                   {currentComercio.nombre}
                 </h1>
                 {hasTrustSeal && (
                   <span
                     className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold',
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold shrink-0',
                       'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                     )}
                   >

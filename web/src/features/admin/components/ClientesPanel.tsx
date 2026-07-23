@@ -118,8 +118,8 @@ export default function ClientesPanel() {
               <TableBody>
                 {clientes.map((c) => (
                   <TableRow key={c.id}>
-                    <TableCell className="text-sm font-medium text-foreground">{c.nombre}</TableCell>
-                    <TableCell className="text-xs font-mono text-muted-foreground">{c.email}</TableCell>
+                    <TableCell className="text-sm font-medium text-foreground truncate max-w-[200px]" title={c.nombre}>{c.nombre}</TableCell>
+                    <TableCell className="text-xs font-mono text-muted-foreground truncate max-w-[200px]" title={c.email}>{c.email}</TableCell>
                     <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{c.ciudad ?? '—'}</TableCell>
                     <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{formatFecha(c.createdAt)}</TableCell>
                     <TableCell className={c.lastLoginAt ? 'text-xs text-muted-foreground' : 'text-xs text-amber-400'}>

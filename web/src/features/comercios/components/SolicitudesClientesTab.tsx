@@ -53,7 +53,7 @@ function ContactoCard({
         <span className="text-[10px] text-muted-foreground shrink-0">{formatFecha(contacto.createdAt)}</span>
       </div>
 
-      <p className="text-xs text-muted-foreground leading-relaxed">{contacto.descripcion}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{contacto.descripcion}</p>
 
       <div className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/20 bg-purple-500/5 px-2.5 py-1.5">
         <KeyRound className="h-3 w-3 text-purple-400" />

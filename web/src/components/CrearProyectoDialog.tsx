@@ -245,7 +245,7 @@ export default function CrearProyectoDialog({ onProjectCreated }: { onProjectCre
             </div>
 
             {/* Comuna + Estrato */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <MapPin className="h-3 w-3" /> Comuna
@@ -391,7 +391,7 @@ export default function CrearProyectoDialog({ onProjectCreated }: { onProjectCre
           <div className="space-y-3">
             <SectionHeader icon={PiggyBank} label="Financiación" />
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <DollarSign className="h-3 w-3" /> Valor de Separación

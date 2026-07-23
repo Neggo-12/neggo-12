@@ -468,12 +468,12 @@ export default function ConstructorasDashboard() {
                         {filteredLeads.map((lead) => (
                           <tr key={lead.id} className="group transition-colors hover:bg-card/60 cursor-pointer" onClick={() => setExpandedLead(expandedLead === lead.id ? null : lead.id)}>
                             <td className="px-3 py-3">
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 text-xs font-bold text-blue-400">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-xs font-bold text-blue-400">
                                   {lead.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
                                 </div>
-                                <div>
-                                  <div className="font-medium text-foreground">{lead.name}</div>
+                                <div className="min-w-0">
+                                  <div className="font-medium text-foreground truncate">{lead.name}</div>
                                   <div className="text-[11px] text-muted-foreground font-mono">{lead.id}</div>
                                 </div>
                               </div>
@@ -622,12 +622,12 @@ export default function ConstructorasDashboard() {
           {callDialogLead && (
             <div className="space-y-4">
               <div className="rounded-xl border border-border/40 bg-secondary/30 p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 text-sm font-bold text-blue-400">
+                <div className="flex items-center gap-3 mb-3 min-w-0">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-sm font-bold text-blue-400">
                     {callDialogLead.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                   </div>
-                  <div>
-                    <p className="font-semibold text-foreground">{callDialogLead.name}</p>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground truncate">{callDialogLead.name}</p>
                     <p className="text-[11px] text-muted-foreground font-mono">{callDialogLead.id}</p>
                   </div>
                 </div>
@@ -653,13 +653,13 @@ export default function ConstructorasDashboard() {
           {messageDialogLead && (
             <div className="space-y-4">
               <div className="rounded-xl border border-border/40 bg-secondary/30 p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-bold text-emerald-400">
+                <div className="flex items-center gap-3 mb-3 min-w-0">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-bold text-emerald-400">
                     {messageDialogLead.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                   </div>
-                  <div>
-                    <p className="font-semibold text-foreground">{messageDialogLead.name}</p>
-                    <p className="text-[11px] text-muted-foreground">Proyecto: {messageDialogLead.proyecto}</p>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground truncate">{messageDialogLead.name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">Proyecto: {messageDialogLead.proyecto}</p>
                   </div>
                 </div>
               </div>
@@ -711,11 +711,11 @@ function ProjectCard({ project, isActive, onClick }: { project: ProyectoConstruc
       )}
 
       <div className="flex items-start justify-between mb-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h4 className="text-sm font-semibold text-foreground">{project.name}</h4>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <h4 className="text-sm font-semibold text-foreground truncate">{project.name}</h4>
             {isLanzamiento && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400 animate-pulse">
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400 animate-pulse shrink-0">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400" />
@@ -792,7 +792,7 @@ function ProjectCard({ project, isActive, onClick }: { project: ProyectoConstruc
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-2 mb-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         <div className="text-center"><div className="text-sm font-bold text-foreground font-mono">{project.units}</div><div className="text-[10px] text-muted-foreground">Unidades</div></div>
         <div className="text-center"><div className="text-sm font-bold text-foreground font-mono">{project.leadsGenerated}</div><div className="text-[10px] text-muted-foreground">Leads</div></div>
         <div className="text-center"><div className="text-sm font-bold text-foreground font-mono">{project.hipotecarioInterest}%</div><div className="text-[10px] text-muted-foreground">Hipotecario</div></div>

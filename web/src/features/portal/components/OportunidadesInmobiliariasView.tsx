@@ -127,7 +127,7 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
           <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             Resumen de Pago
           </p>
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
             <div className="space-y-0.5">
               <PiggyBank className="h-3.5 w-3.5 text-blue-400 mx-auto" />
               <p className="text-[10px] text-muted-foreground">Separación</p>
@@ -200,7 +200,7 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
         )}
 
         {/* ── Meta row: city + units + score ── */}
-        <div className="grid grid-cols-3 gap-3 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center">
           <div className="rounded-lg bg-secondary/40 p-2.5 space-y-0.5">
             <MapPin className="h-3.5 w-3.5 text-emerald-400 mx-auto" />
             <p className="text-[10px] text-muted-foreground">Ciudad</p>
