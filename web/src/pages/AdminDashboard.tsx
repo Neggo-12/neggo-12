@@ -39,6 +39,7 @@ import {
   Menu,
   X,
   Handshake,
+  AlertTriangle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Fragment, useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -55,8 +56,9 @@ import { isDbConfigured } from '@/core/db/dbClient';
 import type { OnboardingRequest, EcosistemaMetrics, ComercioAdmin } from '@/types';
 import {
   fetchTarifasBancos, updateTarifaBanco, fetchPlanesComercio, updatePlanComercio,
-  fetchOrganizationIdsByUserIds, fetchOrganizationsByIds, updateOrganizationPlanNegociacion,
+  fetchOrganizationIdsByUserIds, fetchOrganizationsByIds,
   fetchTarifasVigentesPorComercios, type TarifaComercioNegociadaRow,
+  resolverCplComercio, insertTarifaComercioNegociada,
   fetchFacturasResumenPorNegocio, fetchFacturasTotalesGlobales, fetchFacturasLedgerByOrganization,
   fetchBancosAprobados, fetchTarifasBancoOrganizacion, upsertTarifaBancoOrganizacion,
   fetchTodasLasFacturasMensuales, confirmarPagoFactura,
@@ -596,11 +598,35 @@ function EntityView({
 
 // ───── Comercios Admin Panel ─────
 
+const PLAN_TEMPLATE_LABELS: Record<string, string> = {
+  solo_pauta: 'Solo Pauta',
+  balanceado: 'Balanceado',
+  solo_resultados: 'Solo Resultados',
+};
+
 function ComerciosAdminPanel() {
   const { onboardingRequests, setActiveSection, setTarifasPreseleccionComercioId } = useAdminStore();
+  const session = useAuthStore((s) => s.session);
   const [comercios, setComercios] = useState<ComercioAdmin[]>([]);
   const [tarifasVigentes, setTarifasVigentes] = useState<Map<string, TarifaComercioNegociadaRow>>(new Map());
+  const [cplResuelto, setCplResuelto] = useState<Map<string, number>>(new Map());
+  const [planes, setPlanes] = useState<PlanComercioRow[]>([]);
+  const [pendingPlantilla, setPendingPlantilla] = useState<{ organizationId: string; nombre: string; clave: string } | null>(null);
+  const [isApplyingPlantilla, setIsApplyingPlantilla] = useState(false);
   const rawComercios = useMemo(() => onboardingRequests.filter((r) => r.entityType === 'comercio'), [onboardingRequests]);
+
+  useEffect(() => {
+    fetchPlanesComercio().then(({ data }) => setPlanes(data ?? []));
+  }, []);
+
+  const refreshTarifas = useCallback(async (orgIds: string[]) => {
+    const [{ data: vigentes }, cplEntries] = await Promise.all([
+      fetchTarifasVigentesPorComercios(orgIds),
+      Promise.all(orgIds.map(async (id) => [id, (await resolverCplComercio(id)).data ?? 0] as const)),
+    ]);
+    setTarifasVigentes(vigentes ?? new Map());
+    setCplResuelto(new Map(cplEntries));
+  }, []);
 
   useEffect(() => {
     if (rawComercios.length === 0) { setComercios([]); return; }
@@ -609,7 +635,7 @@ function ComerciosAdminPanel() {
       const orgIds = Array.from(orgIdMap.values());
       const { data: orgs } = await fetchOrganizationsByIds(orgIds);
       const orgById = new Map((orgs ?? []).map((o) => [o.id, o]));
-      fetchTarifasVigentesPorComercios(orgIds).then(({ data }) => setTarifasVigentes(data ?? new Map()));
+      void refreshTarifas(orgIds);
       setComercios(rawComercios.map((r) => {
         const organizationId = orgIdMap.get(r.id) ?? '';
         const org = orgById.get(organizationId);
@@ -630,7 +656,7 @@ function ComerciosAdminPanel() {
         };
       }));
     });
-  }, [rawComercios]);
+  }, [rawComercios, refreshTarifas]);
 
   const handleEmitirSello = useCallback(async (id: string) => {
     const { updateUserStatus } = await import('@/core/db/repositories');
@@ -642,19 +668,41 @@ function ComerciosAdminPanel() {
     }
   }, []);
 
-  const handleChangePlan = useCallback(async (organizationId: string, plan: string) => {
-    const { error } = await updateOrganizationPlanNegociacion(organizationId, plan);
-    if (error) {
-      toast.error('No se pudo actualizar el plan', { description: error });
-      return;
-    }
-    setComercios((prev) => prev.map((c) => (c.organizationId === organizationId ? { ...c, planNegociacion: plan as ComercioAdmin['planNegociacion'] } : c)));
-  }, []);
-
   const handleVerTarifaNegociada = useCallback((organizationId: string) => {
     setTarifasPreseleccionComercioId(organizationId);
     setActiveSection('tarifas');
   }, [setTarifasPreseleccionComercioId, setActiveSection]);
+
+  const handleSeleccionarPlantilla = useCallback((organizationId: string, nombre: string, value: string) => {
+    if (value === 'personalizado') {
+      handleVerTarifaNegociada(organizationId);
+      return;
+    }
+    setPendingPlantilla({ organizationId, nombre, clave: value });
+  }, [handleVerTarifaNegociada]);
+
+  const planPendiente = pendingPlantilla ? planes.find((p) => p.clave === pendingPlantilla.clave) : null;
+
+  const handleConfirmarPlantilla = useCallback(async () => {
+    if (!pendingPlantilla || !planPendiente || !session?.userId) return;
+    setIsApplyingPlantilla(true);
+    const { error } = await insertTarifaComercioNegociada({
+      comercioOrganizationId: pendingPlantilla.organizationId,
+      cpl: planPendiente.cpl,
+      comisionPct: planPendiente.comisionPct,
+      periodoVigenteDesde: new Date().toISOString().slice(0, 7),
+      creadoPor: session.userId,
+      planOrigen: pendingPlantilla.clave,
+    });
+    setIsApplyingPlantilla(false);
+    if (error) {
+      toast.error('No se pudo asignar la tarifa', { description: error });
+      return;
+    }
+    toast.success('Tarifa asignada', { description: `${pendingPlantilla.nombre} ahora usa el plan ${PLAN_TEMPLATE_LABELS[pendingPlantilla.clave] ?? pendingPlantilla.clave}.` });
+    setPendingPlantilla(null);
+    await refreshTarifas(comercios.map((c) => c.organizationId));
+  }, [pendingPlantilla, planPendiente, session?.userId, comercios, refreshTarifas]);
 
   const totalComercios = comercios.length;
   const conSello = comercios.filter((c) => c.hasTrustSeal).length;
@@ -695,7 +743,7 @@ function ComerciosAdminPanel() {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Comercio</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">NIT</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categoría</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Plan de Negociación</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tarifa Vigente</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sello</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acciones</th>
               </tr>
@@ -722,16 +770,9 @@ function ComerciosAdminPanel() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex flex-col items-center gap-1">
-                      <Select value={c.planNegociacion} onValueChange={(v) => handleChangePlan(c.organizationId, v)}>
-                        <SelectTrigger className="h-7 w-36 text-[10px] mx-auto">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="solo_pauta" className="text-xs">Solo Pauta</SelectItem>
-                          <SelectItem value="balanceado" className="text-xs">Balanceado</SelectItem>
-                          <SelectItem value="solo_resultados" className="text-xs">Solo Resultados</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <span className="font-mono text-xs text-foreground">
+                        {formatCOP(cplResuelto.get(c.organizationId) ?? 0)} CPL
+                      </span>
                       {tarifasVigentes.has(c.organizationId) && (
                         <button
                           type="button"
@@ -743,6 +784,17 @@ function ComerciosAdminPanel() {
                           Tarifa negociada activa
                         </button>
                       )}
+                      <Select value="" onValueChange={(v) => handleSeleccionarPlantilla(c.organizationId, c.nombre, v)}>
+                        <SelectTrigger className="h-7 w-36 text-[10px] mx-auto">
+                          <SelectValue placeholder="Asignar plantilla..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="solo_pauta" className="text-xs">Solo Pauta</SelectItem>
+                          <SelectItem value="balanceado" className="text-xs">Balanceado</SelectItem>
+                          <SelectItem value="solo_resultados" className="text-xs">Solo Resultados</SelectItem>
+                          <SelectItem value="personalizado" className="text-xs">Personalizado (ir a Tarifas y Planes)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -769,6 +821,36 @@ function ComerciosAdminPanel() {
           </table>
         </div>
       </div>
+
+      <Dialog open={pendingPlantilla !== null} onOpenChange={(open) => !open && setPendingPlantilla(null)}>
+        <DialogContent className="max-w-md border-border/60 bg-card/95 backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-400" />
+              Confirmar tarifa
+            </DialogTitle>
+            <DialogDescription className="text-sm pt-2 text-foreground">
+              ¿Confirmas asignar el plan <span className="font-semibold">{pendingPlantilla ? PLAN_TEMPLATE_LABELS[pendingPlantilla.clave] ?? pendingPlantilla.clave : ''}</span>{' '}
+              ({planPendiente ? `${formatCOP(planPendiente.cpl)} CPL, ${planPendiente.comisionPct}% comisión` : '—'}) a{' '}
+              <span className="font-semibold">{pendingPlantilla?.nombre}</span>, vigente desde este mes?
+              <br />
+              <span className="text-xs text-muted-foreground">Queda registrado en el historial de tarifas negociadas — no se puede deshacer con una edición.</span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPendingPlantilla(null)} disabled={isApplyingPlantilla}>Cancelar</Button>
+            <Button
+              size="sm"
+              onClick={handleConfirmarPlantilla}
+              disabled={isApplyingPlantilla}
+              className="bg-purple-600 hover:bg-purple-500 text-white gap-1.5"
+            >
+              {isApplyingPlantilla ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Handshake className="h-3.5 w-3.5" />}
+              Confirmar y asignar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

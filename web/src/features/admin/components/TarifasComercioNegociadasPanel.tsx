@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { cn, formatCOP } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useAdminStore } from '@/features/admin/store/useAdminStore';
 import {
   fetchComerciosConSelloActivo,
   resolverCplComercio,
@@ -42,17 +43,40 @@ function formatFechaHora(iso: string): string {
   return new Date(iso).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+const PLAN_LABELS: Record<string, string> = {
+  solo_pauta: 'Solo Pauta',
+  balanceado: 'Balanceado',
+  solo_resultados: 'Solo Resultados',
+};
+
+function formatOrigen(planOrigen: string | null): string {
+  if (!planOrigen) return 'Personalizado';
+  return `Desde plantilla: ${PLAN_LABELS[planOrigen] ?? planOrigen}`;
+}
+
 interface VigenteInfo {
   cpl: number;
   comisionPct: number;
   esNegociada: boolean;
+  planOrigen: string | null;
 }
 
 export default function TarifasComercioNegociadasPanel() {
   const session = useAuthStore((s) => s.session);
+  const { tarifasPreseleccionComercioId, setTarifasPreseleccionComercioId } = useAdminStore();
   const [comercios, setComercios] = useState<ComercioSelloRow[]>([]);
   const [isLoadingComercios, setIsLoadingComercios] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(tarifasPreseleccionComercioId);
+
+  // Llegada desde el badge "Tarifa negociada activa" en Comercios — preselecciona
+  // una sola vez y limpia el puente para no reaplicarlo en visitas futuras.
+  useEffect(() => {
+    if (tarifasPreseleccionComercioId) {
+      setSelectedId(tarifasPreseleccionComercioId);
+      setTarifasPreseleccionComercioId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [historial, setHistorial] = useState<TarifaComercioNegociadaRow[]>([]);
   const [vigente, setVigente] = useState<VigenteInfo | null>(null);
@@ -86,12 +110,17 @@ export default function TarifasComercioNegociadasPanel() {
       .sort((a, b) => b.periodoVigenteDesde.localeCompare(a.periodoVigenteDesde))[0];
 
     if (vigenteNegociada) {
-      setVigente({ cpl: cplResuelto ?? vigenteNegociada.cpl, comisionPct: vigenteNegociada.comisionPct, esNegociada: true });
+      setVigente({
+        cpl: cplResuelto ?? vigenteNegociada.cpl,
+        comisionPct: vigenteNegociada.comisionPct,
+        esNegociada: true,
+        planOrigen: vigenteNegociada.planOrigen,
+      });
     } else {
       const { data: planClave } = await fetchOrganizationPlanNegociacion(comercioId);
       const { data: planes } = await fetchPlanesComercio();
       const plan = (planes ?? []).find((p: PlanComercioRow) => p.clave === (planClave ?? 'balanceado'));
-      setVigente({ cpl: cplResuelto ?? plan?.cpl ?? 0, comisionPct: plan?.comisionPct ?? 0, esNegociada: false });
+      setVigente({ cpl: cplResuelto ?? plan?.cpl ?? 0, comisionPct: plan?.comisionPct ?? 0, esNegociada: false, planOrigen: null });
     }
     setIsLoadingVigente(false);
   }, []);
@@ -119,6 +148,8 @@ export default function TarifasComercioNegociadasPanel() {
       periodoVigenteDesde: periodo,
       creadoPor: session.userId,
       motivo: motivo.trim() || null,
+      // Este formulario siempre es un valor a mano — nunca viene de una plantilla.
+      planOrigen: null,
     });
     setIsSubmitting(false);
     if (error) {
@@ -189,6 +220,9 @@ export default function TarifasComercioNegociadasPanel() {
                   {vigente.esNegociada ? <ShieldCheck className="h-3 w-3" /> : null}
                   {vigente.esNegociada ? 'Negociada' : 'Plan global por defecto'}
                 </span>
+                {vigente.esNegociada && (
+                  <span className="text-[11px] text-muted-foreground">{formatOrigen(vigente.planOrigen)}</span>
+                )}
               </div>
             )}
 
@@ -242,6 +276,7 @@ export default function TarifasComercioNegociadasPanel() {
                         <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Vigente desde</th>
                         <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">CPL</th>
                         <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Comisión</th>
+                        <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Origen</th>
                         <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Creado por</th>
                         <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Motivo</th>
                         <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Registrado</th>
@@ -253,6 +288,18 @@ export default function TarifasComercioNegociadasPanel() {
                           <td className="px-3 py-2 text-xs font-medium text-foreground capitalize">{formatPeriodo(t.periodoVigenteDesde)}</td>
                           <td className="px-3 py-2 text-right font-mono text-xs text-foreground">{formatCOP(t.cpl)}</td>
                           <td className="px-3 py-2 text-right font-mono text-xs text-foreground">{t.comisionPct}%</td>
+                          <td className="px-3 py-2 text-xs">
+                            <span
+                              className={cn(
+                                'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium',
+                                t.planOrigen
+                                  ? 'bg-purple-500/10 text-purple-400'
+                                  : 'bg-secondary/60 text-muted-foreground',
+                              )}
+                            >
+                              {formatOrigen(t.planOrigen)}
+                            </span>
+                          </td>
                           <td className="px-3 py-2 text-xs text-muted-foreground">{t.creadoPorNombre ?? t.creadoPor}</td>
                           <td className="px-3 py-2 text-xs text-muted-foreground max-w-[240px] truncate" title={t.motivo ?? undefined}>{t.motivo ?? '—'}</td>
                           <td className="px-3 py-2 text-[11px] text-muted-foreground">{formatFechaHora(t.createdAt)}</td>

@@ -13,7 +13,7 @@ import {
   updateMeInteresaPipelineEstado,
   updateMeInteresaProximaGestion,
   closeLeadWithCharge,
-  fetchOrganizationPlanNegociacion,
+  resolverComisionComercio,
   type MeInteresaLeadDisplay,
   type MeInteresaPipelineEstado,
 } from '@/core/db/repositories';
@@ -38,7 +38,7 @@ export default function SolicitudesTab({
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [comercioPlan, setComercioPlan] = useState<string | null>(null);
+  const [comercioComisionPct, setComercioComisionPct] = useState<number | null>(null);
 
   const loadSolicitudes = useCallback(async () => {
     if (!isDbConfigured || !organizationId) {
@@ -63,7 +63,10 @@ export default function SolicitudesTab({
 
   useEffect(() => {
     if (!organizationId) return;
-    fetchOrganizationPlanNegociacion(organizationId).then(({ data }) => setComercioPlan(data));
+    // Comisión real vigente — negociación > plan global (misma prioridad que resolver_cpl_comercio).
+    // No usar organizations.plan_negociacion directamente: queda desactualizado en cuanto se
+    // asigna una tarifa negociada (tarifas_comercio_negociadas) desde el nuevo flujo unificado.
+    resolverComisionComercio(organizationId).then(({ data }) => setComercioComisionPct(data));
   }, [organizationId]);
 
   const handlePipelineChange = useCallback(async (destinatarioId: string, estado: MeInteresaPipelineEstado) => {
@@ -275,7 +278,7 @@ export default function SolicitudesTab({
                         <td colSpan={7} className="border-t border-border/30">
                           <ExpandedLeadCRM
                             lead={lead}
-                            comercioPlan={comercioPlan}
+                            comercioComisionPct={comercioComisionPct}
                             onPipelineChange={(estado) => handlePipelineChange(lead.destinatarioId, estado)}
                             onCierreConfirmado={(input) => handleCierreConfirmado(lead.destinatarioId, input)}
                             onSeguimientoChange={(fecha) => handleSeguimientoChange(lead.destinatarioId, fecha)}

@@ -285,6 +285,7 @@ export type Database = {
           creado_por: string
           motivo: string | null
           created_at: string
+          plan_origen: string | null
         }
         Insert: {
           id?: string
@@ -295,6 +296,7 @@ export type Database = {
           creado_por: string
           motivo?: string | null
           created_at?: string
+          plan_origen?: string | null
         }
         Update: {
           id?: string
@@ -305,6 +307,7 @@ export type Database = {
           creado_por?: string
           motivo?: string | null
           created_at?: string
+          plan_origen?: string | null
         }
         Relationships: [
           {

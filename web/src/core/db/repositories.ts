@@ -1006,24 +1006,6 @@ export async function fetchOrganizationPlanNegociacion(
   return { data: data?.plan_negociacion ?? 'balanceado', error: null };
 }
 
-/** Sets a Comercio organization's negotiation plan — Admin-only in practice (RLS enforces this at the DB level). */
-export async function updateOrganizationPlanNegociacion(
-  organizationId: string,
-  plan: string,
-): Promise<{ error: string | null }> {
-  if (!supabase) return { error: NOT_CONFIGURED };
-  const { data, error } = await supabase
-    .from('organizations')
-    .update({ plan_negociacion: plan })
-    .eq('id', organizationId)
-    .select('id');
-  if (error) return { error: errMessage(error) };
-  if (!data || data.length === 0) {
-    return { error: noRowsError('No se pudo actualizar: la organización no existe o no tienes permiso (RLS).') };
-  }
-  return { error: null };
-}
-
 // ───── Tarifas negociadas por comercio (append-only) ─────
 
 export interface ComercioSelloRow {
@@ -1068,6 +1050,8 @@ export interface TarifaComercioNegociadaRow {
   creadoPorNombre: string | null;
   motivo: string | null;
   createdAt: string;
+  /** Clave de planes_comercio si vino de una plantilla (ej. 'balanceado'), NULL si fue un valor personalizado. */
+  planOrigen: string | null;
 }
 
 /** Historial completo de tarifas negociadas de un comercio, de más reciente a más antigua por periodo de vigencia. */
@@ -1077,7 +1061,7 @@ export async function fetchTarifasNegociadasComercio(
   if (!supabase) return { data: null, error: NOT_CONFIGURED };
   const { data, error } = await supabase
     .from('tarifas_comercio_negociadas')
-    .select('id, comercio_organization_id, cpl, comision_pct, periodo_vigente_desde, creado_por, motivo, created_at')
+    .select('id, comercio_organization_id, cpl, comision_pct, periodo_vigente_desde, creado_por, motivo, created_at, plan_origen')
     .eq('comercio_organization_id', comercioId)
     .order('periodo_vigente_desde', { ascending: false });
   if (error) return { data: null, error: errMessage(error) };
@@ -1103,6 +1087,7 @@ export async function fetchTarifasNegociadasComercio(
       creadoPorNombre: nombreById.get(r.creado_por) ?? null,
       motivo: r.motivo,
       createdAt: r.created_at,
+      planOrigen: r.plan_origen,
     })),
     error: null,
   };
@@ -1116,6 +1101,8 @@ export async function insertTarifaComercioNegociada(input: {
   periodoVigenteDesde: string;
   creadoPor: string;
   motivo?: string | null;
+  /** Clave de planes_comercio si esta tarifa viene de aplicar una plantilla; NULL si es un valor personalizado. */
+  planOrigen?: string | null;
 }): Promise<{ error: string | null }> {
   if (!supabase) return { error: NOT_CONFIGURED };
   const { data, error } = await supabase
@@ -1129,6 +1116,7 @@ export async function insertTarifaComercioNegociada(input: {
       periodo_vigente_desde: input.periodoVigenteDesde,
       creado_por: input.creadoPor,
       motivo: input.motivo ?? null,
+      plan_origen: input.planOrigen ?? null,
     })
     .select('id');
   if (error) return { error: errMessage(error) };
@@ -1141,8 +1129,8 @@ export async function insertTarifaComercioNegociada(input: {
 /**
  * Para una lista de comercios, resuelve cuáles tienen una tarifa negociada
  * VIGENTE hoy — una sola consulta (no N+1). Usado por el panel de Comercios
- * para avisar que el "Plan de Negociación" global mostrado puede no ser lo
- * que realmente se está cobrando.
+ * para avisar que el CPL/comisión mostrado puede venir de una negociación,
+ * no del plan global.
  */
 export async function fetchTarifasVigentesPorComercios(
   organizationIds: string[],
@@ -1152,7 +1140,7 @@ export async function fetchTarifasVigentesPorComercios(
   const periodoActual = new Date().toISOString().slice(0, 7);
   const { data, error } = await supabase
     .from('tarifas_comercio_negociadas')
-    .select('id, comercio_organization_id, cpl, comision_pct, periodo_vigente_desde, creado_por, motivo, created_at')
+    .select('id, comercio_organization_id, cpl, comision_pct, periodo_vigente_desde, creado_por, motivo, created_at, plan_origen')
     .in('comercio_organization_id', organizationIds)
     .lte('periodo_vigente_desde', periodoActual)
     .order('comercio_organization_id', { ascending: true })
@@ -1172,9 +1160,38 @@ export async function fetchTarifasVigentesPorComercios(
       creadoPorNombre: null,
       motivo: r.motivo,
       createdAt: r.created_at,
+      planOrigen: r.plan_origen,
     });
   }
   return { data: vigentePorComercio, error: null };
+}
+
+/**
+ * Resuelve la comisión % vigente para un comercio — misma prioridad que
+ * resolver_cpl_comercio (RPC): negociación vigente > plan global. A diferencia
+ * del CPL, no existe un RPC para comisión, así que se resuelve aquí con la
+ * misma lógica (evita drift entre ambas resoluciones).
+ */
+export async function resolverComisionComercio(
+  comercioId: string,
+): Promise<{ data: number | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const periodoActual = new Date().toISOString().slice(0, 7);
+  const { data: negociadas, error } = await supabase
+    .from('tarifas_comercio_negociadas')
+    .select('comision_pct, periodo_vigente_desde')
+    .eq('comercio_organization_id', comercioId)
+    .lte('periodo_vigente_desde', periodoActual)
+    .order('periodo_vigente_desde', { ascending: false })
+    .limit(1);
+  if (error) return { data: null, error: errMessage(error) };
+  if (negociadas && negociadas.length > 0) {
+    return { data: Number(negociadas[0].comision_pct) * 100, error: null };
+  }
+  const { data: planClave } = await fetchOrganizationPlanNegociacion(comercioId);
+  const { data: planes } = await fetchPlanesComercio();
+  const plan = (planes ?? []).find((p) => p.clave === (planClave ?? 'balanceado'));
+  return { data: plan?.comisionPct ?? 0, error: null };
 }
 
 /** Bulk-fetches display fields (name, type, plan_negociacion) for a list of organization ids. */

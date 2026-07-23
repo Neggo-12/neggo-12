@@ -20,13 +20,14 @@ function toWhatsAppUrl(telefono: string): string {
 
 interface ExpandedLeadCRMProps {
   lead: MeInteresaLeadDisplay;
-  comercioPlan?: string | null;
+  /** Comisión % vigente real (negociación > plan global) — nunca la clave de organizations.plan_negociacion, que queda desactualizada frente a una tarifa negociada. */
+  comercioComisionPct?: number | null;
   onPipelineChange: (estado: MeInteresaPipelineEstado) => void;
   onCierreConfirmado: (input: { montoCierre: number; franquiciaTarjeta?: 'visa' | 'mastercard' | 'amex' }) => void;
   onSeguimientoChange: (fecha: string | null) => void;
 }
 
-export default function ExpandedLeadCRM({ lead, comercioPlan, onPipelineChange, onCierreConfirmado, onSeguimientoChange }: ExpandedLeadCRMProps) {
+export default function ExpandedLeadCRM({ lead, comercioComisionPct, onPipelineChange, onCierreConfirmado, onSeguimientoChange }: ExpandedLeadCRMProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [cierreModalOpen, setCierreModalOpen] = useState(false);
   const prioridad = calcularPrioridad(lead.scoreEstimado);
@@ -35,7 +36,9 @@ export default function ExpandedLeadCRM({ lead, comercioPlan, onPipelineChange, 
 
   const requiereModalDeCierre = (estado: MeInteresaPipelineEstado) => {
     if (estado !== ESTADOS_CIERRE[lead.origen]) return false;
-    if (lead.origen === 'comercio' && (comercioPlan ?? 'balanceado') === 'solo_pauta') return false;
+    // 0% comisión (plan "Solo Pauta", negociado o global) — no hay comisión que cobrar, se
+    // salta el modal de monto de cierre. 2.25 es el fallback del plan "balanceado" global.
+    if (lead.origen === 'comercio' && (comercioComisionPct ?? 2.25) === 0) return false;
     return true;
   };
 
