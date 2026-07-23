@@ -151,7 +151,7 @@ export default function CorporativoComercios() {
             <FeatureItem
               icon={ShieldCheck}
               title="Sello de Confianza Neggo"
-              description="Verificación real emitida por el Admin Neggo. Un distintivo que genera credibilidad inmediata con los clientes del ecosistema."
+              description="Verificación real emitida por Neggo. Un distintivo que genera credibilidad inmediata con los clientes del ecosistema."
             />
             <FeatureItem
               icon={Tag}
@@ -199,7 +199,7 @@ export default function CorporativoComercios() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { step: "01", title: "Te registras", desc: "Verificamos tu negocio antes de darte acceso al ecosistema Neggo.", icon: Store },
-              { step: "02", title: "Recibes el Sello", desc: "El Admin Neggo emite tu Sello de Confianza una vez verificado tu comercio.", icon: ShieldCheck },
+              { step: "02", title: "Recibes el Sello", desc: "Neggo emite tu Sello de Confianza una vez verificado tu comercio.", icon: ShieldCheck },
               { step: "03", title: "Publicas ofertas", desc: "Publicas tus ofertas y respondes las solicitudes de clientes del ecosistema.", icon: Package },
               { step: "04", title: "Facturas por comisión", desc: "Facturas por comisión según tu plan, sin cuotas fijas ni costos ocultos.", icon: TrendingUp },
             ].map((item) => (

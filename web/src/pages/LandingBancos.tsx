@@ -101,7 +101,7 @@ export default function LandingBancos() {
               <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl leading-[1.1]">
                 Leads bancarios con{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-200">
-                  Scoring Datacrédito ya calculado
+                  score de precalificación ya calculado
                 </span>
               </h1>
 
@@ -130,7 +130,7 @@ export default function LandingBancos() {
             {/* Right: What you get, not fake live counters */}
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: "Scoring Datacrédito integrado", icon: Target },
+                { label: "Score de precalificación automático", icon: Target },
                 { label: "Pipeline con estados reales", icon: BarChart3 },
                 { label: "Tarifas versionadas y transparentes", icon: CreditCard },
                 { label: "Notificaciones al instante", icon: Zap },
@@ -167,8 +167,8 @@ export default function LandingBancos() {
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             <FeatureItem
               icon={Target}
-              title="Scoring Datacrédito automático"
-              description="Cada lead llega con score (300–950) ya calculado y clasificación de riesgo, lista para priorizar sin trabajo manual."
+              title="Score de precalificación automático"
+              description="Cada lead llega clasificado por capacidad estimada (300–950), calculado internamente sobre el rango de ingresos declarado — listo para priorizar sin trabajo manual."
             />
             <FeatureItem
               icon={BarChart3}
@@ -217,7 +217,7 @@ export default function LandingBancos() {
             {[
               { step: "01", title: "Te registras", desc: "Verificamos tu organización antes de darte acceso al ecosistema Neggo.", icon: Users },
               { step: "02", title: "Configuras", desc: "Defines tus productos y tarifas por periodo, versionadas y auditables.", icon: CreditCard },
-              { step: "03", title: "Recibes leads", desc: "Cada lead llega con su score Datacrédito ya calculado, listo para priorizar.", icon: Star },
+              { step: "03", title: "Recibes leads", desc: "Cada lead llega con su score de precalificación ya calculado, listo para priorizar.", icon: Star },
               { step: "04", title: "Gestionas y facturas", desc: "Trabajas el pipeline por estados reales y facturas por resultado, no por cuota fija.", icon: TrendingUp },
             ].map((item) => (
               <div
