@@ -63,16 +63,16 @@ function ContactoCard({
   );
 }
 
-export default function SolicitudesClientesTab({ comercioId }: { comercioId: string | null }) {
+export default function SolicitudesClientesTab({ organizationId }: { organizationId: string | null }) {
   const [contactos, setContactos] = useState<ComercioContactoRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadContactos = useCallback(async () => {
-    if (!isDbConfigured || !comercioId) { setIsLoading(false); return; }
+    if (!isDbConfigured || !organizationId) { setIsLoading(false); return; }
     setIsLoading(true);
     setError(null);
-    const { data, error: fetchError } = await fetchComercioContactos(comercioId);
+    const { data, error: fetchError } = await fetchComercioContactos(organizationId);
     if (fetchError) {
       setError(fetchError);
       setContactos([]);
@@ -80,19 +80,19 @@ export default function SolicitudesClientesTab({ comercioId }: { comercioId: str
       setContactos(data ?? []);
     }
     setIsLoading(false);
-  }, [comercioId]);
+  }, [organizationId]);
 
   useEffect(() => { loadContactos(); }, [loadContactos]);
 
   const handleMarcarAtendido = useCallback(async (id: string) => {
-    if (!comercioId) return;
+    if (!organizationId) return;
     setContactos((prev) => prev.map((c) => (c.id === id ? { ...c, status: 'atendido' } : c)));
-    const { error: updateError } = await marcarComercioContactoAtendido(id, comercioId);
+    const { error: updateError } = await marcarComercioContactoAtendido(id, organizationId);
     if (updateError) {
       toast.error('No se pudo actualizar la solicitud', { description: updateError });
       await loadContactos();
     }
-  }, [comercioId, loadContactos]);
+  }, [organizationId, loadContactos]);
 
   if (!isDbConfigured) {
     return (

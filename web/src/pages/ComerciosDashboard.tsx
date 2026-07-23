@@ -268,7 +268,7 @@ export default function ComerciosDashboard() {
           )}
 
           {activeSection === 'solicitudes-clientes' && (
-            <SolicitudesClientesTab comercioId={currentComercio.id} />
+            <SolicitudesClientesTab organizationId={session?.organizationId ?? null} />
           )}
 
           {activeSection === 'mi-facturacion' && (
