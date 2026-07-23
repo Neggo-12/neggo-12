@@ -1,19 +1,14 @@
 import { Link } from "react-router-dom";
 import {
-  Building2,
   Sparkles,
   TrendingUp,
   Shield,
   Zap,
-  Gauge,
   Target,
   BarChart3,
   ArrowRight,
   CheckCircle2,
-  Activity,
   Users,
-  MessageSquare,
-  PhoneCall,
   Clock,
   CreditCard,
   Star,
@@ -21,28 +16,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthPanel } from "@/components/auth/AuthForms";
-import { leads, campaigns } from "@/data/mock";
-import { useState, useEffect } from "react";
-
-function useAnimatedValue(value: number, duration = 900) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    const steps = 30;
-    const increment = value / steps;
-    let current = 0;
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= value) {
-        setDisplay(value);
-        clearInterval(timer);
-      } else {
-        setDisplay(Math.floor(current));
-      }
-    }, duration / steps);
-    return () => clearInterval(timer);
-  }, [value, duration]);
-  return display;
-}
 
 // ── Live dot ───────────────────────────────────────────────────
 function LiveDot({ color = "emerald" }: { color?: "emerald" | "blue" | "amber" }) {
@@ -83,78 +56,8 @@ function FeatureItem({ icon: Icon, title, description }: { icon: React.ElementTy
   );
 }
 
-// ── Stat card ─────────────────────────────────────────────────
-function StatCard({ label, value, icon: Icon, suffix = "" }: { label: string; value: number; icon: React.ElementType; suffix?: string }) {
-  const display = useAnimatedValue(value);
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm p-4">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
-        <Icon className="h-5 w-5 text-emerald-400" />
-      </div>
-      <div>
-        <div className="text-xl font-bold font-mono text-foreground">
-          {display.toLocaleString()}
-          {suffix}
-        </div>
-        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</div>
-      </div>
-    </div>
-  );
-}
-
-// ── Plan card ─────────────────────────────────────────────────
-function PlanCard({ name, price, features, recommended }: { name: string; price: string; features: string[]; recommended?: boolean }) {
-  return (
-    <div
-      className={cn(
-        "relative flex flex-col rounded-2xl border bg-card/40 backdrop-blur-sm p-6 transition-all hover:scale-[1.02]",
-        recommended
-          ? "border-emerald-500/30 shadow-lg shadow-emerald-500/5"
-          : "border-border/40 hover:border-border/80"
-      )}
-    >
-      {recommended && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-          Recomendado
-        </div>
-      )}
-      <h4 className="text-lg font-bold text-foreground">{name}</h4>
-      <div className="mt-3 mb-5">
-        <span className="text-3xl font-extrabold font-mono text-foreground">{price}</span>
-        <span className="text-sm text-muted-foreground">/mes</span>
-      </div>
-      <ul className="space-y-2.5 flex-1">
-        {features.map((f) => (
-          <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-            {f}
-          </li>
-        ))}
-      </ul>
-      <Link
-        to="/banca"
-        className={cn(
-          "mt-6 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors",
-          recommended
-            ? "bg-emerald-500 text-white hover:bg-emerald-600"
-            : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
-        )}
-      >
-        Comenzar
-        <ArrowRight className="h-4 w-4" />
-      </Link>
-    </div>
-  );
-}
-
 // ── Landing Bancos ────────────────────────────────────────────
 export default function LandingBancos() {
-  const totalLeads = leads.length;
-  const converted = leads.filter((l) => l.status === "aprobado" || l.status === "desembolsado").length;
-  const conversionRate = ((converted / totalLeads) * 100).toFixed(1);
-  const avgScore = Math.round(leads.reduce((s, l) => s + l.score, 0) / totalLeads);
-  const activeCampaigns = campaigns.filter((c) => c.status === "activa").length;
-
   return (
     <div className="min-h-screen bg-background">
       {/* ═════════════════════════════════════════════════════════
@@ -196,16 +99,15 @@ export default function LandingBancos() {
               </div>
 
               <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl leading-[1.1]">
-                Transforma tu{" "}
+                Leads bancarios con{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-200">
-                  operación comercial
+                  Scoring Datacrédito ya calculado
                 </span>
               </h1>
 
               <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-                Pipeline inteligente con scoring Datacrédito, campañas comerciales multicanal
-                y seguimiento operativo en tiempo real. Diseñado para equipos comerciales
-                de banca que necesitan velocidad, precisión y control.
+                Nada de cotizaciones frías: cada lead llega con score, prioridad y contexto
+                financiero listo para que tu equipo comercial cierre, no que filtre.
               </p>
 
               <div className="flex flex-wrap gap-3">
@@ -225,12 +127,24 @@ export default function LandingBancos() {
               </div>
             </div>
 
-            {/* Right: Live stats preview */}
+            {/* Right: What you get, not fake live counters */}
             <div className="grid grid-cols-2 gap-3">
-              <StatCard label="Leads Activos" value={totalLeads} icon={Users} />
-              <StatCard label="Score Promedio" value={avgScore} icon={TrendingUp} suffix=" pts" />
-              <StatCard label="Conversión" value={Number(conversionRate)} icon={Target} suffix="%" />
-              <StatCard label="Campañas" value={activeCampaigns} icon={BarChart3} suffix=" activas" />
+              {[
+                { label: "Scoring Datacrédito integrado", icon: Target },
+                { label: "Pipeline con estados reales", icon: BarChart3 },
+                { label: "Tarifas versionadas y transparentes", icon: CreditCard },
+                { label: "Notificaciones al instante", icon: Zap },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm p-4"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
+                    <item.icon className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div className="text-sm font-semibold text-foreground leading-snug">{item.label}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -253,33 +167,33 @@ export default function LandingBancos() {
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             <FeatureItem
               icon={Target}
-              title="Pipeline de leads inteligente"
-              description="Recibe leads calificados con scoring Datacrédito (300–950). Priorización automática por riesgo y capacidad financiera."
+              title="Scoring Datacrédito automático"
+              description="Cada lead llega con score (300–950) ya calculado y clasificación de riesgo, lista para priorizar sin trabajo manual."
             />
             <FeatureItem
               icon={BarChart3}
-              title="Scoring financiero en tiempo real"
-              description="Cada lead llega con score, badge visual de prioridad, interpretación financiera y clasificación de riesgo automática."
+              title="Pipeline CRM con estados en tiempo real"
+              description="Sigue cada lead por su estado real (Pendiente → Contactado → Aprobado → Desembolsado) en un pipeline visual único."
+            />
+            <FeatureItem
+              icon={CreditCard}
+              title="Tarifas configurables por banco"
+              description="Define y versiona las tarifas de tu banco por periodo. Cambios auditables, sin ambigüedad sobre qué se cobra y cuándo."
             />
             <FeatureItem
               icon={Zap}
-              title="Campañas comerciales multicanal"
-              description="Publica campañas de CDT, hipotecarios, libranzas y más. Mide impresiones, CTR, leads generados y ROI en dashboard unificado."
-            />
-            <FeatureItem
-              icon={PhoneCall}
-              title="Seguimiento operativo táctico"
-              description="Cada lead tiene estado operacional (Pendiente → Contactado → Aprobado → Desembolsado) con acciones rápidas: llamar, WhatsApp, asignar."
-            />
-            <FeatureItem
-              icon={MessageSquare}
-              title="Centro de reputación bancaria"
-              description="Recibe feedback de clientes: felicitaciones, problemas, sugerencias. Gestiona casos, responde y mide satisfacción en tiempo real."
+              title="Notificaciones instantáneas (Realtime)"
+              description="Tu equipo se entera al instante de cada lead nuevo o cambio de estado, sin refrescar ni esperar reportes."
             />
             <FeatureItem
               icon={Shield}
-              title="Cumplimiento y seguridad enterprise"
-              description="Infraestructura bancaria con latencia <50ms, uptime 99.97% y conexión directa con Datacrédito. Cumplimiento normativo asegurado."
+              title="Datos protegidos (RLS auditado, Ley 1581)"
+              description="Aislamiento de datos por fila auditado y cumplimiento de protección de datos personales en toda la plataforma."
+            />
+            <FeatureItem
+              icon={Clock}
+              title="Facturación consolidada mensual"
+              description="Un solo corte mensual con el detalle de leads y cierres facturados, sin sorpresas ni conciliaciones manuales."
             />
           </div>
         </div>
@@ -301,10 +215,10 @@ export default function LandingBancos() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { step: "01", title: "Captación", desc: "Los leads llegan desde campañas, web, sucursales o portales aliados con scoring automático.", icon: Users },
-              { step: "02", title: "Calificación", desc: "Score Datacrédito asigna prioridad automática. El equipo ve solo lo que importa.", icon: Star },
-              { step: "03", title: "Contacto", desc: "Acciones rápidas: llamar, WhatsApp, asignar ejecutivo. Pipeline visual con estados operativos.", icon: PhoneCall },
-              { step: "04", title: "Conversión", desc: "Seguimiento hasta aprobación y desembolso. Métricas de conversión y ROI en tiempo real.", icon: TrendingUp },
+              { step: "01", title: "Te registras", desc: "Verificamos tu organización antes de darte acceso al ecosistema Neggo.", icon: Users },
+              { step: "02", title: "Configuras", desc: "Defines tus productos y tarifas por periodo, versionadas y auditables.", icon: CreditCard },
+              { step: "03", title: "Recibes leads", desc: "Cada lead llega con su score Datacrédito ya calculado, listo para priorizar.", icon: Star },
+              { step: "04", title: "Gestionas y facturas", desc: "Trabajas el pipeline por estados reales y facturas por resultado, no por cuota fija.", icon: TrendingUp },
             ].map((item) => (
               <div
                 key={item.step}
@@ -327,57 +241,36 @@ export default function LandingBancos() {
       </section>
 
       {/* ═════════════════════════════════════════════════════════
-          PLANS
+          MODELO DE PRECIO
          ═════════════════════════════════════════════════════════ */}
       <section id="planes" className="border-t border-border/30 bg-card/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center mb-14">
             <p className="text-xs uppercase tracking-[0.25em] text-emerald-400 font-semibold mb-3">
-              Planes enterprise
+              Modelo de precio
             </p>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-              Escala con tu operación
+              Sin cuotas mensuales fijas
             </h2>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto">
-            <PlanCard
-              name="Starter"
-              price="$2,490"
-              features={[
-                "Hasta 500 leads/mes",
-                "Scoring Datacrédito básico",
-                "3 campañas activas",
-                "5 ejecutivos",
-                "Soporte por email",
-              ]}
-            />
-            <PlanCard
-              name="Enterprise"
-              price="$5,990"
-              recommended
-              features={[
-                "Leads ilimitados",
-                "Scoring avanzado + riesgo",
-                "Campañas ilimitadas",
-                "Ejecutivos ilimitados",
-                "API de integración",
-                "Soporte prioritario 24/7",
-                "Feedback & reputación",
-              ]}
-            />
-            <PlanCard
-              name="Custom"
-              price="Contactar"
-              features={[
-                "Todo Enterprise",
-                "White-label",
-                "Integración core bancario",
-                "SLAs personalizados",
-                "Gerente de cuenta dedicado",
-                "Onboarding in-situ",
-              ]}
-            />
+          <div className="max-w-2xl mx-auto rounded-2xl border border-emerald-500/20 bg-card/40 backdrop-blur-sm p-8 sm:p-10">
+            <p className="text-base text-muted-foreground leading-relaxed text-center mb-8">
+              Pagas por lead calificado (CPL) o por cierre — tarifas visibles desde el primer día,
+              sin planes de suscripción ni sorpresas al final de mes.
+            </p>
+            <ul className="space-y-4">
+              {[
+                "Tarifa por lead calificado o por cierre, tú eliges el modelo",
+                "Tarifas configuradas y versionadas por tu banco, siempre visibles",
+                "Un solo corte de facturación mensual con el detalle completo",
+              ].map((point) => (
+                <li key={point} className="flex items-start gap-3 text-sm text-foreground">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>

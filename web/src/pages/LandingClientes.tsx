@@ -2,9 +2,7 @@ import { Link } from "react-router-dom";
 import {
   UserCircle,
   Sparkles,
-  TrendingUp,
   Shield,
-  Target,
   BarChart3,
   ArrowRight,
   CheckCircle2,
@@ -13,35 +11,12 @@ import {
   HomeIcon,
   Search,
   Star,
-  Clock,
   Zap,
   ArrowUpRight,
   Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthPanel } from "@/components/auth/AuthForms";
-import { leads, campaigns, proyectos } from "@/data/mock";
-import { useState, useEffect } from "react";
-
-function useAnimatedValue(value: number, duration = 900) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    const steps = 30;
-    const increment = value / steps;
-    let current = 0;
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= value) {
-        setDisplay(value);
-        clearInterval(timer);
-      } else {
-        setDisplay(Math.floor(current));
-      }
-    }, duration / steps);
-    return () => clearInterval(timer);
-  }, [value, duration]);
-  return display;
-}
 
 function LiveDot({ color = "amber" }: { color?: "emerald" | "blue" | "amber" }) {
   return (
@@ -80,139 +55,7 @@ function FeatureItem({ icon: Icon, title, description }: { icon: React.ElementTy
   );
 }
 
-function StatCard({ label, value, icon: Icon, suffix = "" }: { label: string; value: number; icon: React.ElementType; suffix?: string }) {
-  const display = useAnimatedValue(value);
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm p-4">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
-        <Icon className="h-5 w-5 text-amber-400" />
-      </div>
-      <div>
-        <div className="text-xl font-bold font-mono text-foreground">
-          {display.toLocaleString()}
-          {suffix}
-        </div>
-        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</div>
-      </div>
-    </div>
-  );
-}
-
-// ── Product card (campaign preview) ───────────────────────────
-function CampaignPreviewCard({ name, type, bank, ctr, leads, cities, id }: { name: string; type: string; bank: string; ctr: number; leads: number; cities: string[]; id: string }) {
-  const typeLabels: Record<string, string> = {
-    cdt: "CDT",
-    hipotecario: "Hipotecario",
-    "compra-cartera": "Compra de Cartera",
-    tarjetas: "Tarjetas",
-    libranzas: "Libranzas",
-    vehiculos: "Vehículos",
-    inversiones: "Inversiones",
-  };
-
-  return (
-    <div className="group rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm p-5 transition-all hover:border-amber-500/20 hover:shadow-lg hover:shadow-amber-500/5">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
-            <CreditCard className="h-4 w-4 text-amber-400" />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-foreground">{name}</h4>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{bank}</p>
-          </div>
-        </div>
-        <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
-          {typeLabels[type] || type}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <div className="rounded-lg bg-card/60 px-3 py-1.5">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider">CTR</div>
-          <div className="text-sm font-bold font-mono text-foreground">{ctr}%</div>
-        </div>
-        <div className="rounded-lg bg-card/60 px-3 py-1.5">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Leads</div>
-          <div className="text-sm font-bold font-mono text-foreground">{leads}</div>
-        </div>
-      </div>
-
-      {cities.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {cities.slice(0, 3).map((c) => (
-            <span key={c} className="rounded-md bg-card/60 px-2 py-0.5 text-[10px] text-muted-foreground">
-              {c}
-            </span>
-          ))}
-          {cities.length > 3 && (
-            <span className="rounded-md bg-card/60 px-2 py-0.5 text-[10px] text-muted-foreground">
-              +{cities.length - 3}
-            </span>
-          )}
-        </div>
-      )}
-
-      <Link
-        to="/portal"
-        className="flex items-center justify-center gap-1.5 w-full rounded-lg bg-amber-500/10 border border-amber-500/20 py-2 text-xs font-semibold text-amber-400 hover:bg-amber-500/20 transition-colors"
-      >
-        Solicitar ahora
-        <ArrowRight className="h-3.5 w-3.5" />
-      </Link>
-    </div>
-  );
-}
-
-// ── Project preview card ──────────────────────────────────────
-function ProjectPreviewCard({ name, city, type, priceMin, priceMax, units }: { name: string; city: string; type: string; priceMin: number; priceMax: number; units: number }) {
-  const priceMinM = Math.round(priceMin / 1_000_000);
-  const priceMaxM = Math.round(priceMax / 1_000_000);
-
-  return (
-    <div className="group rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm p-5 transition-all hover:border-amber-500/20 hover:shadow-lg hover:shadow-amber-500/5">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
-            <HomeIcon className="h-4 w-4 text-amber-400" />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-foreground">{name}</h4>
-            <p className="text-[10px] text-muted-foreground">{city}</p>
-          </div>
-        </div>
-        <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
-          {type}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <div className="rounded-lg bg-card/60 px-3 py-1.5">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Precio</div>
-          <div className="text-sm font-bold font-mono text-foreground">${priceMinM}–${priceMaxM}M</div>
-        </div>
-        <div className="rounded-lg bg-card/60 px-3 py-1.5">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Unidades</div>
-          <div className="text-sm font-bold font-mono text-foreground">{units}</div>
-        </div>
-      </div>
-
-      <Link
-        to="/portal"
-        className="flex items-center justify-center gap-1.5 w-full rounded-lg bg-amber-500/10 border border-amber-500/20 py-2 text-xs font-semibold text-amber-400 hover:bg-amber-500/20 transition-colors"
-      >
-        Ver proyecto
-        <ArrowRight className="h-3.5 w-3.5" />
-      </Link>
-    </div>
-  );
-}
-
 export default function LandingClientes() {
-  const activeCampaigns = campaigns.filter((c) => c.status === "activa");
-  const activeProjects = proyectos.filter((p) => p.status === "activo");
-  const totalProducts = activeCampaigns.length + activeProjects.length;
-
   return (
     <div className="min-h-screen bg-background">
       {/* ═════════════════════════════════════════════════════════
@@ -252,17 +95,15 @@ export default function LandingClientes() {
               </div>
 
               <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl leading-[1.1]">
-                Las mejores ofertas{" "}
+                Compara ofertas reales de{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-200">
-                  financieras e inmobiliarias
+                  bancos, constructoras y comercios verificados
                 </span>
-                {" "}en un solo lugar
               </h1>
 
               <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-                Explora campañas activas de los principales bancos y proyectos inmobiliarios
-                de las mejores constructoras. Compara, solicita y obtén respuestas rápidas
-                sin trámites innecesarios.
+                Todo en un solo lugar, sin llamadas no deseadas: tú decides a quién le
+                compartes tus datos y cuándo te contactan.
               </p>
 
               <div className="flex flex-wrap gap-3">
@@ -282,12 +123,24 @@ export default function LandingClientes() {
               </div>
             </div>
 
-            {/* Right: Stats */}
+            {/* Right: What you get, not fake live counters */}
             <div className="grid grid-cols-2 gap-3">
-              <StatCard label="Productos activos" value={totalProducts} icon={LayoutGrid} suffix="+" />
-              <StatCard label="Bancos" value={6} icon={Building2} />
-              <StatCard label="Constructoras" value={4} icon={HomeIcon} suffix="+" />
-              <StatCard label="Ciudades" value={6} icon={Target} />
+              {[
+                { label: "Ofertas comparadas de múltiples aliados", icon: LayoutGrid },
+                { label: "Bóveda personal con tu historial de compras", icon: CreditCard },
+                { label: "Código anti-phishing único por sesión", icon: Star },
+                { label: "Datos protegidos con MFA y verificación de identidad", icon: Shield },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm p-4"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
+                    <item.icon className="h-5 w-5 text-amber-400" />
+                  </div>
+                  <div className="text-sm font-semibold text-foreground leading-snug">{item.label}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -309,9 +162,9 @@ export default function LandingClientes() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 max-w-3xl mx-auto">
             {[
-              { step: "01", title: "Explora", desc: "Navega por campañas de CDT, créditos, hipotecarios, tarjetas y proyectos inmobiliarios activos.", icon: Search },
-              { step: "02", title: "Compara", desc: "Filtra por banco, ciudad, tipo de producto y rango de precio. Toda la info en un solo lugar.", icon: BarChart3 },
-              { step: "03", title: "Solicita", desc: "Un clic y tu solicitud llega directo al banco o constructora. Ellos te contactan en minutos.", icon: Zap },
+              { step: "01", title: "Te registras", desc: "Creas tu cuenta gratis en segundos, sin trámites ni papeleo.", icon: UserCircle },
+              { step: "02", title: "Cuentas qué buscas", desc: "Crédito, vivienda o el producto que necesitas — tú defines qué te interesa.", icon: Search },
+              { step: "03", title: "Comparas y decides", desc: "Recibes ofertas reales de aliados verificados y comparas antes de elegir.", icon: BarChart3 },
             ].map((item) => (
               <div
                 key={item.step}
@@ -349,111 +202,78 @@ export default function LandingClientes() {
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             <FeatureItem
-              icon={Target}
-              title="Todo en un solo lugar"
-              description="CDTs, créditos, tarjetas, hipotecarios, proyectos inmobiliarios. Todos los productos financieros que necesitas, sin visitar 10 sitios distintos."
-            />
-            <FeatureItem
-              icon={Shield}
-              title="Bancos verificados"
-              description="Solo trabajamos con las principales entidades financieras del país. Tu información está segura con estándares bancarios."
-            />
-            <FeatureItem
-              icon={Clock}
-              title="Respuesta rápida"
-              description="Tu solicitud llega directo al equipo comercial. Sin formularios interminables ni llamadas a call centers."
-            />
-            <FeatureItem
-              icon={Star}
-              title="Comparación inteligente"
-              description="Filtra por tasa, monto, plazo, ciudad. Compara productos lado a lado para tomar la mejor decisión financiera."
+              icon={LayoutGrid}
+              title="Ofertas comparadas de múltiples aliados"
+              description="Bancos, constructoras y comercios verificados, todos en un solo lugar. Compara lado a lado antes de decidir."
             />
             <FeatureItem
               icon={CreditCard}
-              title="Sin costo para ti"
-              description="Neggo es 100% gratuito para clientes. Los bancos y constructoras pagan por conectar contigo. Tú solo comparas y eliges."
+              title="Bóveda del Cliente"
+              description="Tu historial de compras y solicitudes en un solo lugar, siempre disponible para consultar."
             />
             <FeatureItem
-              icon={TrendingUp}
-              title="Simula tu capacidad"
-              description="Calcula tu capacidad de endeudamiento, simulaciones de crédito y visualiza tu elegibilidad antes de solicitar."
+              icon={Star}
+              title="Código anti-phishing único"
+              description="Verifica la identidad de cualquier asesor que te contacte con tu código único por sesión, antes de compartir información."
+            />
+            <FeatureItem
+              icon={Building2}
+              title="Banca privada"
+              description="Selector real de bancos aprobados dentro del ecosistema. Eliges tú con quién avanzar."
+            />
+            <FeatureItem
+              icon={Shield}
+              title="MFA para proteger tu cuenta"
+              description="Autenticación de doble factor obligatoria para blindar el acceso a tu cuenta y tus datos."
+            />
+            <FeatureItem
+              icon={CheckCircle2}
+              title="Sin spam"
+              description="Tú decides a quién le compartes tus datos. Sin llamadas ni mensajes no solicitados."
             />
           </div>
         </div>
       </section>
 
       {/* ═════════════════════════════════════════════════════════
-          LIVE OFFERS PREVIEW
+          CATEGORÍAS DISPONIBLES
          ═════════════════════════════════════════════════════════ */}
       <section id="ofertas" className="border-t border-border/30 bg-card/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-amber-400 font-semibold mb-2">
-                Ofertas activas ahora
-              </p>
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-                Explora lo que está disponible
-              </h2>
-            </div>
-            <Link
-              to="/portal"
-              className="hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors"
-            >
-              Ver todas las ofertas
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
+          <div className="text-center mb-10">
+            <p className="text-xs uppercase tracking-[0.25em] text-amber-400 font-semibold mb-2">
+              Categorías disponibles
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+              Regístrate para ver las ofertas reales
+            </h2>
           </div>
 
-          {/* Campaigns row */}
-          <div className="mb-8">
-            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-amber-400" />
-              Campañas bancarias
-            </h3>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {activeCampaigns.slice(0, 3).map((c) => (
-                <CampaignPreviewCard
-                  key={c.id}
-                  id={c.id}
-                  name={c.name}
-                  type={c.type}
-                  bank={c.bank}
-                  ctr={c.ctr}
-                  leads={c.leadsGenerated}
-                  cities={c.cities}
-                />
-              ))}
-            </div>
+          <div className="grid gap-4 sm:grid-cols-3 max-w-3xl mx-auto mb-10">
+            {[
+              { title: "Banca", desc: "CDT, créditos, tarjetas, hipotecarios y más de bancos aliados.", icon: Building2 },
+              { title: "Vivienda", desc: "Proyectos de constructoras aliadas, con capacidad de compra validada.", icon: HomeIcon },
+              { title: "Comercios aliados", desc: "Ofertas verificadas con Sello de Confianza Neggo.", icon: Zap },
+            ].map((cat) => (
+              <div
+                key={cat.title}
+                className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm p-6 text-center"
+              >
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10 mb-4">
+                  <cat.icon className="h-6 w-6 text-amber-400" />
+                </div>
+                <h4 className="text-sm font-bold text-foreground mb-1.5">{cat.title}</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">{cat.desc}</p>
+              </div>
+            ))}
           </div>
 
-          {/* Projects row */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-              <HomeIcon className="h-4 w-4 text-amber-400" />
-              Proyectos inmobiliarios
-            </h3>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {activeProjects.slice(0, 3).map((p) => (
-                <ProjectPreviewCard
-                  key={p.id}
-                  name={p.name}
-                  city={p.city}
-                  type={p.tipoVivienda}
-                  priceMin={p.priceRangeMin}
-                  priceMax={p.priceRangeMax}
-                  units={p.units}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-8 text-center sm:hidden">
+          <div className="text-center">
             <Link
               to="/portal"
               className="inline-flex items-center gap-2 rounded-xl bg-amber-500 text-background px-6 py-3 text-sm font-semibold hover:bg-amber-400 transition-colors"
             >
-              Ver todas las ofertas
+              Crear cuenta y ver ofertas
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

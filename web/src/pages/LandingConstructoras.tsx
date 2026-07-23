@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import {
-  HomeIcon,
   Sparkles,
   TrendingUp,
   Shield,
@@ -9,36 +8,13 @@ import {
   ArrowRight,
   CheckCircle2,
   Users,
-  MapPin,
   Wallet,
-  Star,
+  Clock,
   Building2,
   ArrowUpRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthPanel } from "@/components/auth/AuthForms";
-import { leadsInmobiliarios, proyectos } from "@/data/mock";
-import { useState, useEffect } from "react";
-
-function useAnimatedValue(value: number, duration = 900) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    const steps = 30;
-    const increment = value / steps;
-    let current = 0;
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= value) {
-        setDisplay(value);
-        clearInterval(timer);
-      } else {
-        setDisplay(Math.floor(current));
-      }
-    }, duration / steps);
-    return () => clearInterval(timer);
-  }, [value, duration]);
-  return display;
-}
 
 function LiveDot({ color = "blue" }: { color?: "emerald" | "blue" | "amber" }) {
   return (
@@ -77,77 +53,7 @@ function FeatureItem({ icon: Icon, title, description }: { icon: React.ElementTy
   );
 }
 
-function StatCard({ label, value, icon: Icon, suffix = "" }: { label: string; value: number; icon: React.ElementType; suffix?: string }) {
-  const display = useAnimatedValue(value);
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm p-4">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
-        <Icon className="h-5 w-5 text-blue-400" />
-      </div>
-      <div>
-        <div className="text-xl font-bold font-mono text-foreground">
-          {display.toLocaleString()}
-          {suffix}
-        </div>
-        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</div>
-      </div>
-    </div>
-  );
-}
-
-function PlanCard({ name, price, features, recommended }: { name: string; price: string; features: string[]; recommended?: boolean }) {
-  return (
-    <div
-      className={cn(
-        "relative flex flex-col rounded-2xl border bg-card/40 backdrop-blur-sm p-6 transition-all hover:scale-[1.02]",
-        recommended
-          ? "border-blue-500/30 shadow-lg shadow-blue-500/5"
-          : "border-border/40 hover:border-border/80"
-      )}
-    >
-      {recommended && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-500/10 border border-blue-500/20 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-400">
-          Recomendado
-        </div>
-      )}
-      <h4 className="text-lg font-bold text-foreground">{name}</h4>
-      <div className="mt-3 mb-5">
-        <span className="text-3xl font-extrabold font-mono text-foreground">{price}</span>
-        <span className="text-sm text-muted-foreground">/mes</span>
-      </div>
-      <ul className="space-y-2.5 flex-1">
-        {features.map((f) => (
-          <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
-            {f}
-          </li>
-        ))}
-      </ul>
-      <Link
-        to="/constructoras"
-        className={cn(
-          "mt-6 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors",
-          recommended
-            ? "bg-blue-500 text-white hover:bg-blue-600"
-            : "bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
-        )}
-      >
-        Comenzar
-        <ArrowRight className="h-4 w-4" />
-      </Link>
-    </div>
-  );
-}
-
 export default function LandingConstructoras() {
-  const totalLeads = leadsInmobiliarios.length;
-  const converted = leadsInmobiliarios.filter((l) => l.status === "aprobado" || l.status === "desembolsado").length;
-  const activeProjects = proyectos.filter((p) => p.status === "activo").length;
-  const hipotecarioInterest = leadsInmobiliarios.filter((l) => l.hipotecarioInterest).length;
-  const avgCapacidad = Math.round(
-    leadsInmobiliarios.reduce((s, l) => s + l.capacidadCompra, 0) / totalLeads / 1_000_000
-  );
-
   return (
     <div className="min-h-screen bg-background">
       {/* ═════════════════════════════════════════════════════════
@@ -188,15 +94,15 @@ export default function LandingConstructoras() {
               </div>
 
               <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl leading-[1.1]">
-                Conecta con{" "}
+                Conecta con compradores con{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-200">
-                  compradores calificados
+                  capacidad de compra verificada
                 </span>
               </h1>
 
               <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-                Captación inmobiliaria inteligente con matching financiero, capacidad de compra
-                verificada y conexión directa con compradores pre-aprobados por el sistema bancario.
+                Leads reales, no tráfico frío: cada comprador llega con su capacidad de compra
+                ya validada por el sistema bancario, listo para avanzar.
               </p>
 
               <div className="flex flex-wrap gap-3">
@@ -216,12 +122,24 @@ export default function LandingConstructoras() {
               </div>
             </div>
 
-            {/* Right: Live stats */}
+            {/* Right: What you get, not fake live counters */}
             <div className="grid grid-cols-2 gap-3">
-              <StatCard label="Leads Inmobiliarios" value={totalLeads} icon={Users} suffix="+" />
-              <StatCard label="Proyectos Activos" value={activeProjects} icon={Building2} />
-              <StatCard label="Interés Hipotecario" value={hipotecarioInterest} icon={Wallet} suffix=" leads" />
-              <StatCard label="Capacidad Promedio" value={avgCapacidad} icon={TrendingUp} suffix="M COP" />
+              {[
+                { label: "Matching por capacidad de compra real", icon: Target },
+                { label: "Distribución de leads con algoritmo de equidad", icon: BarChart3 },
+                { label: "Success Fee del 2.25% — solo pagas si cierras", icon: Wallet },
+                { label: "Pipeline con seguimiento completo del lead", icon: TrendingUp },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm p-4"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+                    <item.icon className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div className="text-sm font-semibold text-foreground leading-snug">{item.label}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -244,33 +162,33 @@ export default function LandingConstructoras() {
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             <FeatureItem
               icon={Target}
-              title="Matching financiero automático"
-              description="Cada lead llega con capacidad de compra verificada, score Datacrédito e interés hipotecario. Solo ves compradores reales."
-            />
-            <FeatureItem
-              icon={MapPin}
-              title="Segmentación por ciudad y proyecto"
-              description="Organiza tus leads por ciudad, proyecto y tipo de vivienda. Prioriza por capacidad de compra y urgencia de adquisición."
+              title="Matching por capacidad de compra verificada"
+              description="Cada lead llega con su capacidad de compra ya validada por el sistema bancario. Solo ves compradores reales."
             />
             <FeatureItem
               icon={BarChart3}
-              title="Dashboard de proyectos en tiempo real"
-              description="Visualiza cada proyecto con unidades, rango de precios, leads generados, score promedio, tasa de conversión y más."
+              title="Algoritmo de distribución justa"
+              description="Equidad entre proyectos: los leads se reparten con un algoritmo transparente, sin favoritismos ni sesgos comerciales."
             />
             <FeatureItem
               icon={Wallet}
-              title="Conexión con el sistema bancario"
-              description="Tus leads ya vienen con scoring del banco. Los compradores pre-aprobados se identifican automáticamente."
+              title="Success Fee transparente del 2.25%"
+              description="Pagas el 2.25% solo sobre el valor del cierre. Sin cuotas fijas, sin riesgo si el lead no avanza."
             />
             <FeatureItem
-              icon={Star}
-              title="Priorización comercial inteligente"
-              description="Prioridad automática basada en capacidad de compra, score y urgencia. Tu equipo comercial enfoca donde hay cierre real."
+              icon={TrendingUp}
+              title="Pipeline CRM con estados en tiempo real"
+              description="Sigue cada lead por su estado real, desde el primer contacto hasta el cierre, en un pipeline visual único."
             />
             <FeatureItem
               icon={Shield}
-              title="Pipeline de conversión completo"
-              description="Desde el primer contacto hasta el cierre. Seguimiento de estados, asignación de ejecutivos y métricas de conversión."
+              title="Datos protegidos (RLS auditado, Ley 1581)"
+              description="Aislamiento de datos por fila auditado y cumplimiento de protección de datos personales en toda la plataforma."
+            />
+            <FeatureItem
+              icon={Clock}
+              title="Facturación consolidada mensual"
+              description="Un solo corte mensual con el detalle de leads y cierres facturados, sin sorpresas ni conciliaciones manuales."
             />
           </div>
         </div>
@@ -292,10 +210,10 @@ export default function LandingConstructoras() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { step: "01", title: "Publica tu proyecto", desc: "Registra cada proyecto con ciudad, unidades, rango de precios y tipo de vivienda.", icon: Building2 },
-              { step: "02", title: "Recibe leads calificados", desc: "Compradores con capacidad de compra verificada y scoring financiero llegan automáticamente.", icon: Users },
-              { step: "03", title: "Match inteligente", desc: "Neggo cruza perfil financiero del lead con tu proyecto. Prioridad automática por probabilidad de cierre.", icon: Star },
-              { step: "04", title: "Cierra la venta", desc: "Pipeline visual. Seguimiento, contacto directo y conexión con el banco para desembolso hipotecario.", icon: TrendingUp },
+              { step: "01", title: "Te registras", desc: "Verificamos tu constructora antes de darte acceso al ecosistema Neggo.", icon: Users },
+              { step: "02", title: "Publicas", desc: "Publicas tus proyectos activos con ciudad, unidades, rango de precios y tipo de vivienda.", icon: Building2 },
+              { step: "03", title: "Recibes leads", desc: "Cada lead llega con su capacidad de compra ya validada por el sistema bancario.", icon: Wallet },
+              { step: "04", title: "Cierras y pagas", desc: "Cierras la venta y pagas solo el Success Fee del 2.25% sobre ese cierre.", icon: TrendingUp },
             ].map((item) => (
               <div
                 key={item.step}
@@ -318,57 +236,35 @@ export default function LandingConstructoras() {
       </section>
 
       {/* ═════════════════════════════════════════════════════════
-          PLANS
+          MODELO DE PRECIO
          ═════════════════════════════════════════════════════════ */}
       <section id="planes" className="border-t border-border/30 bg-card/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center mb-14">
             <p className="text-xs uppercase tracking-[0.25em] text-blue-400 font-semibold mb-3">
-              Planes para constructoras
+              Modelo de precio
             </p>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-              Escala tu captación inmobiliaria
+              Cero cuotas mensuales
             </h2>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto">
-            <PlanCard
-              name="Starter"
-              price="$1,990"
-              features={[
-                "Hasta 3 proyectos activos",
-                "200 leads/mes",
-                "Scoring financiero básico",
-                "3 ejecutivos",
-                "Soporte por email",
-              ]}
-            />
-            <PlanCard
-              name="Enterprise"
-              price="$4,990"
-              recommended
-              features={[
-                "Proyectos ilimitados",
-                "Leads ilimitados",
-                "Matching financiero avanzado",
-                "Ejecutivos ilimitados",
-                "Conexión bancaria directa",
-                "Soporte prioritario 24/7",
-                "Reportes de conversión",
-              ]}
-            />
-            <PlanCard
-              name="Custom"
-              price="Contactar"
-              features={[
-                "Todo Enterprise",
-                "White-label",
-                "Integración CRM",
-                "SLAs personalizados",
-                "Gerente de cuenta dedicado",
-                "Onboarding in-situ",
-              ]}
-            />
+          <div className="max-w-2xl mx-auto rounded-2xl border border-blue-500/20 bg-card/40 backdrop-blur-sm p-8 sm:p-10">
+            <p className="text-base text-muted-foreground leading-relaxed text-center mb-8">
+              Success Fee del 2.25% sobre el valor del cierre — sin riesgo, pagas por resultado.
+            </p>
+            <ul className="space-y-4">
+              {[
+                "Sin cuotas mensuales fijas ni costo de entrada",
+                "2.25% de Success Fee, solo cuando cierras la venta",
+                "Un solo corte de facturación mensual con el detalle completo",
+              ].map((point) => (
+                <li key={point} className="flex items-start gap-3 text-sm text-foreground">
+                  <CheckCircle2 className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
