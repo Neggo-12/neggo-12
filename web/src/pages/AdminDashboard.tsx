@@ -5,6 +5,7 @@ import KPICard from '@/components/KPICard';
 import SeguridadTab from '@/features/shared/components/SeguridadTab';
 import SaludSistemaPanel from '@/features/admin/components/SaludSistemaPanel';
 import ClientesPanel from '@/features/admin/components/ClientesPanel';
+import TarifasComercioNegociadasPanel from '@/features/admin/components/TarifasComercioNegociadasPanel';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 import { cn, formatCOP } from '@/lib/utils';
 import {
@@ -1470,6 +1471,8 @@ function TarifasYPlanes() {
           </tbody>
         </table>
       </div>
+
+      <TarifasComercioNegociadasPanel />
 
       <AsignarBancoDialog open={assignBancoOpen} onOpenChange={setAssignBancoOpen} tarifasGlobales={tarifas} />
     </div>

@@ -1024,6 +1024,120 @@ export async function updateOrganizationPlanNegociacion(
   return { error: null };
 }
 
+// ───── Tarifas negociadas por comercio (append-only) ─────
+
+export interface ComercioSelloRow {
+  id: string;
+  name: string;
+}
+
+/** Comercios con Sello de Confianza activo — fuente del selector en Tarifas y Planes. */
+export async function fetchComerciosConSelloActivo(): Promise<{
+  data: ComercioSelloRow[] | null;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('id, name')
+    .eq('type', 'comercio')
+    .eq('has_trust_seal', true)
+    .eq('status', 'approved')
+    .order('name');
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: data ?? [], error: null };
+}
+
+/** CPL vigente real para un comercio — RPC: prioriza negociación vigente, fallback al plan global. */
+export async function resolverCplComercio(
+  comercioId: string,
+): Promise<{ data: number | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.rpc('resolver_cpl_comercio', { p_comercio_id: comercioId });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: Number(data), error: null };
+}
+
+export interface TarifaComercioNegociadaRow {
+  id: string;
+  comercioOrganizationId: string;
+  cpl: number;
+  comisionPct: number;
+  periodoVigenteDesde: string;
+  creadoPor: string;
+  creadoPorNombre: string | null;
+  motivo: string | null;
+  createdAt: string;
+}
+
+/** Historial completo de tarifas negociadas de un comercio, de más reciente a más antigua por periodo de vigencia. */
+export async function fetchTarifasNegociadasComercio(
+  comercioId: string,
+): Promise<{ data: TarifaComercioNegociadaRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('tarifas_comercio_negociadas')
+    .select('id, comercio_organization_id, cpl, comision_pct, periodo_vigente_desde, creado_por, motivo, created_at')
+    .eq('comercio_organization_id', comercioId)
+    .order('periodo_vigente_desde', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  const rows = data ?? [];
+
+  const creadorIds = Array.from(new Set(rows.map((r) => r.creado_por)));
+  const nombreById = new Map<string, string>();
+  if (creadorIds.length > 0) {
+    const { data: creadores } = await supabase.from('users').select('id, nombre').in('id', creadorIds);
+    for (const c of creadores ?? []) nombreById.set(c.id, c.nombre);
+  }
+
+  return {
+    data: rows.map((r) => ({
+      id: r.id,
+      comercioOrganizationId: r.comercio_organization_id,
+      cpl: Number(r.cpl),
+      // La columna guarda una fracción (CHECK 0-1); el resto del código (planes_comercio,
+      // UI) trata comisionPct como puntos porcentuales enteros (2.25 = 2.25%) — se normaliza aquí.
+      comisionPct: Number(r.comision_pct) * 100,
+      periodoVigenteDesde: r.periodo_vigente_desde,
+      creadoPor: r.creado_por,
+      creadoPorNombre: nombreById.get(r.creado_por) ?? null,
+      motivo: r.motivo,
+      createdAt: r.created_at,
+    })),
+    error: null,
+  };
+}
+
+/** Asigna una nueva tarifa negociada — SIEMPRE un INSERT nuevo, la tabla es append-only (sin política UPDATE). */
+export async function insertTarifaComercioNegociada(input: {
+  comercioOrganizationId: string;
+  cpl: number;
+  comisionPct: number;
+  periodoVigenteDesde: string;
+  creadoPor: string;
+  motivo?: string | null;
+}): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('tarifas_comercio_negociadas')
+    .insert({
+      comercio_organization_id: input.comercioOrganizationId,
+      cpl: input.cpl,
+      // input.comisionPct llega como puntos porcentuales enteros (2.25 = 2.25%); la
+      // columna en BD tiene CHECK 0-1 (fracción) — se convierte aquí, no en la UI.
+      comision_pct: input.comisionPct / 100,
+      periodo_vigente_desde: input.periodoVigenteDesde,
+      creado_por: input.creadoPor,
+      motivo: input.motivo ?? null,
+    })
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: noRowsError('No se pudo asignar la tarifa (posible bloqueo de RLS).') };
+  }
+  return { error: null };
+}
+
 /** Bulk-fetches display fields (name, type, plan_negociacion) for a list of organization ids. */
 export async function fetchOrganizationsByIds(
   organizationIds: string[],

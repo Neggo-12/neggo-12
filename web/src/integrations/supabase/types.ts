@@ -275,6 +275,47 @@ export type Database = {
         Update: { id?: string; clave?: string; label?: string; cpl?: number; comision_pct?: number; updated_at?: string }
         Relationships: []
       }
+      tarifas_comercio_negociadas: {
+        Row: {
+          id: string
+          comercio_organization_id: string
+          cpl: number
+          comision_pct: number
+          periodo_vigente_desde: string
+          creado_por: string
+          motivo: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          comercio_organization_id: string
+          cpl: number
+          comision_pct: number
+          periodo_vigente_desde: string
+          creado_por: string
+          motivo?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          comercio_organization_id?: string
+          cpl?: number
+          comision_pct?: number
+          periodo_vigente_desde?: string
+          creado_por?: string
+          motivo?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarifas_comercio_negociadas_comercio_organization_id_fkey"
+            columns: ["comercio_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tarifas_bancos_por_organizacion: {
         Row: {
           id: string
@@ -1264,6 +1305,10 @@ export type Database = {
           p_whatsapp?: string | null
         }
         Returns: string
+      }
+      resolver_cpl_comercio: {
+        Args: { p_comercio_id: string }
+        Returns: number
       }
     }
     Enums: {
