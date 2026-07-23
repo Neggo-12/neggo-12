@@ -31,6 +31,7 @@ export type PortalTab =
   | 'metas'
   | 'facturas'
   | 'solicitudes'
+  | 'buscar-comercios'
   | 'feedback';
 
 // ───── Solicitud types ─────

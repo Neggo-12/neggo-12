@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Sparkles, Loader2, LayoutDashboard, TrendingUp, BarChart3, Gift, Home, Target, Receipt, Landmark, MessageSquareText } from 'lucide-react';
+import { Sparkles, Loader2, LayoutDashboard, TrendingUp, BarChart3, Gift, Home, Target, Receipt, Landmark, MessageSquareText, Store } from 'lucide-react';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import PortalNavigation from '@/features/portal/components/PortalNavigation';
@@ -18,6 +18,7 @@ const OportunidadesInmobiliariasView = lazy(() => import('@/features/portal/comp
 const MetasView = lazy(() => import('@/features/portal/components/MetasView'));
 const FacturasView = lazy(() => import('@/features/portal/components/FacturasView'));
 const MeInteresaView = lazy(() => import('@/features/portal/components/MeInteresaView'));
+const BuscarComerciosView = lazy(() => import('@/features/portal/components/BuscarComerciosView'));
 const FeedbackView = lazy(() => import('@/features/portal/components/FeedbackView'));
 
 // ───── Tab labels ─────
@@ -30,6 +31,7 @@ const TAB_LABELS: Record<PortalTab, string> = {
   metas: 'Metas',
   facturas: 'Facturas',
   solicitudes: 'Me Interesa',
+  'buscar-comercios': 'Buscar Comercios',
   feedback: 'Soporte y Feedback',
 };
 
@@ -44,6 +46,7 @@ const PORTAL_SECTIONS: SidebarNavItem[] = [
   { key: 'metas', label: 'Metas', icon: Target },
   { key: 'facturas', label: 'Facturas', icon: Receipt },
   { key: 'solicitudes', label: 'Me Interesa', icon: Landmark },
+  { key: 'buscar-comercios', label: 'Buscar Comercios', icon: Store },
   { key: 'feedback', label: 'Soporte y Feedback', icon: MessageSquareText },
 ];
 
@@ -75,6 +78,8 @@ function ActiveTabContent({ tab }: { tab: PortalTab }) {
       return <FacturasView />;
     case 'solicitudes':
       return <MeInteresaView />;
+    case 'buscar-comercios':
+      return <BuscarComerciosView />;
     case 'feedback':
       return <FeedbackView />;
     default:

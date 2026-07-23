@@ -3,6 +3,7 @@ import { useComercioStore } from '@/features/comercios/store/useComercioStore';
 import ComercioOnboarding from '@/features/comercios/components/ComercioOnboarding';
 import OportunidadesFeed from '@/features/comercios/components/OportunidadesFeed';
 import MisPropuestasTab from '@/features/comercios/components/MisPropuestasTab';
+import SolicitudesClientesTab from '@/features/comercios/components/SolicitudesClientesTab';
 import ComercioSolicitudesTab from '@/components/comercio/SolicitudesTab';
 import ComercioSuscripcionTab from '@/components/comercio/SuscripcionTab';
 import MiFacturacionTab from '@/components/facturacion/MiFacturacionTab';
@@ -12,7 +13,7 @@ import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackP
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import KPICard from '@/components/KPICard';
-import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText, TrendingDown, AlertTriangle, Loader2, Inbox, Receipt, Lock } from 'lucide-react';
+import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText, TrendingDown, AlertTriangle, Loader2, Inbox, MessageCircle, Receipt, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchOfertasComercios, type OfertaComercioRow } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
@@ -21,7 +22,7 @@ import { useOrganizationName } from '@/hooks/useOrganizationName';
 import { useOfertaComercioRealtime } from '@/hooks/useOfertaComercioRealtime';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 
-type ComercioSection = 'dashboard' | 'oportunidades' | 'mis-propuestas' | 'suscripcion' | 'solicitudes' | 'mi-facturacion' | 'feedback' | 'metricas-rechazo' | 'seguridad';
+type ComercioSection = 'dashboard' | 'oportunidades' | 'mis-propuestas' | 'suscripcion' | 'solicitudes' | 'solicitudes-clientes' | 'mi-facturacion' | 'feedback' | 'metricas-rechazo' | 'seguridad';
 
 const COMERCIO_SECTIONS: SidebarNavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: Store },
@@ -29,6 +30,7 @@ const COMERCIO_SECTIONS: SidebarNavItem[] = [
   { key: 'mis-propuestas', label: 'Mis Propuestas', icon: Send },
   { key: 'suscripcion', label: 'Suscripción', icon: CreditCard },
   { key: 'solicitudes', label: 'Solicitudes (Me Interesa)', icon: Inbox },
+  { key: 'solicitudes-clientes', label: 'Solicitudes de Clientes', icon: MessageCircle },
   { key: 'mi-facturacion', label: 'Mi Facturación', icon: Receipt },
   { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText },
   { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: TrendingDown },
@@ -263,6 +265,10 @@ export default function ComerciosDashboard() {
               comercioCiudad={currentComercio.ciudad}
               organizationId={session?.organizationId ?? null}
             />
+          )}
+
+          {activeSection === 'solicitudes-clientes' && (
+            <SolicitudesClientesTab comercioId={currentComercio.id} />
           )}
 
           {activeSection === 'mi-facturacion' && (

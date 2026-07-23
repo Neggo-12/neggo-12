@@ -1071,6 +1071,81 @@ export type Database = {
         }
         Relationships: []
       }
+      comercio_contactos: {
+        Row: {
+          id: string
+          cliente_id: string
+          comercio_id: string
+          descripcion: string
+          nombre: string
+          telefono: string
+          whatsapp: string | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          cliente_id: string
+          comercio_id: string
+          descripcion: string
+          nombre: string
+          telefono: string
+          whatsapp?: string | null
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          cliente_id?: string
+          comercio_id?: string
+          descripcion?: string
+          nombre?: string
+          telefono?: string
+          whatsapp?: string | null
+          status?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comercio_contactos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comercio_contactos_comercio_id_fkey"
+            columns: ["comercio_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      busquedas_sin_match: {
+        Row: {
+          id: string
+          termino: string
+          ciudad: string | null
+          cliente_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          termino: string
+          ciudad?: string | null
+          cliente_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          termino?: string
+          ciudad?: string | null
+          cliente_id?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       facturas_resumen_por_negocio: {
@@ -1165,6 +1240,26 @@ export type Database = {
           p_banco_productos?: Json
         }
         Returns: undefined
+      }
+      buscar_comercios_verificados: {
+        Args: { p_termino: string }
+        Returns: {
+          id: string
+          name: string
+          ciudad: string | null
+          categoria: string | null
+          afiliado_desde: string
+        }[]
+      }
+      registrar_contacto_comercio: {
+        Args: {
+          p_comercio_id: string
+          p_descripcion: string
+          p_nombre: string
+          p_telefono: string
+          p_whatsapp?: string | null
+        }
+        Returns: string
       }
     }
     Enums: {

@@ -1231,13 +1231,13 @@ export async function fetchClienteContactInfo(
 export async function fetchClientePerfil(
   clienteId: string,
 ): Promise<{
-  data: { nombre: string; firstName: string | null; ciudad: string | null; scoreEstimado: number | null } | null;
+  data: { nombre: string; firstName: string | null; ciudad: string | null; scoreEstimado: number | null; telefono: string | null } | null;
   error: string | null;
 }> {
   if (!supabase) return { data: null, error: NOT_CONFIGURED };
   const { data, error } = await supabase
     .from('users')
-    .select('nombre, first_name, ciudad, score_estimado')
+    .select('nombre, first_name, ciudad, score_estimado, telefono')
     .eq('id', clienteId)
     .limit(1)
     .maybeSingle();
@@ -1249,6 +1249,7 @@ export async function fetchClientePerfil(
       firstName: data.first_name,
       ciudad: data.ciudad,
       scoreEstimado: data.score_estimado,
+      telefono: data.telefono,
     },
     error: null,
   };
@@ -1544,6 +1545,129 @@ export async function fetchComerciosMatch(
     };
   });
   return { data: result, error: null };
+}
+
+// ───── Buscador de Comercios (cliente) ─────
+
+export interface ComercioBuscadorRow {
+  id: string;
+  name: string;
+  ciudad: string | null;
+  categoria: string | null;
+  afiliadoDesde: string;
+}
+
+/** Busca comercios con Sello de Confianza activo por nombre — RPC SECURITY DEFINER, solo devuelve verificados. */
+export async function buscarComerciosVerificados(
+  termino: string,
+): Promise<{ data: ComercioBuscadorRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.rpc('buscar_comercios_verificados', { p_termino: termino });
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      ciudad: r.ciudad,
+      categoria: r.categoria,
+      afiliadoDesde: r.afiliado_desde,
+    })),
+    error: null,
+  };
+}
+
+/** Registra una búsqueda sin resultados — fire-and-forget, nunca debe bloquear la UI del cliente. */
+export async function registrarBusquedaSinMatch(input: {
+  termino: string;
+  ciudad?: string | null;
+  clienteId?: string | null;
+}): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.from('busquedas_sin_match').insert({
+    termino: input.termino,
+    ciudad: input.ciudad ?? null,
+    cliente_id: input.clienteId ?? null,
+  });
+  if (error) return { error: errMessage(error) };
+  return { error: null };
+}
+
+/** Registra el contacto de un cliente a un comercio verificado — RPC SECURITY DEFINER (valida Sello activo y cobra el CPL del plan). */
+export async function registrarContactoComercio(input: {
+  comercioId: string;
+  descripcion: string;
+  nombre: string;
+  telefono: string;
+  whatsapp?: string | null;
+}): Promise<{ data: string | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.rpc('registrar_contacto_comercio', {
+    p_comercio_id: input.comercioId,
+    p_descripcion: input.descripcion,
+    p_nombre: input.nombre,
+    p_telefono: input.telefono,
+    p_whatsapp: input.whatsapp ?? null,
+  });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data, error: null };
+}
+
+// ───── Solicitudes de Clientes (comercio) ─────
+
+export interface ComercioContactoRow {
+  id: string;
+  clienteId: string;
+  nombre: string;
+  telefono: string;
+  whatsapp: string | null;
+  descripcion: string;
+  status: 'pendiente' | 'atendido';
+  createdAt: string;
+}
+
+/** Solicitudes de clientes recibidas por un comercio a través del Buscador de Comercios. */
+export async function fetchComercioContactos(
+  comercioId: string,
+): Promise<{ data: ComercioContactoRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('comercio_contactos')
+    .select('id, cliente_id, nombre, telefono, whatsapp, descripcion, status, created_at')
+    .eq('comercio_id', comercioId)
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      id: r.id,
+      clienteId: r.cliente_id,
+      nombre: r.nombre,
+      telefono: r.telefono,
+      whatsapp: r.whatsapp,
+      descripcion: r.descripcion,
+      status: r.status as 'pendiente' | 'atendido',
+      createdAt: r.created_at,
+    })),
+    error: null,
+  };
+}
+
+/** Marca una solicitud de cliente como atendida. UPDATE directo — RLS ya restringe a comercio_id = auth.uid(). */
+export async function marcarComercioContactoAtendido(
+  id: string,
+  comercioId: string,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('comercio_contactos')
+    .update({ status: 'atendido' })
+    .eq('id', id)
+    .eq('comercio_id', comercioId)
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: 'No se pudo actualizar la solicitud (posible bloqueo de RLS).' };
+  }
+  return { error: null };
 }
 
 /** Pipeline de estados real de un lead de Me Interesa (sección 9.1 del roadmap). */

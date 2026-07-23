@@ -10,6 +10,8 @@ export interface ClienteProfile {
   ciudad: string | null;
   /** Score real (users.score_estimado) — null en cuentas antiguas sin ese campo poblado. */
   scoreEstimado: number | null;
+  /** Teléfono real (users.telefono) — null en cuentas antiguas sin ese campo poblado. */
+  telefono: string | null;
   status: ClienteProfileStatus;
 }
 
@@ -26,6 +28,7 @@ export function useClienteProfile(): ClienteProfile {
   const [name, setName] = useState<string | null>(null);
   const [ciudad, setCiudad] = useState<string | null>(null);
   const [scoreEstimado, setScoreEstimado] = useState<number | null>(null);
+  const [telefono, setTelefono] = useState<string | null>(null);
   const [status, setStatus] = useState<ClienteProfileStatus>('loading');
 
   useEffect(() => {
@@ -41,11 +44,13 @@ export function useClienteProfile(): ClienteProfile {
         setName(data.firstName || data.nombre);
         setCiudad(data.ciudad);
         setScoreEstimado(data.scoreEstimado);
+        setTelefono(data.telefono);
         setStatus('ready');
       } else {
         setName(null);
         setCiudad(null);
         setScoreEstimado(null);
+        setTelefono(null);
         setStatus('error');
       }
     });
@@ -54,5 +59,5 @@ export function useClienteProfile(): ClienteProfile {
     };
   }, [session?.userId]);
 
-  return { name, ciudad, scoreEstimado, status };
+  return { name, ciudad, scoreEstimado, telefono, status };
 }
