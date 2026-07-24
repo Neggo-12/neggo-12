@@ -34,9 +34,15 @@ function segmentacionResumen(campana: CampanaAdminRow): string {
 export default function CampanasListPanel({
   organizationId,
   refreshKey,
+  selectedCampanaId,
+  onSelectCampana,
 }: {
   organizationId: string | null;
   refreshKey?: number;
+  /** Campaña actualmente seleccionada (resalta la tarjeta) — mismo criterio que isActive en ProjectCard. */
+  selectedCampanaId?: string | null;
+  /** Al hacer clic en una tarjeta (fuera del selector de estado) — abre el mini-CRM de esa campaña. */
+  onSelectCampana?: (campana: CampanaAdminRow) => void;
 }) {
   const [campanas, setCampanas] = useState<CampanaAdminRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -116,8 +122,17 @@ export default function CampanasListPanel({
     <div className="space-y-3">
       {campanas.map((campana) => {
         const cfg = ESTADO_CONFIG[campana.estado];
+        const isSelected = selectedCampanaId === campana.id;
         return (
-          <div key={campana.id} className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-2.5">
+          <div
+            key={campana.id}
+            onClick={() => onSelectCampana?.(campana)}
+            className={cn(
+              'rounded-xl border p-4 space-y-2.5 transition-colors',
+              onSelectCampana && 'cursor-pointer hover:border-border/60',
+              isSelected ? 'border-blue-500/40 bg-blue-500/5' : 'border-border/40 bg-card/40',
+            )}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h4 className="text-sm font-semibold text-foreground truncate">{campana.titulo}</h4>
@@ -125,17 +140,19 @@ export default function CampanasListPanel({
                   <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{campana.descripcion}</p>
                 )}
               </div>
-              <Select value={campana.estado} onValueChange={(v) => handleEstadoChange(campana.id, v as CampanaAdminRow['estado'])}>
-                <SelectTrigger className={cn('h-6 w-auto shrink-0 gap-1 rounded-full border px-2 py-0 text-[10px] font-medium', cfg.bg, cfg.text, cfg.border)}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="activa" className="text-xs">Activa</SelectItem>
-                  <SelectItem value="pausada" className="text-xs">Pausada</SelectItem>
-                  <SelectItem value="cancelada" className="text-xs">Cancelada</SelectItem>
-                  <SelectItem value="finalizada" className="text-xs">Finalizada</SelectItem>
-                </SelectContent>
-              </Select>
+              <div onClick={(e) => e.stopPropagation()}>
+                <Select value={campana.estado} onValueChange={(v) => handleEstadoChange(campana.id, v as CampanaAdminRow['estado'])}>
+                  <SelectTrigger className={cn('h-6 w-auto shrink-0 gap-1 rounded-full border px-2 py-0 text-[10px] font-medium', cfg.bg, cfg.text, cfg.border)}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="activa" className="text-xs">Activa</SelectItem>
+                    <SelectItem value="pausada" className="text-xs">Pausada</SelectItem>
+                    <SelectItem value="cancelada" className="text-xs">Cancelada</SelectItem>
+                    <SelectItem value="finalizada" className="text-xs">Finalizada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <MapPin className="h-3 w-3" />

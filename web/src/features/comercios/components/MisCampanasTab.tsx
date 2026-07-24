@@ -1,19 +1,26 @@
 import { useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Megaphone } from 'lucide-react';
 import CrearCampanaComercioDialog from '@/features/comercios/components/CrearCampanaComercioDialog';
+import ComercioSolicitudesTab from '@/components/comercio/SolicitudesTab';
 import CampanasListPanel from '@/features/shared/components/CampanasListPanel';
 import { isDbConfigured } from '@/core/db/dbClient';
+import type { CampanaAdminRow } from '@/core/db/repositories';
 
 export default function MisCampanasTab({
   organizationId,
   creadoPor,
   comercioNombre,
+  comercioId,
+  comercioCiudad,
 }: {
   organizationId: string | null;
   creadoPor: string | null;
   comercioNombre: string;
+  comercioId: string;
+  comercioCiudad: string;
 }) {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedCampana, setSelectedCampana] = useState<CampanaAdminRow | null>(null);
 
   if (!isDbConfigured) {
     return (
@@ -43,7 +50,31 @@ export default function MisCampanasTab({
         />
       </div>
 
-      <CampanasListPanel organizationId={organizationId} refreshKey={refreshKey} />
+      <CampanasListPanel
+        organizationId={organizationId}
+        refreshKey={refreshKey}
+        selectedCampanaId={selectedCampana?.id ?? null}
+        onSelectCampana={(campana) => setSelectedCampana((prev) => (prev?.id === campana.id ? null : campana))}
+      />
+
+      {selectedCampana ? (
+        <ComercioSolicitudesTab
+          comercioNombre={comercioNombre}
+          comercioId={comercioId}
+          comercioCiudad={comercioCiudad}
+          organizationId={organizationId}
+          campanaIdFilter={selectedCampana.id}
+          campanaNombre={selectedCampana.titulo}
+        />
+      ) : (
+        <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl border border-border/40 bg-card/40">
+          <Megaphone className="h-10 w-10 text-muted-foreground/40 mb-3" />
+          <p className="text-sm font-medium text-foreground mb-1">Selecciona una campaña para ver sus leads</p>
+          <p className="text-xs text-muted-foreground">
+            Haz clic en una campaña arriba para ver su mini-CRM: leads, código de verificación y gestión de pipeline.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

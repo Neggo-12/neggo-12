@@ -27,11 +27,16 @@ export default function SolicitudesTab({
   comercioId,
   comercioCiudad,
   organizationId,
+  campanaIdFilter,
+  campanaNombre,
 }: {
   comercioNombre: string;
   comercioId: string;
   comercioCiudad: string;
   organizationId: string | null;
+  /** Cuando está presente, acota este mismo componente al mini-CRM de una campaña puntual (Campañas → CampanasListPanel). */
+  campanaIdFilter?: string;
+  campanaNombre?: string;
 }) {
   const [leads, setLeads] = useState<MeInteresaLeadDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -103,7 +108,9 @@ export default function SolicitudesTab({
     }
   }, [leads]);
 
-  const filtered = leads.filter((l) => {
+  const scopedLeads = campanaIdFilter ? leads.filter((l) => l.campanaId === campanaIdFilter) : leads;
+
+  const filtered = scopedLeads.filter((l) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -164,9 +171,11 @@ export default function SolicitudesTab({
             <Store className="h-5 w-5 text-blue-400" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-foreground truncate">{comercioNombre}</h2>
+            <h2 className="text-base font-semibold text-foreground truncate">
+              {campanaIdFilter ? (campanaNombre ?? 'Campaña') : comercioNombre}
+            </h2>
             <p className="text-xs text-muted-foreground">
-              {comercioId ? `ID: ${comercioId}` : ''} · {comercioCiudad}
+              {campanaIdFilter ? `Leads de esta campaña — ${comercioNombre}` : `${comercioId ? `ID: ${comercioId}` : ''} · ${comercioCiudad}`}
             </p>
           </div>
         </div>
@@ -177,7 +186,7 @@ export default function SolicitudesTab({
           </div>
           <div className="text-right">
             <div className="text-xs text-muted-foreground">Solicitudes recibidas</div>
-            <div className="text-lg font-bold text-foreground font-mono">{leads.length}</div>
+            <div className="text-lg font-bold text-foreground font-mono">{scopedLeads.length}</div>
           </div>
         </div>
       </div>
@@ -200,12 +209,18 @@ export default function SolicitudesTab({
             <FileText className="h-8 w-8 text-blue-400" />
           </div>
           <h3 className="text-base font-semibold text-foreground mb-2">
-            {search ? 'No se encontraron solicitudes' : 'No tienes solicitudes de clientes en este momento'}
+            {search
+              ? 'No se encontraron solicitudes'
+              : campanaIdFilter
+                ? 'Aún no hay leads para esta campaña'
+                : 'No tienes solicitudes de clientes en este momento'}
           </h3>
           <p className="text-sm text-muted-foreground max-w-md">
             {search
               ? 'Intenta ajustar tu término de búsqueda.'
-              : 'Cuando un cliente elija tu categoría exacta en "Me Interesa", aparecerá aquí automáticamente.'}
+              : campanaIdFilter
+                ? 'Cuando un cliente marque "Me interesa" en esta campaña, aparecerá aquí automáticamente.'
+                : 'Cuando un cliente elija tu categoría exacta en "Me Interesa", aparecerá aquí automáticamente.'}
           </p>
         </div>
       ) : (
@@ -299,17 +314,17 @@ export default function SolicitudesTab({
       {filtered.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[
-            { label: 'Total Solicitudes', value: leads.length, icon: FileText, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+            { label: 'Total Solicitudes', value: scopedLeads.length, icon: FileText, color: 'text-blue-400', bg: 'bg-blue-500/10' },
             {
               label: 'Pendientes',
-              value: leads.filter((l) => l.estadoPipeline === 'pendiente').length,
+              value: scopedLeads.filter((l) => l.estadoPipeline === 'pendiente').length,
               icon: Clock,
               color: 'text-amber-400',
               bg: 'bg-amber-500/10',
             },
             {
               label: 'En Gestión',
-              value: leads.filter((l) => l.estadoPipeline !== 'pendiente').length,
+              value: scopedLeads.filter((l) => l.estadoPipeline !== 'pendiente').length,
               icon: Sparkles,
               color: 'text-purple-400',
               bg: 'bg-purple-500/10',

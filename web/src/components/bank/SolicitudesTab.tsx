@@ -22,7 +22,18 @@ import ExpandedLeadCRM from '@/components/crm/ExpandedLeadCRM';
 import { PRODUCT_LABELS } from '@/components/crm/leadLabels';
 import { ESTADOS_CIERRE } from '@/components/crm/pipelineConfig';
 
-export default function SolicitudesTab({ organizationName, organizationId }: { organizationName: string | null; organizationId: string | null }) {
+export default function SolicitudesTab({
+  organizationName,
+  organizationId,
+  campanaIdFilter,
+  campanaNombre,
+}: {
+  organizationName: string | null;
+  organizationId: string | null;
+  /** Cuando está presente, acota este mismo componente al mini-CRM de una campaña puntual (Campañas → CampanasListPanel). */
+  campanaIdFilter?: string;
+  campanaNombre?: string;
+}) {
   const [leads, setLeads] = useState<MeInteresaLeadDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +95,9 @@ export default function SolicitudesTab({ organizationName, organizationId }: { o
     }
   }, [leads]);
 
-  const filtered = leads.filter((l) => {
+  const scopedLeads = campanaIdFilter ? leads.filter((l) => l.campanaId === campanaIdFilter) : leads;
+
+  const filtered = scopedLeads.filter((l) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -145,10 +158,10 @@ export default function SolicitudesTab({ organizationName, organizationId }: { o
           </div>
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-foreground truncate">
-              {organizationName ?? 'Banco'}
+              {campanaIdFilter ? (campanaNombre ?? 'Campaña') : (organizationName ?? 'Banco')}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {organizationId ? `ID: ${organizationId}` : ''}
+              {campanaIdFilter ? `Leads de esta campaña — ${organizationName ?? 'Banco'}` : (organizationId ? `ID: ${organizationId}` : '')}
             </p>
           </div>
         </div>
@@ -159,7 +172,7 @@ export default function SolicitudesTab({ organizationName, organizationId }: { o
           </div>
           <div className="text-right">
             <div className="text-xs text-muted-foreground">Solicitudes recibidas</div>
-            <div className="text-lg font-bold text-foreground font-mono">{leads.length}</div>
+            <div className="text-lg font-bold text-foreground font-mono">{scopedLeads.length}</div>
           </div>
         </div>
       </div>
@@ -182,12 +195,18 @@ export default function SolicitudesTab({ organizationName, organizationId }: { o
             <FileText className="h-8 w-8 text-emerald-400" />
           </div>
           <h3 className="text-base font-semibold text-foreground mb-2">
-            {search ? 'No se encontraron solicitudes' : 'No tienes solicitudes de clientes en este momento'}
+            {search
+              ? 'No se encontraron solicitudes'
+              : campanaIdFilter
+                ? 'Aún no hay leads para esta campaña'
+                : 'No tienes solicitudes de clientes en este momento'}
           </h3>
           <p className="text-sm text-muted-foreground max-w-md">
             {search
               ? 'Intenta ajustar tu término de búsqueda.'
-              : 'Cuando un cliente envíe una solicitud a tu entidad, aparecerá aquí automáticamente.'}
+              : campanaIdFilter
+                ? 'Cuando un cliente marque "Me interesa" en esta campaña, aparecerá aquí automáticamente.'
+                : 'Cuando un cliente envíe una solicitud a tu entidad, aparecerá aquí automáticamente.'}
           </p>
         </div>
       ) : (
@@ -284,17 +303,17 @@ export default function SolicitudesTab({ organizationName, organizationId }: { o
       {filtered.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[
-            { label: 'Total Solicitudes', value: leads.length, icon: FileText, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+            { label: 'Total Solicitudes', value: scopedLeads.length, icon: FileText, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
             {
               label: 'Pendientes',
-              value: leads.filter((l) => l.estadoPipeline === 'pendiente').length,
+              value: scopedLeads.filter((l) => l.estadoPipeline === 'pendiente').length,
               icon: Clock,
               color: 'text-amber-400',
               bg: 'bg-amber-500/10',
             },
             {
               label: 'En Gestión',
-              value: leads.filter((l) => l.estadoPipeline !== 'pendiente').length,
+              value: scopedLeads.filter((l) => l.estadoPipeline !== 'pendiente').length,
               icon: Sparkles,
               color: 'text-purple-400',
               bg: 'bg-purple-500/10',

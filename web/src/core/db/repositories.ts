@@ -2494,6 +2494,8 @@ export interface MeInteresaLeadDisplay {
   subcategoria: string | null;
   /** proyecto_id de la solicitud, si nació del CTA "Me interesa este proyecto" — NULL en la solicitud genérica de vivienda. */
   proyectoId: string | null;
+  /** campana_id de la solicitud, si nació del CTA "Me interesa" sobre una campaña puntual (Ofertas) — NULL fuera de ese flujo. */
+  campanaId: string | null;
   clienteNombre: string;
   clienteTelefono: string;
   /** Código anti-phishing (6 dígitos) — el asesor debe mencionarlo al contactar al cliente. */
@@ -2528,7 +2530,7 @@ export async function fetchMeInteresaLeadsByOrganization(
   const solicitudIds = destinatarios.map((d) => d.solicitud_id);
   const { data: solicitudes, error: solError } = await supabase
     .from('me_interesa_solicitudes')
-    .select('id, cliente_id, origen, producto_bancario, tipo_vivienda, ciudad, comuna, estrato_min, estrato_max, presupuesto_min, presupuesto_max, categoria, subcategoria, proyecto_id')
+    .select('id, cliente_id, origen, producto_bancario, tipo_vivienda, ciudad, comuna, estrato_min, estrato_max, presupuesto_min, presupuesto_max, categoria, subcategoria, proyecto_id, campana_id')
     .in('id', solicitudIds);
   if (solError) return { data: null, error: errMessage(solError) };
 
@@ -2573,6 +2575,7 @@ export async function fetchMeInteresaLeadsByOrganization(
       categoria: solicitud?.categoria ?? null,
       subcategoria: solicitud?.subcategoria ?? null,
       proyectoId: solicitud?.proyecto_id ?? null,
+      campanaId: solicitud?.campana_id ?? null,
       clienteNombre: cliente?.nombre ?? 'Cliente',
       clienteTelefono: cliente?.telefono ?? '',
       codigoVerificacion: d.codigo_verificacion,

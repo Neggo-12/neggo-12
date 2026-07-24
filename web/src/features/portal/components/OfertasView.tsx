@@ -76,11 +76,13 @@ function CampanaOfferCard({
   yaSolicitado,
   onSolicitar,
   accent,
+  clienteCiudad,
 }: {
   campana: CampanaDisplay;
   yaSolicitado: boolean;
   onSolicitar: () => Promise<boolean>;
   accent: 'cyan' | 'amber';
+  clienteCiudad: string | null;
 }) {
   const [requestState, setRequestState] = useState<'idle' | 'loading' | 'done'>(yaSolicitado ? 'done' : 'idle');
   const [isRejected, setIsRejected] = useState(false);
@@ -159,7 +161,7 @@ function CampanaOfferCard({
               : 'bg-purple-500/10 text-purple-400 border-purple-500/20',
           )}>
             <Sparkles className="h-2.5 w-2.5" />
-            {campana.modoLanzamiento === 'segmentado' ? 'Match para ti' : 'Alcance Amplio'}
+            {campana.modoLanzamiento === 'segmentado' ? 'Segmentado' : 'Alcance Amplio'}
           </Badge>
         </div>
 
@@ -177,6 +179,22 @@ function CampanaOfferCard({
             ))}
           </div>
         )}
+
+        {/* ── Match banner (mismo patrón que ProjectCard en Oportunidades Inmobiliarias) ── */}
+        <div className={cn(
+          'flex items-center gap-2 rounded-lg border px-3 py-2',
+          accent === 'cyan' ? 'bg-cyan-500/5 border-cyan-500/10' : 'bg-amber-500/5 border-amber-500/10',
+        )}>
+          <Sparkles className={cn('h-3.5 w-3.5', accent === 'cyan' ? 'text-cyan-400' : 'text-amber-400')} />
+          <p className={cn('text-[11px]', accent === 'cyan' ? 'text-cyan-400' : 'text-amber-400')}>
+            <span className="font-semibold">{campana.modoLanzamiento === 'segmentado' ? 'Match de oferta' : 'Alcance amplio'}</span>
+            <span className={accent === 'cyan' ? 'text-cyan-400/60' : 'text-amber-400/60'}>
+              {campana.modoLanzamiento === 'segmentado' && clienteCiudad
+                ? ` — ${clienteCiudad} coincide con tu perfil`
+                : ' — disponible para todos los clientes'}
+            </span>
+          </p>
+        </div>
 
         <button
           onClick={(e) => { e.stopPropagation(); handleReject(); }}
@@ -593,6 +611,7 @@ export default function OfertasView() {
                   yaSolicitado={campanaIdsConSolicitud.has(campana.id)}
                   onSolicitar={() => handleSolicitarBanco(campana)}
                   accent="cyan"
+                  clienteCiudad={ciudad}
                 />
               ))}
             </div>
@@ -651,6 +670,7 @@ export default function OfertasView() {
                   yaSolicitado={campanaIdsConSolicitud.has(campana.id)}
                   onSolicitar={() => handleSolicitarComercio(campana)}
                   accent="amber"
+                  clienteCiudad={ciudad}
                 />
               ))}
             </div>

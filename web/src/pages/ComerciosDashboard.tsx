@@ -290,6 +290,8 @@ export default function ComerciosDashboard() {
               organizationId={session?.organizationId ?? null}
               creadoPor={session?.userId ?? null}
               comercioNombre={currentComercio.nombre}
+              comercioId={currentComercio.id}
+              comercioCiudad={currentComercio.ciudad}
             />
           )}
 
