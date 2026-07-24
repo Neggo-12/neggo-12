@@ -439,6 +439,7 @@ export type Database = {
           categoria: string | null
           subcategoria: string | null
           proyecto_id: string | null
+          campana_id: string | null
           created_at: string
         }
         Insert: {
@@ -458,6 +459,7 @@ export type Database = {
           categoria?: string | null
           subcategoria?: string | null
           proyecto_id?: string | null
+          campana_id?: string | null
           created_at?: string
         }
         Update: {
@@ -477,6 +479,7 @@ export type Database = {
           categoria?: string | null
           subcategoria?: string | null
           proyecto_id?: string | null
+          campana_id?: string | null
           created_at?: string
         }
         Relationships: [
@@ -492,6 +495,63 @@ export type Database = {
             columns: ["proyecto_id"]
             isOneToOne: false
             referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "me_interesa_solicitudes_campana_id_fkey"
+            columns: ["campana_id"]
+            isOneToOne: false
+            referencedRelation: "campanas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campanas: {
+        Row: {
+          id: string
+          organization_id: string
+          tipo: string
+          titulo: string
+          descripcion: string | null
+          estado: string
+          modo_lanzamiento: string
+          segmentacion: Json
+          creado_por: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          tipo: string
+          titulo: string
+          descripcion?: string | null
+          estado?: string
+          modo_lanzamiento?: string
+          segmentacion?: Json
+          creado_por: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          tipo?: string
+          titulo?: string
+          descripcion?: string | null
+          estado?: string
+          modo_lanzamiento?: string
+          segmentacion?: Json
+          creado_por?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campanas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]

@@ -32,15 +32,6 @@ export type Priority = 'baja' | 'media' | 'alta' | 'maxima';
 
 export type RiskLevel = 'alto' | 'medio' | 'bajo' | 'minimo';
 
-export type CampaignType =
-  | 'cdt'
-  | 'hipotecario'
-  | 'compra-cartera'
-  | 'tarjetas'
-  | 'libranzas'
-  | 'vehiculos'
-  | 'inversiones';
-
 export type FeedbackType = 'felicitacion' | 'problema' | 'sugerencia' | 'mala-atencion';
 
 export type FeedbackStatus = 'nuevo' | 'en-proceso' | 'resuelto' | 'escalado';
@@ -77,30 +68,6 @@ export interface KPIData {
   deltaConversion: number;
   deltaScore: number;
   deltaPrioridad: number;
-}
-
-export type CampaignOfferStatus = 'active' | 'rejected';
-
-export interface Campaign {
-  id: string;
-  name: string;
-  type: CampaignType;
-  bank: string;
-  offerStatus?: CampaignOfferStatus;
-  impressions: number;
-  ctr: number;
-  leadsGenerated: number;
-  conversions: number;
-  avgScore: number;
-  budget: number;
-  spent: number;
-  startDate: string;
-  endDate: string;
-  status: 'activa' | 'pausada' | 'finalizada';
-  cities: string[];
-  tasa: string;
-  minScore: number;
-  maxScore: number;
 }
 
 export type FeedbackDestinatario = 'banco' | 'constructora' | 'comercio';

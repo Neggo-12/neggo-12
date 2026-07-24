@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import CrearCampanaDialog from '@/components/bank/CrearCampanaDialog';
+import CrearCampanaComercioDialog from '@/features/comercios/components/CrearCampanaComercioDialog';
 import CampanasListPanel from '@/features/shared/components/CampanasListPanel';
 import { isDbConfigured } from '@/core/db/dbClient';
 
-export default function CampanasTab({ bankName, organizationId }: { bankName: string; organizationId: string | null }) {
+export default function MisCampanasTab({
+  organizationId,
+  creadoPor,
+  comercioNombre,
+}: {
+  organizationId: string | null;
+  creadoPor: string | null;
+  comercioNombre: string;
+}) {
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // ───── DB not configured empty state ─────
   if (!isDbConfigured) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
@@ -15,25 +22,25 @@ export default function CampanasTab({ bankName, organizationId }: { bankName: st
           <AlertTriangle className="h-8 w-8 text-amber-400" />
         </div>
         <h3 className="text-base font-semibold text-foreground mb-2">Base de datos no configurada</h3>
-        <p className="text-sm text-muted-foreground max-w-md">
-          Configura <code className="text-xs bg-muted px-1.5 py-0.5 rounded">VITE_SUPABASE_URL</code> y{' '}
-          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">VITE_SUPABASE_ANON_KEY</code> para gestionar campañas reales.
-        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
-      {/* Header with CTA */}
+    <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Centro de Campañas</h3>
+          <h3 className="text-lg font-bold tracking-tight text-foreground">Mis Campañas</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {bankName ? `Campañas de ${bankName}` : 'Gestiona tus campañas bancarias'}
+            Promociones y campañas segmentadas para clientes del ecosistema Neggo
           </p>
         </div>
-        <CrearCampanaDialog onCampanaCreated={() => setRefreshKey((k) => k + 1)} />
+        <CrearCampanaComercioDialog
+          organizationId={organizationId}
+          creadoPor={creadoPor}
+          comercioNombre={comercioNombre}
+          onCampanaCreated={() => setRefreshKey((k) => k + 1)}
+        />
       </div>
 
       <CampanasListPanel organizationId={organizationId} refreshKey={refreshKey} />

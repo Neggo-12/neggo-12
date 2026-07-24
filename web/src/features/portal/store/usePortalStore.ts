@@ -103,6 +103,8 @@ export interface AddSolicitudBancoInput {
   id: string;
   productType: SolicitudProductType;
   bancos: { organizationId: string; nombre: string }[];
+  /** Presente solo cuando la solicitud nace del CTA "Me interesa" sobre una campaña puntual (Ofertas) — `bancos` ya trae el destinatario resuelto. */
+  campanaId?: string;
 }
 
 /** Input para crear una solicitud a constructoras — el match se resuelve internamente. */
@@ -129,6 +131,12 @@ export interface AddSolicitudComercioInput {
   categoria: string;
   subcategoria?: string;
   ciudad: string;
+  /**
+   * Presente solo cuando la solicitud nace del CTA "Me interesa" sobre una
+   * campaña puntual (Ofertas) — en ese caso se salta el match amplio por
+   * categoría/ciudad y el destinatario es SIEMPRE ese comercio.
+   */
+  campana?: { id: string; organizationId: string; organizationNombre: string };
 }
 
 /** Input para registrar una señal de interés — el cliente eligió un negocio curado, no uno real. */
@@ -243,6 +251,7 @@ export const usePortalStore = create<PortalState>((set, get) => ({
       clienteId,
       origen: 'banco',
       productoBancario: input.productType,
+      campanaId: input.campanaId,
     });
     if (solError) {
       set({ dbError: solError });
@@ -363,25 +372,33 @@ export const usePortalStore = create<PortalState>((set, get) => ({
       return false;
     }
 
-    const { data: comercios, error: matchError } = await fetchComerciosMatch({
-      ciudad: input.ciudad,
-      categoria: input.categoria,
-    });
-    if (matchError) {
-      toast.error('No se pudo buscar comercios', { description: matchError });
-      return false;
-    }
+    let destinatarios: { organizationId: string; nombre: string }[];
 
-    // Preferencia suave por subcategoría, luego desempate por Sello de Confianza, luego sorteo.
-    let pool = comercios ?? [];
-    if (input.subcategoria) {
-      const conEspecialidad = pool.filter((c) => c.especialidades.includes(input.subcategoria!));
-      if (conEspecialidad.length > 0) pool = conEspecialidad;
+    if (input.campana) {
+      // CTA "Me interesa" sobre una campaña puntual — destinatario único, ya
+      // conocido por la tarjeta que disparó la solicitud. Nunca se abre a otros comercios.
+      destinatarios = [{ organizationId: input.campana.organizationId, nombre: input.campana.organizationNombre }];
+    } else {
+      const { data: comercios, error: matchError } = await fetchComerciosMatch({
+        ciudad: input.ciudad,
+        categoria: input.categoria,
+      });
+      if (matchError) {
+        toast.error('No se pudo buscar comercios', { description: matchError });
+        return false;
+      }
+
+      // Preferencia suave por subcategoría, luego desempate por Sello de Confianza, luego sorteo.
+      let pool = comercios ?? [];
+      if (input.subcategoria) {
+        const conEspecialidad = pool.filter((c) => c.especialidades.includes(input.subcategoria!));
+        if (conEspecialidad.length > 0) pool = conEspecialidad;
+      }
+      const conSello = pool.filter((c) => c.hasTrustSeal);
+      if (conSello.length > 0) pool = conSello;
+      const elegido = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : null;
+      destinatarios = elegido ? [{ organizationId: elegido.id, nombre: elegido.name }] : [];
     }
-    const conSello = pool.filter((c) => c.hasTrustSeal);
-    if (conSello.length > 0) pool = conSello;
-    const elegido = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : null;
-    const destinatarios = elegido ? [{ organizationId: elegido.id, nombre: elegido.name }] : [];
 
     const solicitud: SolicitudCliente = {
       id: input.id,
@@ -401,6 +418,7 @@ export const usePortalStore = create<PortalState>((set, get) => ({
       categoria: input.categoria,
       subcategoria: input.subcategoria,
       ciudad: input.ciudad,
+      campanaId: input.campana?.id,
     });
     if (solError) {
       set({ dbError: solError });

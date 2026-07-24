@@ -103,7 +103,7 @@ export default function BankDashboard() {
               />
             </TabsContent>
             <TabsContent value="campanas" className="mt-0 animate-slide-up">
-              <CampanasTab bankName={bankNameForDisplay} />
+              <CampanasTab bankName={bankNameForDisplay} organizationId={organizationId} />
             </TabsContent>
             <TabsContent value="mi-facturacion" className="mt-0 animate-slide-up">
               <MiFacturacionTab organizationId={organizationId} />

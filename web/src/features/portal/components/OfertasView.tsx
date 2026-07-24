@@ -1,12 +1,11 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  Gift, Percent, MapPin, TrendingUp, CreditCard,
-  Loader2, CheckCircle2, Sparkles, Building2,
-  Clock, Users, Target, Star, Home, Store,
+  Gift, MapPin,
+  Loader2, CheckCircle2, Sparkles,
+  Target, Star, Home, Store, AlertTriangle,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -22,61 +21,90 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-// Production: no mock data — campaigns are fetched from Supabase when available
-const campaigns: Campaign[] = [];
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/useAuthStore';
+import { usePortalStore, type SolicitudProductType } from '@/features/portal/store/usePortalStore';
 import { useRejectionTracking } from '@/hooks/useRejectionTracking';
 import { useClienteProfile } from '@/hooks/useClienteProfile';
-import type { Campaign } from '@/types';
+import { isDbConfigured } from '@/core/db/dbClient';
+import {
+  fetchCampanasActivas,
+  fetchCampanaIdsConSolicitud,
+  type CampanaDisplay,
+} from '@/core/db/repositories';
+import { PRODUCT_LABELS, RANGO_INGRESOS_LABELS } from '@/components/crm/leadLabels';
 import type { GoalCategory } from '@/types';
 
-// ───── Type icons ─────
+// ───── Matching (client-side, mismo patrón que fetchProyectosMatch/OportunidadesInmobiliariasView) ─────
 
-const TYPE_ICONS: Record<string, React.ReactNode> = {
-  cdt: <TrendingUp className="h-4 w-4" />,
-  hipotecario: <Building2 className="h-4 w-4" />,
-  'compra-cartera': <CreditCard className="h-4 w-4" />,
-  tarjetas: <CreditCard className="h-4 w-4" />,
-  libranzas: <Gift className="h-4 w-4" />,
-  vehiculos: <span className="text-sm">🚗</span>,
-  inversiones: <TrendingUp className="h-4 w-4" />,
-};
+function matchesCampana(
+  campana: CampanaDisplay,
+  ciudad: string | null,
+  scoreEstimado: number | null,
+  rangoIngresos: string | null,
+): boolean {
+  const seg = campana.segmentacion;
+  if (campana.modoLanzamiento === 'alcance_amplio') {
+    if (seg.ciudades && seg.ciudades.length > 0) return !!ciudad && seg.ciudades.includes(ciudad);
+    return true;
+  }
+  if (seg.ciudades && seg.ciudades.length > 0 && (!ciudad || !seg.ciudades.includes(ciudad))) return false;
+  if (seg.rangoIngresos && seg.rangoIngresos.length > 0 && (!rangoIngresos || !seg.rangoIngresos.includes(rangoIngresos))) return false;
+  if (seg.scoreMin !== undefined && (scoreEstimado === null || scoreEstimado < seg.scoreMin)) return false;
+  if (seg.scoreMax !== undefined && (scoreEstimado === null || scoreEstimado > seg.scoreMax)) return false;
+  return true;
+}
 
-const TYPE_LABELS: Record<string, string> = {
-  cdt: 'CDT',
-  hipotecario: 'Crédito Hipotecario',
-  'compra-cartera': 'Compra de Cartera',
-  tarjetas: 'Tarjeta de Crédito',
-  libranzas: 'Libranza',
-  vehiculos: 'Crédito Vehículo',
-  inversiones: 'Inversión',
-};
+function segmentacionChips(campana: CampanaDisplay): string[] {
+  const chips: string[] = [];
+  const seg = campana.segmentacion;
+  if (seg.ciudades && seg.ciudades.length > 0) chips.push(seg.ciudades.join(', '));
+  if (seg.producto) chips.push(PRODUCT_LABELS[seg.producto] ?? seg.producto);
+  if (seg.rangoIngresos && seg.rangoIngresos.length > 0) {
+    chips.push(seg.rangoIngresos.map((r) => RANGO_INGRESOS_LABELS[r] ?? r).join(', '));
+  }
+  if (seg.scoreMin !== undefined || seg.scoreMax !== undefined) {
+    chips.push(`Score ${seg.scoreMin ?? '—'}–${seg.scoreMax ?? '—'}`);
+  }
+  return chips;
+}
 
-// ───── Campaign Card ─────
+// ───── Campaign Card (real, reutilizada por bancos y comercios) ─────
 
-function OfferCard({ campaign }: { campaign: Campaign }) {
-  const [requestState, setRequestState] = useState<'idle' | 'loading' | 'done'>('idle');
-  const [isRejected, setIsRejected] = useState(campaign.offerStatus === 'rejected');
+function CampanaOfferCard({
+  campana,
+  yaSolicitado,
+  onSolicitar,
+  accent,
+}: {
+  campana: CampanaDisplay;
+  yaSolicitado: boolean;
+  onSolicitar: () => Promise<boolean>;
+  accent: 'cyan' | 'amber';
+}) {
+  const [requestState, setRequestState] = useState<'idle' | 'loading' | 'done'>(yaSolicitado ? 'done' : 'idle');
+  const [isRejected, setIsRejected] = useState(false);
   const { trackRejection } = useRejectionTracking();
 
-  const spentPercent = Math.min(100, Math.round((campaign.spent / campaign.budget) * 100));
-  const remaining = campaign.budget - campaign.spent;
-  const isUrgent = spentPercent > 70;
-
-  const handleSolicitar = useCallback(() => {
-    setRequestState('loading');
-    setTimeout(() => setRequestState('done'), 1200);
-  }, []);
+  useEffect(() => {
+    if (yaSolicitado) setRequestState('done');
+  }, [yaSolicitado]);
 
   const handleReject = useCallback(() => {
     void trackRejection({
-      offerId: campaign.id,
-      sector: 'banca',
-      productType: TYPE_LABELS[campaign.type] ?? campaign.type,
-      entityName: campaign.bank,
+      offerId: campana.id,
+      sector: accent === 'cyan' ? 'banca' : 'establecimientos',
+      productType: campana.titulo,
+      entityName: campana.organizationNombre,
       onRejected: () => setIsRejected(true),
     });
-  }, [campaign.id, campaign.bank, campaign.type, trackRejection]);
+  }, [campana, accent, trackRejection]);
+
+  const handleSolicitar = useCallback(async () => {
+    setRequestState('loading');
+    const ok = await onSolicitar();
+    setRequestState(ok ? 'done' : 'idle');
+  }, [onSolicitar]);
 
   if (isRejected) {
     return (
@@ -85,6 +113,9 @@ function OfferCard({ campaign }: { campaign: Campaign }) {
       </div>
     );
   }
+
+  const chips = segmentacionChips(campana);
+  const accentColor = accent === 'cyan' ? 'blue' : 'amber';
 
   return (
     <div
@@ -95,102 +126,58 @@ function OfferCard({ campaign }: { campaign: Campaign }) {
         'hover:-translate-y-0.5',
       )}
     >
-      {/* Subtle top glow accent */}
       <div
         className={cn(
           'absolute inset-x-0 top-0 h-px',
-          isUrgent
-            ? 'bg-gradient-to-r from-transparent via-amber-400/40 to-transparent'
-            : 'bg-gradient-to-r from-transparent via-blue-400/30 to-transparent',
+          accent === 'cyan'
+            ? 'bg-gradient-to-r from-transparent via-blue-400/30 to-transparent'
+            : 'bg-gradient-to-r from-transparent via-amber-400/30 to-transparent',
         )}
       />
 
       <div className="p-5 space-y-4">
-        {/* ── Header: Bank + Product Type ── */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            {/* Bank initial */}
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm font-bold text-blue-400 font-mono">
-              {campaign.bank.charAt(0)}
+            <div className={cn(
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-sm font-bold font-mono',
+              accent === 'cyan' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+            )}>
+              {campana.organizationNombre.charAt(0)}
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {campaign.bank}
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+                {campana.organizationNombre}
               </p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-cyan-400/60">{TYPE_ICONS[campaign.type]}</span>
-                <h4 className="text-sm font-semibold text-foreground truncate">
-                  {TYPE_LABELS[campaign.type] ?? campaign.type}
-                </h4>
-              </div>
+              <h4 className="text-sm font-semibold text-foreground truncate">{campana.titulo}</h4>
             </div>
           </div>
 
-          {/* Match badge */}
-          <Badge className="shrink-0 bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-[10px] gap-1 px-2 py-0.5 font-medium rounded-full">
+          <Badge className={cn(
+            'shrink-0 text-[10px] gap-1 px-2 py-0.5 font-medium rounded-full',
+            campana.modoLanzamiento === 'segmentado'
+              ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+              : 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+          )}>
             <Sparkles className="h-2.5 w-2.5" />
-            Match Perfecto
+            {campana.modoLanzamiento === 'segmentado' ? 'Match para ti' : 'Alcance Amplio'}
           </Badge>
         </div>
 
-        {/* ── Tasa destacada ── */}
-        <div className="rounded-xl border border-border/40 bg-secondary/30 p-4 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-1">
-            Tasa de Interés
-          </p>
-          <p className="text-3xl font-bold font-mono text-cyan-300 tracking-tight">
-            {campaign.tasa}
-          </p>
-        </div>
+        {campana.descripcion && (
+          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{campana.descripcion}</p>
+        )}
 
-        {/* ── Meta row: cities + score range ── */}
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <MapPin className="h-3 w-3 text-emerald-400" />
-            {campaign.cities.join(', ')}
-          </span>
-          <span className="text-border/60">|</span>
-          <span className="flex items-center gap-1">
-            <Users className="h-3 w-3 text-blue-400" />
-            Score {campaign.minScore}–{campaign.maxScore}
-          </span>
-        </div>
-
-        {/* ── Budget bar ── */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              Cupo disponible
-            </span>
-            <span className={cn('font-mono font-semibold', isUrgent ? 'text-amber-400' : 'text-emerald-400')}>
-              ${(remaining / 1_000_000).toFixed(1)}M COP
-            </span>
+        {chips.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {chips.map((chip, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded-full bg-secondary/60 border border-border/40 px-2.5 py-1 text-[10px] text-muted-foreground font-medium">
+                {i === 0 && <MapPin className="h-3 w-3 text-emerald-400" />}
+                {chip}
+              </span>
+            ))}
           </div>
-          <Progress
-            value={spentPercent}
-            className={cn(
-              'h-1.5',
-              isUrgent
-                ? '[&>div]:bg-amber-500'
-                : spentPercent > 50
-                  ? '[&>div]:bg-blue-500'
-                  : '[&>div]:bg-emerald-500',
-            )}
-          />
-          <p className={cn('text-[10px]', isUrgent ? 'text-amber-400/70' : 'text-muted-foreground')}>
-            {isUrgent
-              ? `¡${100 - spentPercent}% restante — apresúrate!`
-              : `${spentPercent}% del presupuesto utilizado`}
-          </p>
-        </div>
+        )}
 
-        {/* ── Campaign Name ── */}
-        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1">
-          {campaign.name} — {campaign.leadsGenerated} leads generados
-        </p>
-
-        {/* ── Reject button ── */}
         <button
           onClick={(e) => { e.stopPropagation(); handleReject(); }}
           className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-border/20 bg-transparent px-3 py-1.5 text-[10px] text-muted-foreground/50 hover:text-red-400/70 hover:border-red-500/20 hover:bg-red-500/5 transition-all cursor-pointer"
@@ -198,23 +185,22 @@ function OfferCard({ campaign }: { campaign: Campaign }) {
           No me interesa
         </button>
 
-        {/* ── CTA ── */}
         <Button
           disabled={requestState !== 'idle'}
           onClick={handleSolicitar}
           className={cn(
             'w-full h-10 gap-2 font-semibold text-sm rounded-xl transition-all duration-300',
-            requestState === 'idle' &&
+            requestState === 'idle' && accentColor === 'blue' &&
               'bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/20 hover:shadow-cyan-600/30',
-            requestState === 'loading' &&
-              'bg-cyan-700 text-cyan-300 cursor-wait',
-            requestState === 'done' &&
-              'bg-emerald-600/50 text-emerald-300 border border-emerald-500/30 cursor-default',
+            requestState === 'idle' && accentColor === 'amber' &&
+              'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/20 hover:shadow-amber-600/30',
+            requestState === 'loading' && 'bg-secondary text-muted-foreground cursor-wait',
+            requestState === 'done' && 'bg-emerald-600/50 text-emerald-300 border border-emerald-500/30 cursor-default',
           )}
         >
           {requestState === 'idle' && (
             <>
-              Solicitar más información
+              Me interesa
               <Sparkles className="h-3.5 w-3.5" />
             </>
           )}
@@ -227,7 +213,7 @@ function OfferCard({ campaign }: { campaign: Campaign }) {
           {requestState === 'done' && (
             <>
               <CheckCircle2 className="h-4 w-4" />
-              Solicitado
+              Solicitud enviada
             </>
           )}
         </Button>
@@ -236,9 +222,7 @@ function OfferCard({ campaign }: { campaign: Campaign }) {
   );
 }
 
-// ───── Main View ─────
-
-// ───── Meta creation dialog ─────
+// ───── Meta creation dialog (sin cambios) ─────
 
 const GOAL_CATEGORIES: { id: GoalCategory; label: string; emoji: string }[] = [
   { id: 'Celular', label: 'Celular', emoji: '📱' },
@@ -321,7 +305,6 @@ function CrearMetaDialog({
           </div>
         ) : (
           <div className="space-y-5">
-            {/* Category Select */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Categoría
@@ -346,7 +329,6 @@ function CrearMetaDialog({
               </Select>
             </div>
 
-            {/* Target Amount */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Monto Objetivo (COP)
@@ -365,7 +347,6 @@ function CrearMetaDialog({
               )}
             </div>
 
-            {/* Monthly Goal */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Ahorro Mensual (COP)
@@ -385,7 +366,6 @@ function CrearMetaDialog({
               )}
             </div>
 
-            {/* Submit */}
             <Button
               disabled={!canSubmit}
               onClick={handleSubmit}
@@ -428,23 +408,75 @@ const OFFER_SECTORS: { id: OfferSector; label: string; emoji: string }[] = [
 // ───── Main OfertasView ─────
 
 export default function OfertasView() {
-  const { ciudad, scoreEstimado, status: perfilStatus } = useClienteProfile();
+  const { ciudad, scoreEstimado, rangoIngresos, status: perfilStatus } = useClienteProfile();
+  const userId = useAuthStore((s) => s.session?.userId);
+  const addSolicitudBanco = usePortalStore((s) => s.addSolicitudBanco);
+  const addSolicitudComercio = usePortalStore((s) => s.addSolicitudComercio);
   const [isCrearMetaOpen, setCrearMetaOpen] = useState(false);
   const [activeSector, setActiveSector] = useState<OfferSector>('bancarios');
 
+  const [campanasBanco, setCampanasBanco] = useState<CampanaDisplay[]>([]);
+  const [campanasComercio, setCampanasComercio] = useState<CampanaDisplay[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [campanaIdsConSolicitud, setCampanaIdsConSolicitud] = useState<Set<string>>(new Set());
+
   // Cuentas antiguas pueden no tener ciudad/score poblados — mejor mostrar
-  // todas las ofertas activas sin filtrar que inventar un valor por defecto.
+  // todas las campañas activas sin filtrar que inventar un valor por defecto.
   const perfilCompleto = perfilStatus === 'ready' && ciudad !== null && scoreEstimado !== null;
 
-  const matchingCampaigns = useMemo(() => {
-    if (!perfilCompleto) return campaigns.filter((c) => c.status === 'activa');
-    return campaigns.filter((c) => {
-      if (c.status !== 'activa') return false;
-      const cityMatch = c.cities.includes(ciudad);
-      if (!cityMatch) return false;
-      return scoreEstimado >= c.minScore && scoreEstimado <= c.maxScore;
+  useEffect(() => {
+    if (!isDbConfigured || perfilStatus === 'loading') return;
+    setIsLoading(true);
+    setError(null);
+    Promise.all([fetchCampanasActivas('banco'), fetchCampanasActivas('comercio')]).then(([bancoRes, comercioRes]) => {
+      if (bancoRes.error || comercioRes.error) {
+        setError(bancoRes.error ?? comercioRes.error);
+        setIsLoading(false);
+        return;
+      }
+      setCampanasBanco(bancoRes.data ?? []);
+      setCampanasComercio(comercioRes.data ?? []);
+      setIsLoading(false);
     });
-  }, [perfilCompleto, ciudad, scoreEstimado]);
+  }, [perfilStatus]);
+
+  useEffect(() => {
+    if (!isDbConfigured || !userId) return;
+    fetchCampanaIdsConSolicitud(userId).then(({ data }) => {
+      if (data) setCampanaIdsConSolicitud(new Set(data));
+    });
+  }, [userId]);
+
+  const matchingBanco = useMemo(() => {
+    if (!perfilCompleto) return campanasBanco;
+    return campanasBanco.filter((c) => matchesCampana(c, ciudad, scoreEstimado, rangoIngresos));
+  }, [perfilCompleto, campanasBanco, ciudad, scoreEstimado, rangoIngresos]);
+
+  const matchingComercio = useMemo(() => {
+    if (!perfilCompleto) return campanasComercio;
+    return campanasComercio.filter((c) => matchesCampana(c, ciudad, scoreEstimado, rangoIngresos));
+  }, [perfilCompleto, campanasComercio, ciudad, scoreEstimado, rangoIngresos]);
+
+  const handleSolicitarBanco = useCallback(async (campana: CampanaDisplay) => {
+    const solicitudId = `SOL-${Date.now().toString(36).toUpperCase()}`;
+    return addSolicitudBanco({
+      id: solicitudId,
+      productType: (campana.segmentacion.producto as SolicitudProductType | undefined) ?? 'compra-cartera',
+      bancos: [{ organizationId: campana.organizationId, nombre: campana.organizationNombre }],
+      campanaId: campana.id,
+    });
+  }, [addSolicitudBanco]);
+
+  const handleSolicitarComercio = useCallback(async (campana: CampanaDisplay) => {
+    const solicitudId = `SOL-${Date.now().toString(36).toUpperCase()}`;
+    return addSolicitudComercio({
+      id: solicitudId,
+      categoria: campana.titulo,
+      ciudad: ciudad ?? '',
+      campana: { id: campana.id, organizationId: campana.organizationId, organizationNombre: campana.organizationNombre },
+    });
+  }, [addSolicitudComercio, ciudad]);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -462,7 +494,7 @@ export default function OfertasView() {
           <p className="text-xs text-muted-foreground">
             {perfilCompleto ? (
               <>
-                Campañas financieras que coinciden con tu perfil en{' '}
+                Campañas que coinciden con tu perfil en{' '}
                 <span className="font-semibold text-cyan-400">{ciudad}</span>{' '}
                 — Score <span className="font-mono text-cyan-400">{scoreEstimado}</span>
               </>
@@ -474,7 +506,7 @@ export default function OfertasView() {
 
         <Badge className="self-start bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-xs px-3 py-1 gap-1.5 font-medium">
           <Sparkles className="h-3 w-3" />
-          {matchingCampaigns.length} ofertas disponibles
+          {matchingBanco.length + matchingComercio.length} ofertas disponibles
         </Badge>
       </div>
 
@@ -544,11 +576,24 @@ export default function OfertasView() {
       {/* ── Sector: Créditos Bancarios ── */}
       {activeSector === 'bancarios' && (
         <>
-          {/* Grid of matching offers */}
-          {matchingCampaigns.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 text-muted-foreground animate-spin" /></div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center rounded-2xl border border-border/40 bg-card/40">
+              <AlertTriangle className="h-8 w-8 text-red-400 mb-3" />
+              <h3 className="text-base font-semibold text-foreground mb-1">No se pudieron cargar las ofertas</h3>
+              <p className="text-sm text-muted-foreground max-w-md">{error}</p>
+            </div>
+          ) : matchingBanco.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {matchingCampaigns.map((campaign) => (
-                <OfferCard key={campaign.id} campaign={campaign} />
+              {matchingBanco.map((campana) => (
+                <CampanaOfferCard
+                  key={campana.id}
+                  campana={campana}
+                  yaSolicitado={campanaIdsConSolicitud.has(campana.id)}
+                  onSolicitar={() => handleSolicitarBanco(campana)}
+                  accent="cyan"
+                />
               ))}
             </div>
           ) : (
@@ -588,18 +633,44 @@ export default function OfertasView() {
 
       {/* ── Sector: Ofertas de Comercio ── */}
       {activeSector === 'comercio' && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 mb-4">
-            <Store className="h-7 w-7 text-amber-400" />
-          </div>
-          <h3 className="text-base font-semibold text-foreground mb-1">
-            Ofertas de Comercios Aliados
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-sm">
-            Cuando actives tus metas con el Sello IFC, los comercios aliados enviarán
-            propuestas personalizadas directamente a esta sección.
-          </p>
-        </div>
+        <>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 text-muted-foreground animate-spin" /></div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center rounded-2xl border border-border/40 bg-card/40">
+              <AlertTriangle className="h-8 w-8 text-red-400 mb-3" />
+              <h3 className="text-base font-semibold text-foreground mb-1">No se pudieron cargar las ofertas</h3>
+              <p className="text-sm text-muted-foreground max-w-md">{error}</p>
+            </div>
+          ) : matchingComercio.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {matchingComercio.map((campana) => (
+                <CampanaOfferCard
+                  key={campana.id}
+                  campana={campana}
+                  yaSolicitado={campanaIdsConSolicitud.has(campana.id)}
+                  onSolicitar={() => handleSolicitarComercio(campana)}
+                  accent="amber"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 mb-4">
+                <Store className="h-7 w-7 text-amber-400" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground mb-1">
+                Sin ofertas de comercios disponibles
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                {perfilCompleto
+                  ? `No encontramos campañas activas de comercios en ${ciudad}.`
+                  : 'No encontramos campañas activas por el momento.'}{' '}
+                Revisa más tarde.
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       {/* Crear Meta Dialog */}

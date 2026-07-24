@@ -1827,13 +1827,13 @@ export async function fetchClienteContactInfo(
 export async function fetchClientePerfil(
   clienteId: string,
 ): Promise<{
-  data: { nombre: string; firstName: string | null; ciudad: string | null; scoreEstimado: number | null; telefono: string | null } | null;
+  data: { nombre: string; firstName: string | null; ciudad: string | null; scoreEstimado: number | null; telefono: string | null; rangoIngresos: string | null } | null;
   error: string | null;
 }> {
   if (!supabase) return { data: null, error: NOT_CONFIGURED };
   const { data, error } = await supabase
     .from('users')
-    .select('nombre, first_name, ciudad, score_estimado, telefono')
+    .select('nombre, first_name, ciudad, score_estimado, telefono, rango_ingresos')
     .eq('id', clienteId)
     .limit(1)
     .maybeSingle();
@@ -1846,6 +1846,7 @@ export async function fetchClientePerfil(
       ciudad: data.ciudad,
       scoreEstimado: data.score_estimado,
       telefono: data.telefono,
+      rangoIngresos: data.rango_ingresos,
     },
     error: null,
   };
@@ -1987,6 +1988,153 @@ export async function updateProyectoEstado(
   return { error: null };
 }
 
+// ───── Campañas B2B (bancos/comercios) — docs/sistema-campanas-b2b.md ─────
+
+/** Forma del jsonb `campanas.segmentacion` — todos los campos opcionales, según modo_lanzamiento. */
+export interface CampanaSegmentacion {
+  ciudades?: string[];
+  /** Subconjunto de rangos de ingresos ('0-2M' | '2M-4M' | '4M-8M' | '8M+') — mismo catálogo que registro B2C. */
+  rangoIngresos?: string[];
+  /** Solo bancos — clave de PRODUCT_LABELS (crm/leadLabels.ts). */
+  producto?: string;
+  scoreMin?: number;
+  scoreMax?: number;
+}
+
+export interface InsertCampanaInput {
+  id: string;
+  organizationId: string;
+  tipo: 'banco' | 'comercio';
+  titulo: string;
+  descripcion?: string;
+  modoLanzamiento: 'segmentado' | 'alcance_amplio';
+  segmentacion: CampanaSegmentacion;
+  creadoPor: string;
+}
+
+/** Crea una campaña — RLS ya valida organización propia + creado_por = auth.uid() (campanas_insert_owner). */
+export async function insertCampana(input: InsertCampanaInput): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.from('campanas').insert({
+    id: input.id,
+    organization_id: input.organizationId,
+    tipo: input.tipo,
+    titulo: input.titulo,
+    descripcion: input.descripcion ?? null,
+    modo_lanzamiento: input.modoLanzamiento,
+    segmentacion: input.segmentacion as unknown as Database['public']['Tables']['campanas']['Insert']['segmentacion'],
+    creado_por: input.creadoPor,
+  });
+  return { error: error ? errMessage(error) : null };
+}
+
+export interface CampanaAdminRow {
+  id: string;
+  tipo: 'banco' | 'comercio';
+  titulo: string;
+  descripcion: string | null;
+  estado: 'activa' | 'pausada' | 'cancelada' | 'finalizada';
+  modoLanzamiento: 'segmentado' | 'alcance_amplio';
+  segmentacion: CampanaSegmentacion;
+  createdAt: string;
+}
+
+/** Campañas propias de una organización (panel de gestión: bancos/comercios). */
+export async function fetchCampanasByOrganization(
+  organizationId: string,
+): Promise<{ data: CampanaAdminRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('campanas')
+    .select('id, tipo, titulo, descripcion, estado, modo_lanzamiento, segmentacion, created_at')
+    .eq('organization_id', organizationId)
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      id: r.id,
+      tipo: r.tipo as CampanaAdminRow['tipo'],
+      titulo: r.titulo,
+      descripcion: r.descripcion,
+      estado: r.estado as CampanaAdminRow['estado'],
+      modoLanzamiento: r.modo_lanzamiento as CampanaAdminRow['modoLanzamiento'],
+      segmentacion: (r.segmentacion ?? {}) as CampanaSegmentacion,
+      createdAt: r.created_at,
+    })),
+    error: null,
+  };
+}
+
+/**
+ * Cambia el estado de una campaña propia. RLS ya restringe el UPDATE a
+ * user_belongs_to_organization(organization_id); se verifica igual la fila
+ * afectada por si esa RLS bloquea silenciosamente.
+ */
+export async function updateCampanaEstado(
+  campanaId: string,
+  nuevoEstado: 'activa' | 'pausada' | 'cancelada' | 'finalizada',
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('campanas')
+    .update({ estado: nuevoEstado })
+    .eq('id', campanaId)
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: noRowsError('No se pudo actualizar el estado de la campaña (posible bloqueo de RLS).') };
+  }
+  return { error: null };
+}
+
+export interface CampanaDisplay {
+  id: string;
+  organizationId: string;
+  organizationNombre: string;
+  titulo: string;
+  descripcion: string | null;
+  modoLanzamiento: 'segmentado' | 'alcance_amplio';
+  segmentacion: CampanaSegmentacion;
+}
+
+/**
+ * Campañas activas de un tipo — universo para el matching manual del cliente
+ * (Ofertas). RLS ya permite leer estado='activa' a cualquier autenticado; el
+ * matching real (ciudad/ingresos/score) se resuelve en el cliente, mismo
+ * patrón que fetchProyectosMatch.
+ */
+export async function fetchCampanasActivas(
+  tipo: 'banco' | 'comercio',
+): Promise<{ data: CampanaDisplay[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('campanas')
+    .select('id, organization_id, titulo, descripcion, modo_lanzamiento, segmentacion')
+    .eq('tipo', tipo)
+    .eq('estado', 'activa')
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  const rows = data ?? [];
+  if (rows.length === 0) return { data: [], error: null };
+
+  const orgIds = Array.from(new Set(rows.map((r) => r.organization_id)));
+  const { data: orgs } = await fetchOrganizationsByIds(orgIds);
+  const nombreById = new Map((orgs ?? []).map((o) => [o.id, o.name]));
+
+  return {
+    data: rows.map((r) => ({
+      id: r.id,
+      organizationId: r.organization_id,
+      organizationNombre: nombreById.get(r.organization_id) ?? 'Aliado Neggo',
+      titulo: r.titulo,
+      descripcion: r.descripcion,
+      modoLanzamiento: r.modo_lanzamiento as CampanaDisplay['modoLanzamiento'],
+      segmentacion: (r.segmentacion ?? {}) as CampanaSegmentacion,
+    })),
+    error: null,
+  };
+}
+
 // ───── Me Interesa (solicitudes + destinatarios) ─────
 
 export interface MeInteresaDestinatarioInput {
@@ -2010,6 +2158,8 @@ export interface InsertMeInteresaSolicitudInput {
   subcategoria?: string;
   /** Solo cuando la solicitud nace de un CTA "Me interesa este proyecto" sobre un proyecto puntual — NULL en la solicitud genérica de vivienda. */
   proyectoId?: string;
+  /** Solo cuando la solicitud nace de un CTA "Me interesa" sobre una campaña puntual (Ofertas) — NULL fuera de ese flujo. */
+  campanaId?: string;
 }
 
 /** Creates a `me_interesa_solicitudes` row. */
@@ -2032,6 +2182,7 @@ export async function insertMeInteresaSolicitud(
     categoria: input.categoria ?? null,
     subcategoria: input.subcategoria ?? null,
     proyecto_id: input.proyectoId ?? null,
+    campana_id: input.campanaId ?? null,
   });
   return { error: error ? errMessage(error) : null };
 }
@@ -2738,6 +2889,20 @@ export async function fetchProyectoIdsConSolicitud(
     .not('proyecto_id', 'is', null);
   if (error) return { data: null, error: errMessage(error) };
   return { data: (data ?? []).map((r) => r.proyecto_id).filter((id): id is string => !!id), error: null };
+}
+
+/** campana_id de las solicitudes que este cliente ya envió — evita duplicados entre remounts/recargas de Ofertas. */
+export async function fetchCampanaIdsConSolicitud(
+  clienteId: string,
+): Promise<{ data: string[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('me_interesa_solicitudes')
+    .select('campana_id')
+    .eq('cliente_id', clienteId)
+    .not('campana_id', 'is', null);
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: (data ?? []).map((r) => r.campana_id).filter((id): id is string => !!id), error: null };
 }
 
 export async function fetchMeInteresaSolicitudesByCliente(
