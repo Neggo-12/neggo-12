@@ -581,6 +581,160 @@ export async function fetchPuntosCanjesComercio(
   };
 }
 
+export interface PuntosMovimientoAdminRow {
+  id: string;
+  tipo: 'ganado' | 'canjeado' | 'vencido';
+  puntos: number;
+  comercioCanjeId: string | null;
+}
+
+/** Todo el ledger de puntos_movimientos (solo campos para agregación) — uso admin, RLS permite is_platform_admin(). */
+export async function fetchPuntosMovimientosAdmin(): Promise<{
+  data: PuntosMovimientoAdminRow[] | null;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('puntos_movimientos')
+    .select('id, tipo, puntos, comercio_canje_id');
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      id: r.id,
+      tipo: r.tipo as PuntosMovimientoAdminRow['tipo'],
+      puntos: r.puntos,
+      comercioCanjeId: r.comercio_canje_id,
+    })),
+    error: null,
+  };
+}
+
+export interface PuntosCanjeAdminRow {
+  id: string;
+  comercioOrganizationId: string;
+  comercioNombre: string | null;
+  clienteId: string;
+  clienteNombre: string | null;
+  puntos: number;
+  createdAt: string;
+  pagado: boolean;
+}
+
+/** Todos los canjes del ecosistema (cualquier comercio/constructora), con estado Pagado/Pendiente. */
+export async function fetchPuntosCanjesAdmin(): Promise<{
+  data: PuntosCanjeAdminRow[] | null;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('puntos_movimientos')
+    .select('id, cliente_id, comercio_canje_id, puntos, created_at')
+    .eq('tipo', 'canjeado')
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  const rows = (data ?? []).filter((r): r is typeof r & { comercio_canje_id: string } => !!r.comercio_canje_id);
+  if (rows.length === 0) return { data: [], error: null };
+
+  const movimientoIds = rows.map((r) => r.id);
+  const comercioIds = Array.from(new Set(rows.map((r) => r.comercio_canje_id)));
+  const clienteIds = Array.from(new Set(rows.map((r) => r.cliente_id)));
+  const [{ data: liquidaciones }, { data: orgs }, { data: clientes }] = await Promise.all([
+    supabase.from('puntos_liquidaciones').select('puntos_movimiento_id').in('puntos_movimiento_id', movimientoIds),
+    fetchOrganizationsByIds(comercioIds),
+    supabase.from('users').select('id, nombre').in('id', clienteIds),
+  ]);
+  const pagadoSet = new Set((liquidaciones ?? []).map((l) => l.puntos_movimiento_id));
+  const nombreOrgById = new Map((orgs ?? []).map((o) => [o.id, o.name]));
+  const nombreClienteById = new Map((clientes ?? []).map((c) => [c.id, c.nombre]));
+
+  return {
+    data: rows.map((r) => ({
+      id: r.id,
+      comercioOrganizationId: r.comercio_canje_id,
+      comercioNombre: nombreOrgById.get(r.comercio_canje_id) ?? null,
+      clienteId: r.cliente_id,
+      clienteNombre: nombreClienteById.get(r.cliente_id) ?? null,
+      puntos: Math.abs(r.puntos),
+      createdAt: r.created_at,
+      pagado: pagadoSet.has(r.id),
+    })),
+    error: null,
+  };
+}
+
+/**
+ * Marca un canje como pagado — INSERT append-only en puntos_liquidaciones, guardado por
+ * RLS (is_platform_admin() AND pagado_por = auth.uid()::text). Mismo patrón que
+ * insertTarifaComercioNegociada: sin RPC dedicada porque es un INSERT puro sin
+ * transición de estado que verificar (el estado "pagado" se deriva de la existencia de la fila).
+ */
+export async function insertPuntosLiquidacion(input: {
+  comercioOrganizationId: string;
+  puntosMovimientoId: string;
+  montoPagado: number;
+  pagadoPor: string;
+}): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('puntos_liquidaciones')
+    .insert({
+      comercio_organization_id: input.comercioOrganizationId,
+      puntos_movimiento_id: input.puntosMovimientoId,
+      monto_pagado: input.montoPagado,
+      pagado_por: input.pagadoPor,
+    })
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: noRowsError('No se pudo registrar el pago (posible bloqueo de RLS).') };
+  }
+  return { error: null };
+}
+
+export interface PuntosTasaComercioAdminRow {
+  comercioOrganizationId: string;
+  comercioNombre: string | null;
+  puntosPor1000: number;
+  periodoVigenteDesde: string;
+  planOrigen: string | null;
+}
+
+/** Tasa vigente (puntos por $1.000) de cada comercio que tiene alguna tasa configurada. */
+export async function fetchPuntosTasasVigentesAdmin(): Promise<{
+  data: PuntosTasaComercioAdminRow[] | null;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const periodoActual = new Date().toISOString().slice(0, 7);
+  const { data, error } = await supabase
+    .from('puntos_tasas_comercio')
+    .select('comercio_organization_id, puntos_por_1000, periodo_vigente_desde, plan_origen, created_at')
+    .lte('periodo_vigente_desde', periodoActual)
+    .order('comercio_organization_id', { ascending: true })
+    .order('periodo_vigente_desde', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+
+  const vigentePorComercio = new Map<string, typeof data[number]>();
+  for (const r of data ?? []) {
+    if (!vigentePorComercio.has(r.comercio_organization_id)) vigentePorComercio.set(r.comercio_organization_id, r);
+  }
+  const comercioIds = Array.from(vigentePorComercio.keys());
+  const { data: orgs } = await fetchOrganizationsByIds(comercioIds);
+  const nombreById = new Map((orgs ?? []).map((o) => [o.id, o.name]));
+
+  return {
+    data: Array.from(vigentePorComercio.values()).map((r) => ({
+      comercioOrganizationId: r.comercio_organization_id,
+      comercioNombre: nombreById.get(r.comercio_organization_id) ?? null,
+      puntosPor1000: Number(r.puntos_por_1000),
+      periodoVigenteDesde: r.periodo_vigente_desde,
+      planOrigen: r.plan_origen,
+    })),
+    error: null,
+  };
+}
+
 // ───── Métricas de rechazo (rejection telemetry) ─────
 
 function rowToRejectionMetric(row: MetricaRechazoRow): RejectionMetric {

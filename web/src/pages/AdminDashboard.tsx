@@ -6,6 +6,7 @@ import SeguridadTab from '@/features/shared/components/SeguridadTab';
 import SaludSistemaPanel from '@/features/admin/components/SaludSistemaPanel';
 import ClientesPanel from '@/features/admin/components/ClientesPanel';
 import TarifasComercioNegociadasPanel from '@/features/admin/components/TarifasComercioNegociadasPanel';
+import SistemaPuntosPanel from '@/features/admin/components/SistemaPuntosPanel';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 import { cn, formatCOP } from '@/lib/utils';
 import {
@@ -40,6 +41,7 @@ import {
   X,
   Handshake,
   AlertTriangle,
+  Coins,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Fragment, useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -81,6 +83,7 @@ const adminSections = [
   { key: 'analitica' as const, label: 'Analítica IFC', icon: BarChart3 },
   { key: 'facturacion' as const, label: 'Facturación Ecosistema', icon: Receipt },
   { key: 'tarifas' as const, label: 'Tarifas y Planes', icon: SlidersHorizontal },
+  { key: 'puntos' as const, label: 'Sistema de Puntos', icon: Coins },
   { key: 'conciliacion' as const, label: 'Conciliación de Pagos', icon: ClipboardCheck },
   { key: 'senales-interes' as const, label: 'Clientes en Espera', icon: Bell },
   { key: 'salud-sistema' as const, label: 'Salud del Sistema', icon: HeartPulse },
@@ -284,6 +287,8 @@ export default function AdminDashboard() {
           {activeSection === 'facturacion' && <FacturacionLedger />}
 
           {activeSection === 'tarifas' && <TarifasYPlanes />}
+
+          {activeSection === 'puntos' && <SistemaPuntosPanel />}
 
           {activeSection === 'conciliacion' && <ConciliacionPagos />}
 

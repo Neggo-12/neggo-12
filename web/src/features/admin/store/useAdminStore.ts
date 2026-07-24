@@ -90,7 +90,7 @@ interface AdminState {
   /** Current algorithm equity distribution */
   algorithmEquity: AlgorithmEquity;
   /** Active admin sidebar section */
-  activeSection: 'resumen' | 'autorizaciones' | 'bancos' | 'constructoras' | 'comercios' | 'clientes' | 'analitica' | 'facturacion' | 'tarifas' | 'conciliacion' | 'senales-interes' | 'seguridad' | 'salud-sistema';
+  activeSection: 'resumen' | 'autorizaciones' | 'bancos' | 'constructoras' | 'comercios' | 'clientes' | 'analitica' | 'facturacion' | 'tarifas' | 'puntos' | 'conciliacion' | 'senales-interes' | 'seguridad' | 'salud-sistema';
   /** organizationId de un comercio a preseleccionar al entrar a "Tarifas y Planes" — puente entre el badge de Comercios y el panel de tarifas negociadas. */
   tarifasPreseleccionComercioId: string | null;
 
