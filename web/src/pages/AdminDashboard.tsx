@@ -1601,6 +1601,23 @@ function EstadoPagoBadge({ estado }: { estado: string }) {
   );
 }
 
+/**
+ * El shape de `detalle` (jsonb) varía según qué función originó el cargo — montoVenta
+ * viene de compras en la Bóveda (registrar_compra_oferta), montoCierre de cierres de
+ * lead en el CRM (registrar_cierre_lead); CPL nunca trae un monto propio, solo categoría.
+ */
+function formatContextoLedger(detalle: unknown): string {
+  if (!detalle || typeof detalle !== 'object') return '—';
+  const d = detalle as Record<string, unknown>;
+  if (typeof d.montoVenta === 'number') return `Venta de ${formatCOP(d.montoVenta)}`;
+  if (typeof d.montoCierre === 'number') return `Cierre de ${formatCOP(d.montoCierre)}`;
+  if (typeof d.categoria === 'string') {
+    return typeof d.subcategoria === 'string' ? `${d.categoria} — ${d.subcategoria}` : d.categoria;
+  }
+  if (typeof d.descripcion === 'string') return d.descripcion;
+  return '—';
+}
+
 function FacturacionLedger() {
   const [resumenes, setResumenes] = useState<FacturaResumenNegocio[]>([]);
   const [totales, setTotales] = useState({ totalCpl: 0, totalSuccessFee: 0, totalFacturado: 0, totalPendiente: 0 });
@@ -1789,6 +1806,7 @@ function FacturacionLedger() {
                                 <thead>
                                   <tr className="text-left text-muted-foreground">
                                     <th className="pb-2 font-medium">Concepto</th>
+                                    <th className="pb-2 font-medium">Contexto</th>
                                     <th className="pb-2 font-medium text-right">Monto</th>
                                     <th className="pb-2 font-medium">Fecha</th>
                                     <th className="pb-2 font-medium text-center">Estado</th>
@@ -1802,6 +1820,7 @@ function FacturacionLedger() {
                                           {d.concepto}
                                         </Badge>
                                       </td>
+                                      <td className="py-2 text-muted-foreground max-w-[220px] truncate" title={formatContextoLedger(d.detalle)}>{formatContextoLedger(d.detalle)}</td>
                                       <td className="py-2 text-right font-mono text-foreground">{formatCOP(Number(d.monto))}</td>
                                       <td className="py-2 text-muted-foreground">{new Date(d.fecha).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                                       <td className="py-2 text-center"><EstadoPagoBadge estado={d.estado_pago} /></td>
