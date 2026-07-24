@@ -278,18 +278,18 @@ export async function registrarCompraOferta(
   monto: number,
   fechaCompra: string,
   file?: File,
-): Promise<{ error: string | null }> {
-  if (!supabase) return { error: NOT_CONFIGURED };
+): Promise<{ data: string | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
 
   let documentoUrl: string | null = null;
   if (file) {
     const path = `${comercioId}/${ofertaId}-${Date.now()}-${sanitizeFileName(file.name)}`;
     const { error: uploadError } = await supabase.storage.from(FACTURAS_BUCKET).upload(path, file);
-    if (uploadError) return { error: errMessage(uploadError) };
+    if (uploadError) return { data: null, error: errMessage(uploadError) };
     documentoUrl = path;
   }
 
-  const { error } = await supabase.rpc('registrar_compra_oferta', {
+  const { data, error } = await supabase.rpc('registrar_compra_oferta', {
     p_oferta_id: ofertaId,
     p_monto: monto,
     p_fecha_compra: fechaCompra,
@@ -298,9 +298,9 @@ export async function registrarCompraOferta(
   if (error) {
     const message = errMessage(error);
     logFalloApp('registrar_compra_oferta', message, error);
-    return { error: message };
+    return { data: null, error: message };
   }
-  return { error: null };
+  return { data, error: null };
 }
 
 /**
@@ -420,6 +420,162 @@ export async function fetchOportunidadesParaComercio(
       montoAhorrado: Number(r.monto_ahorrado),
       ahorroMensual: Number(r.ahorro_mensual),
       createdAt: r.created_at,
+    })),
+    error: null,
+  };
+}
+
+// ───── Sistema de Puntos (Nivel 1) — docs/sistema-puntos-neggo.md ─────
+
+/** Puntos por $1.000 vigentes de un comercio — negociado > default (1). */
+export async function resolverTasaPuntosComercio(
+  comercioId: string,
+): Promise<{ data: number | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.rpc('resolver_tasa_puntos_comercio', { p_comercio_id: comercioId });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: Number(data), error: null };
+}
+
+/** Saldo actual de puntos de un cliente — SUM(puntos) sobre su ledger completo. */
+export async function saldoPuntosCliente(
+  clienteId: string,
+): Promise<{ data: number | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.rpc('saldo_puntos_cliente', { p_cliente_id: clienteId });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: Number(data), error: null };
+}
+
+/**
+ * Emite puntos por una compra ya registrada — RPC SECURITY DEFINER, idempotente
+ * (no duplica si ya se emitió para esa factura). Fire-and-forget en el caller:
+ * nunca debe bloquear la confirmación de la venta.
+ */
+export async function emitirPuntosPorCompra(facturaClienteId: string): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.rpc('emitir_puntos_por_compra', { p_factura_cliente_id: facturaClienteId });
+  if (error) return { error: errMessage(error) };
+  return { error: null };
+}
+
+/** Canjea puntos del cliente autenticado en un comercio/constructora — valida saldo suficiente antes de descontar. */
+export async function canjearPuntos(
+  comercioId: string,
+  puntos: number,
+): Promise<{ data: string | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.rpc('canjear_puntos', { p_comercio_id: comercioId, p_puntos: puntos });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data, error: null };
+}
+
+export interface PuntosMovimientoRow {
+  id: string;
+  tipo: 'ganado' | 'canjeado' | 'vencido';
+  puntos: number;
+  comercioNombre: string | null;
+  fechaVencimiento: string | null;
+  createdAt: string;
+}
+
+/** Historial completo de movimientos de puntos de un cliente (ganados, canjeados, vencidos), más reciente primero. */
+export async function fetchPuntosMovimientosCliente(
+  clienteId: string,
+): Promise<{ data: PuntosMovimientoRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('puntos_movimientos')
+    .select('id, tipo, puntos, comercio_origen_id, comercio_canje_id, fecha_vencimiento, created_at')
+    .eq('cliente_id', clienteId)
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  const rows = data ?? [];
+
+  const orgIds = Array.from(new Set(rows.map((r) => r.comercio_origen_id ?? r.comercio_canje_id).filter((id): id is string => !!id)));
+  const nombreById = new Map<string, string>();
+  if (orgIds.length > 0) {
+    const { data: orgs } = await fetchOrganizationsByIds(orgIds);
+    for (const o of orgs ?? []) nombreById.set(o.id, o.name);
+  }
+
+  return {
+    data: rows.map((r) => {
+      const orgId = r.comercio_origen_id ?? r.comercio_canje_id;
+      return {
+        id: r.id,
+        tipo: r.tipo as PuntosMovimientoRow['tipo'],
+        puntos: r.puntos,
+        comercioNombre: orgId ? nombreById.get(orgId) ?? null : null,
+        fechaVencimiento: r.fecha_vencimiento,
+        createdAt: r.created_at,
+      };
+    }),
+    error: null,
+  };
+}
+
+export interface ComercioParaCanjeRow {
+  id: string;
+  name: string;
+}
+
+/** Comercios y constructoras aprobados — universo válido para canjear puntos (mismo filtro que canjear_puntos en BD). */
+export async function fetchComerciosYConstructorasParaCanje(): Promise<{
+  data: ComercioParaCanjeRow[] | null;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('id, name')
+    .in('type', ['comercio', 'constructora'])
+    .eq('status', 'approved')
+    .order('name');
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: data ?? [], error: null };
+}
+
+export interface PuntosCanjeRow {
+  id: string;
+  clienteId: string;
+  clienteNombre: string | null;
+  puntos: number;
+  createdAt: string;
+  pagado: boolean;
+}
+
+/** Canjes recibidos por un comercio/constructora — con estado Pagado/Pendiente según puntos_liquidaciones. */
+export async function fetchPuntosCanjesComercio(
+  comercioId: string,
+): Promise<{ data: PuntosCanjeRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('puntos_movimientos')
+    .select('id, cliente_id, puntos, created_at')
+    .eq('comercio_canje_id', comercioId)
+    .eq('tipo', 'canjeado')
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  const rows = data ?? [];
+  if (rows.length === 0) return { data: [], error: null };
+
+  const movimientoIds = rows.map((r) => r.id);
+  const [{ data: liquidaciones }, { data: clientes }] = await Promise.all([
+    supabase.from('puntos_liquidaciones').select('puntos_movimiento_id').in('puntos_movimiento_id', movimientoIds),
+    supabase.from('users').select('id, nombre').in('id', Array.from(new Set(rows.map((r) => r.cliente_id)))),
+  ]);
+  const pagadoSet = new Set((liquidaciones ?? []).map((l) => l.puntos_movimiento_id));
+  const nombreById = new Map((clientes ?? []).map((c) => [c.id, c.nombre]));
+
+  return {
+    data: rows.map((r) => ({
+      id: r.id,
+      clienteId: r.cliente_id,
+      clienteNombre: nombreById.get(r.cliente_id) ?? null,
+      puntos: Math.abs(r.puntos),
+      createdAt: r.created_at,
+      pagado: pagadoSet.has(r.id),
     })),
     error: null,
   };

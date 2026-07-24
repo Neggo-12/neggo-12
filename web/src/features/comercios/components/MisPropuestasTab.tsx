@@ -8,10 +8,12 @@ import {
   fetchOfertasComercios,
   fetchFacturasPorOfertas,
   registrarCompraOferta,
+  emitirPuntosPorCompra,
   type OfertaComercioRow,
   type FacturaClienteRow,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
+import { logFalloApp } from '@/core/infrastructure/fallosApp';
 
 const ESTADO_CONFIG: Record<string, { label: string; bg: string; text: string; border: string; icon: typeof Clock }> = {
   pendiente: { label: 'Pendiente de respuesta', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', icon: Clock },
@@ -183,11 +185,17 @@ export default function MisPropuestasTab({ comercioId }: { comercioId: string | 
 
   const handleRegistrarVenta = useCallback(async (ofertaId: string, monto: number, fechaCompra: string, file?: File) => {
     if (!comercioId) return;
-    const { error } = await registrarCompraOferta(ofertaId, comercioId, monto, fechaCompra, file);
+    const { data: facturaId, error } = await registrarCompraOferta(ofertaId, comercioId, monto, fechaCompra, file);
     if (error) {
       toast.error('No se pudo registrar la venta', { description: error });
     } else {
       toast.success('Venta registrada', { description: 'La meta del cliente fue marcada como completada.' });
+      // Fire-and-forget: emitir puntos nunca debe bloquear ni afectar la confirmación de la venta.
+      if (facturaId) {
+        emitirPuntosPorCompra(facturaId).then(({ error: puntosError }) => {
+          if (puntosError) logFalloApp('emitir_puntos_por_compra', puntosError, { facturaId });
+        });
+      }
       await loadOfertas();
     }
   }, [comercioId, loadOfertas]);

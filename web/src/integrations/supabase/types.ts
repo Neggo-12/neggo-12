@@ -1193,6 +1193,147 @@ export type Database = {
         }
         Relationships: []
       }
+      puntos_tasas_comercio: {
+        Row: {
+          id: string
+          comercio_organization_id: string
+          puntos_por_1000: number
+          plan_origen: string | null
+          periodo_vigente_desde: string
+          creado_por: string
+          motivo: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          comercio_organization_id: string
+          puntos_por_1000: number
+          plan_origen?: string | null
+          periodo_vigente_desde: string
+          creado_por: string
+          motivo?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          comercio_organization_id?: string
+          puntos_por_1000?: number
+          plan_origen?: string | null
+          periodo_vigente_desde?: string
+          creado_por?: string
+          motivo?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "puntos_tasas_comercio_comercio_organization_id_fkey"
+            columns: ["comercio_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      puntos_movimientos: {
+        Row: {
+          id: string
+          cliente_id: string
+          tipo: string
+          puntos: number
+          comercio_origen_id: string | null
+          comercio_canje_id: string | null
+          factura_cliente_id: string | null
+          fecha_vencimiento: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          cliente_id: string
+          tipo: string
+          puntos: number
+          comercio_origen_id?: string | null
+          comercio_canje_id?: string | null
+          factura_cliente_id?: string | null
+          fecha_vencimiento?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          cliente_id?: string
+          tipo?: string
+          puntos?: number
+          comercio_origen_id?: string | null
+          comercio_canje_id?: string | null
+          factura_cliente_id?: string | null
+          fecha_vencimiento?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "puntos_movimientos_comercio_origen_id_fkey"
+            columns: ["comercio_origen_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "puntos_movimientos_comercio_canje_id_fkey"
+            columns: ["comercio_canje_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "puntos_movimientos_factura_cliente_id_fkey"
+            columns: ["factura_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "facturas_cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      puntos_liquidaciones: {
+        Row: {
+          id: string
+          comercio_organization_id: string
+          puntos_movimiento_id: string
+          monto_pagado: number
+          pagado_por: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          comercio_organization_id: string
+          puntos_movimiento_id: string
+          monto_pagado: number
+          pagado_por: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          comercio_organization_id?: string
+          puntos_movimiento_id?: string
+          monto_pagado?: number
+          pagado_por?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "puntos_liquidaciones_comercio_organization_id_fkey"
+            columns: ["comercio_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "puntos_liquidaciones_puntos_movimiento_id_fkey"
+            columns: ["puntos_movimiento_id"]
+            isOneToOne: true
+            referencedRelation: "puntos_movimientos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       facturas_resumen_por_negocio: {
@@ -1259,7 +1400,7 @@ export type Database = {
       }
       registrar_compra_oferta: {
         Args: { p_oferta_id: string; p_monto: number; p_fecha_compra: string; p_documento_url?: string | null }
-        Returns: undefined
+        Returns: string
       }
       registrar_b2b_completo: {
         Args: {
@@ -1312,6 +1453,22 @@ export type Database = {
       resolver_cpl_comercio: {
         Args: { p_comercio_id: string }
         Returns: number
+      }
+      resolver_tasa_puntos_comercio: {
+        Args: { p_comercio_id: string }
+        Returns: number
+      }
+      saldo_puntos_cliente: {
+        Args: { p_cliente_id: string }
+        Returns: number
+      }
+      emitir_puntos_por_compra: {
+        Args: { p_factura_cliente_id: string }
+        Returns: undefined
+      }
+      canjear_puntos: {
+        Args: { p_comercio_id: string; p_puntos: number }
+        Returns: string
       }
     }
     Enums: {
