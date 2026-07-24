@@ -498,6 +498,7 @@ export type Database = {
           proxima_gestion_at: string | null
           monto_cierre: number | null
           franquicia_tarjeta: string | null
+          codigo_verificacion: string | null
           created_at: string
         }
         Insert: {
@@ -511,6 +512,7 @@ export type Database = {
           proxima_gestion_at?: string | null
           monto_cierre?: number | null
           franquicia_tarjeta?: string | null
+          codigo_verificacion?: string | null
           created_at?: string
         }
         Update: {
@@ -524,6 +526,7 @@ export type Database = {
           proxima_gestion_at?: string | null
           monto_cierre?: number | null
           franquicia_tarjeta?: string | null
+          codigo_verificacion?: string | null
           created_at?: string
         }
         Relationships: [

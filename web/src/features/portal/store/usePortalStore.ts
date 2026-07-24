@@ -16,6 +16,7 @@ import {
   insertSenalInteres,
   fetchSenalesInteresByCliente,
   fetchClienteContactInfo,
+  type MeInteresaDestinatarioDisplay,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -50,8 +51,8 @@ export interface SolicitudBancoCliente {
   id: string;
   origen: 'banco';
   productType: SolicitudProductType;
-  /** Nombres de los destinatarios, solo para mostrar en el historial */
-  destinatarios: string[];
+  /** Destinatarios reales (nombre + código de verificación anti-phishing), solo para mostrar en el historial */
+  destinatarios: MeInteresaDestinatarioDisplay[];
   status: SolicitudStatus;
   createdAt: string;
 }
@@ -61,7 +62,7 @@ export interface SolicitudConstructoraCliente {
   origen: 'constructora';
   tipoVivienda: string;
   ciudad: string;
-  destinatarios: string[];
+  destinatarios: MeInteresaDestinatarioDisplay[];
   status: SolicitudStatus;
   createdAt: string;
 }
@@ -71,7 +72,7 @@ export interface SolicitudComercioCliente {
   origen: 'comercio';
   categoria: string;
   subcategoria?: string;
-  destinatarios: string[];
+  destinatarios: MeInteresaDestinatarioDisplay[];
   status: SolicitudStatus;
   createdAt: string;
 }
@@ -222,7 +223,9 @@ export const usePortalStore = create<PortalState>((set, get) => ({
       id: input.id,
       origen: 'banco',
       productType: input.productType,
-      destinatarios: input.bancos.map((b) => b.nombre),
+      // codigoVerificacion aún no existe — lo genera el trigger de BD al insertar
+      // el destinatario, unos milisegundos después. hydrateSolicitudes lo trae real.
+      destinatarios: input.bancos.map((b) => ({ nombre: b.nombre, codigoVerificacion: null })),
       status: 'Pendiente de contacto',
       createdAt: new Date().toISOString(),
     };
@@ -298,7 +301,7 @@ export const usePortalStore = create<PortalState>((set, get) => ({
       origen: 'constructora',
       tipoVivienda: input.tipoVivienda,
       ciudad: input.ciudad,
-      destinatarios: destinatarios.map((d) => d.nombre),
+      destinatarios: destinatarios.map((d) => ({ nombre: d.nombre, codigoVerificacion: null })),
       status: destinatarios.length > 0 ? 'Pendiente de contacto' : 'Sin destinatarios disponibles',
       createdAt: new Date().toISOString(),
     };
@@ -370,7 +373,7 @@ export const usePortalStore = create<PortalState>((set, get) => ({
       origen: 'comercio',
       categoria: input.categoria,
       subcategoria: input.subcategoria,
-      destinatarios: destinatarios.map((d) => d.nombre),
+      destinatarios: destinatarios.map((d) => ({ nombre: d.nombre, codigoVerificacion: null })),
       status: destinatarios.length > 0 ? 'Pendiente de contacto' : 'Sin destinatarios disponibles',
       createdAt: new Date().toISOString(),
     };

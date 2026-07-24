@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import type { SolicitudProductType, SolicitudCliente } from '@/features/portal/store/usePortalStore';
+import type { MeInteresaDestinatarioDisplay } from '@/core/db/repositories';
 import { useClienteProfile } from '@/hooks/useClienteProfile';
 import { cn, normalizeCiudad } from '@/lib/utils';
 import { fetchBancosAprobados, fetchNegociosCuradosBySector } from '@/core/db/repositories';
@@ -921,9 +922,10 @@ function SolicitudComercioDialog({
 
 // ───── Helpers de historial ─────
 
-function joinDestinatarios(destinatarios: string[]): string {
-  if (destinatarios.length === 1) return destinatarios[0];
-  return `${destinatarios.slice(0, -1).join(', ')} y ${destinatarios[destinatarios.length - 1]}`;
+function joinDestinatarios(destinatarios: MeInteresaDestinatarioDisplay[]): string {
+  const nombres = destinatarios.map((d) => d.nombre);
+  if (nombres.length === 1) return nombres[0];
+  return `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}`;
 }
 
 function solicitudResumen(sol: SolicitudCliente): string {
@@ -1122,6 +1124,26 @@ export default function MeInteresaView() {
                     <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
+
+                {sol.origen !== 'senal-interes' && sol.destinatarios.length > 0 && (
+                  <div className="mt-3 space-y-2 border-t border-border/30 pt-3">
+                    {sol.destinatarios.map((d, i) => (
+                      <div key={i} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="font-medium text-foreground truncate">{d.nombre}</span>
+                        {d.codigoVerificacion && (
+                          <span className="font-mono font-semibold text-purple-400 shrink-0">{d.codigoVerificacion}</span>
+                        )}
+                      </div>
+                    ))}
+                    {sol.destinatarios.some((d) => d.codigoVerificacion) && (
+                      <p className="text-[10px] text-amber-300/80 leading-relaxed flex items-start gap-1.5">
+                        <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0 mt-0.5" />
+                        Cuando te contacten, deben decirte el código junto a su nombre. Si no coincide o te piden
+                        datos/pago antes, no continúes.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

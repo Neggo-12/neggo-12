@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import {
   fetchComercioContactos,
   marcarComercioContactoAtendido,
-  fetchOrganizationTelefono,
   type ComercioContactoRow,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
@@ -23,11 +22,9 @@ function toWhatsAppUrl(telefono: string, mensaje: string): string {
 
 function ContactoCard({
   contacto,
-  comercioTelefono,
   onMarcarAtendido,
 }: {
   contacto: ComercioContactoRow;
-  comercioTelefono: string | null;
   onMarcarAtendido: (id: string) => Promise<void>;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,18 +59,16 @@ function ContactoCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        {comercioTelefono && (
-          <a
-            href={toWhatsAppUrl(comercioTelefono, mensajeWhatsApp)}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
-              <MessageCircle className="h-3.5 w-3.5" />
-              Contactar por WhatsApp
-            </Button>
-          </a>
-        )}
+        <a
+          href={toWhatsAppUrl(contacto.whatsapp ?? contacto.telefono, mensajeWhatsApp)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+            <MessageCircle className="h-3.5 w-3.5" />
+            Contactar por WhatsApp
+          </Button>
+        </a>
 
         {contacto.status === 'pendiente' ? (
           <Button
@@ -98,7 +93,6 @@ function ContactoCard({
 
 export default function SolicitudesClientesTab({ organizationId }: { organizationId: string | null }) {
   const [contactos, setContactos] = useState<ComercioContactoRow[]>([]);
-  const [comercioTelefono, setComercioTelefono] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -117,13 +111,6 @@ export default function SolicitudesClientesTab({ organizationId }: { organizatio
   }, [organizationId]);
 
   useEffect(() => { loadContactos(); }, [loadContactos]);
-
-  // Teléfono verificado de la organización — nunca un campo libre, para
-  // construir un link de WhatsApp confiable en cada solicitud.
-  useEffect(() => {
-    if (!isDbConfigured || !organizationId) return;
-    fetchOrganizationTelefono(organizationId).then(({ data }) => setComercioTelefono(data));
-  }, [organizationId]);
 
   const handleMarcarAtendido = useCallback(async (id: string) => {
     if (!organizationId) return;
@@ -199,7 +186,7 @@ export default function SolicitudesClientesTab({ organizationId }: { organizatio
                 Pendientes ({pendientes.length})
               </h3>
               {pendientes.map((c) => (
-                <ContactoCard key={c.id} contacto={c} comercioTelefono={comercioTelefono} onMarcarAtendido={handleMarcarAtendido} />
+                <ContactoCard key={c.id} contacto={c} onMarcarAtendido={handleMarcarAtendido} />
               ))}
             </div>
           )}
@@ -211,7 +198,7 @@ export default function SolicitudesClientesTab({ organizationId }: { organizatio
                 Atendidas ({atendidos.length})
               </h3>
               {atendidos.map((c) => (
-                <ContactoCard key={c.id} contacto={c} comercioTelefono={comercioTelefono} onMarcarAtendido={handleMarcarAtendido} />
+                <ContactoCard key={c.id} contacto={c} onMarcarAtendido={handleMarcarAtendido} />
               ))}
             </div>
           )}

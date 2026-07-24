@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Phone, MessageCircle, CalendarClock, X, Shield } from 'lucide-react';
+import { Phone, MessageCircle, CalendarClock, X, Shield, KeyRound } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -12,10 +12,11 @@ import { PIPELINE_BY_ORIGEN, PIPELINE_CONFIG, PRIORIDAD_CONFIG, ESTADOS_CIERRE, 
 import { PRODUCT_LABELS, TIPO_VIVIENDA_LABELS, RANGO_INGRESOS_LABELS } from './leadLabels';
 import CierreVentaModal from './CierreVentaModal';
 
-function toWhatsAppUrl(telefono: string): string {
+/** Normaliza a formato wa.me con código de país Colombia — el destinatario es SIEMPRE el cliente (lead.clienteTelefono), nunca el teléfono propio del asesor. */
+function toWhatsAppUrl(telefono: string, mensaje: string): string {
   const digits = telefono.replace(/\D/g, '');
   const withCountryCode = digits.startsWith('57') && digits.length > 10 ? digits : `57${digits}`;
-  return `https://wa.me/${withCountryCode}`;
+  return `https://wa.me/${withCountryCode}?text=${encodeURIComponent(mensaje)}`;
 }
 
 interface ExpandedLeadCRMProps {
@@ -33,6 +34,9 @@ export default function ExpandedLeadCRM({ lead, comercioComisionPct, onPipelineC
   const prioridad = calcularPrioridad(lead.scoreEstimado);
   const prioridadCfg = PRIORIDAD_CONFIG[prioridad];
   const hasTelefono = lead.clienteTelefono.trim().length > 0;
+  const mensajeWhatsApp = lead.codigoVerificacion
+    ? `Hola ${lead.clienteNombre}, te contactamos por tu solicitud en Neggo. Tu código de verificación es: ${lead.codigoVerificacion}.`
+    : `Hola ${lead.clienteNombre}, te contactamos por tu solicitud en Neggo.`;
 
   const requiereModalDeCierre = (estado: MeInteresaPipelineEstado) => {
     if (estado !== ESTADOS_CIERRE[lead.origen]) return false;
@@ -126,6 +130,15 @@ export default function ExpandedLeadCRM({ lead, comercioComisionPct, onPipelineC
       {/* Acciones Rápidas */}
       <div className="space-y-3">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acciones Rápidas</h4>
+
+        {lead.codigoVerificacion && (
+          <div className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/20 bg-purple-500/5 px-2.5 py-1.5">
+            <KeyRound className="h-3 w-3 text-purple-400" />
+            <span className="text-[10px] text-muted-foreground">Código de verificación:</span>
+            <span className="text-xs font-mono font-semibold text-purple-400">{lead.codigoVerificacion}</span>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           <Button asChild size="sm" className={cn('gap-1.5 text-xs bg-blue-600 hover:bg-blue-700', !hasTelefono && 'pointer-events-none opacity-50')}>
             <a href={`tel:${lead.clienteTelefono}`}>
@@ -133,7 +146,7 @@ export default function ExpandedLeadCRM({ lead, comercioComisionPct, onPipelineC
             </a>
           </Button>
           <Button asChild size="sm" variant="outline" className={cn('gap-1.5 text-xs border-border/40', !hasTelefono && 'pointer-events-none opacity-50')}>
-            <a href={toWhatsAppUrl(lead.clienteTelefono)} target="_blank" rel="noopener noreferrer">
+            <a href={toWhatsAppUrl(lead.clienteTelefono, mensajeWhatsApp)} target="_blank" rel="noopener noreferrer">
               <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
             </a>
           </Button>

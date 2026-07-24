@@ -2267,21 +2267,6 @@ export async function fetchComercioContactos(
   };
 }
 
-/** Teléfono verificado de una organización (p. ej. para construir un link wa.me confiable, nunca un campo libre). */
-export async function fetchOrganizationTelefono(
-  organizationId: string,
-): Promise<{ data: string | null; error: string | null }> {
-  if (!supabase) return { data: null, error: NOT_CONFIGURED };
-  const { data, error } = await supabase
-    .from('organizations')
-    .select('telefono')
-    .eq('id', organizationId)
-    .limit(1)
-    .maybeSingle();
-  if (error) return { data: null, error: errMessage(error) };
-  return { data: data?.telefono ?? null, error: null };
-}
-
 // ───── Mis Solicitudes (cliente, Buscador de Comercios) ─────
 
 export interface ClienteComercioContactoRow {
@@ -2372,6 +2357,8 @@ export interface MeInteresaLeadDisplay {
   subcategoria: string | null;
   clienteNombre: string;
   clienteTelefono: string;
+  /** Código anti-phishing (6 dígitos) — el asesor debe mencionarlo al contactar al cliente. */
+  codigoVerificacion: string | null;
   /** true si el cliente ya declaró tener al menos un producto con este banco. */
   esClienteBanco: boolean;
   /** Score estimado (0-1000) derivado del rango de ingresos autodeclarado en el registro. NULL para clientes registrados antes de este campo. */
@@ -2393,7 +2380,7 @@ export async function fetchMeInteresaLeadsByOrganization(
 
   const { data: destinatarios, error: destError } = await supabase
     .from('me_interesa_destinatarios')
-    .select('id, solicitud_id, contactado, estado_pipeline, proxima_gestion_at, monto_cierre, created_at')
+    .select('id, solicitud_id, contactado, estado_pipeline, proxima_gestion_at, monto_cierre, codigo_verificacion, created_at')
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false });
   if (destError) return { data: null, error: errMessage(destError) };
@@ -2448,6 +2435,7 @@ export async function fetchMeInteresaLeadsByOrganization(
       subcategoria: solicitud?.subcategoria ?? null,
       clienteNombre: cliente?.nombre ?? 'Cliente',
       clienteTelefono: cliente?.telefono ?? '',
+      codigoVerificacion: d.codigo_verificacion,
       esClienteBanco: solicitud ? clientesBancoSet.has(solicitud.cliente_id) : false,
       scoreEstimado: cliente?.score_estimado ?? null,
       rangoIngresos: cliente?.rango_ingresos ?? null,
@@ -2732,6 +2720,11 @@ export async function insertAceptacionPolitica(
 }
 
 /** Display-friendly shape for a client's own Me Interesa history (cualquier origen). */
+export interface MeInteresaDestinatarioDisplay {
+  nombre: string;
+  codigoVerificacion: string | null;
+}
+
 export interface MeInteresaSolicitudDisplay {
   id: string;
   origen: 'banco' | 'constructora' | 'comercio';
@@ -2741,7 +2734,7 @@ export interface MeInteresaSolicitudDisplay {
   categoria: string | null;
   subcategoria: string | null;
   createdAt: string;
-  destinatarios: string[];
+  destinatarios: MeInteresaDestinatarioDisplay[];
 }
 
 /** Fetches a client's own Me Interesa solicitudes (cualquier origen), con destinatarios resueltos. */
@@ -2760,7 +2753,7 @@ export async function fetchMeInteresaSolicitudesByCliente(
   const solicitudIds = solicitudes.map((s) => s.id);
   const { data: destinatarios, error: destError } = await supabase
     .from('me_interesa_destinatarios')
-    .select('solicitud_id, organization_id')
+    .select('solicitud_id, organization_id, codigo_verificacion')
     .in('solicitud_id', solicitudIds);
   if (destError) return { data: null, error: errMessage(destError) };
 
@@ -2772,10 +2765,10 @@ export async function fetchMeInteresaSolicitudesByCliente(
   if (orgError) return { data: null, error: errMessage(orgError) };
 
   const orgNameById = new Map((orgs ?? []).map((o) => [o.id, o.name]));
-  const destinatariosBySolicitud = new Map<string, string[]>();
+  const destinatariosBySolicitud = new Map<string, MeInteresaDestinatarioDisplay[]>();
   for (const d of destinatarios ?? []) {
     const list = destinatariosBySolicitud.get(d.solicitud_id) ?? [];
-    list.push(orgNameById.get(d.organization_id) ?? 'Entidad');
+    list.push({ nombre: orgNameById.get(d.organization_id) ?? 'Entidad', codigoVerificacion: d.codigo_verificacion });
     destinatariosBySolicitud.set(d.solicitud_id, list);
   }
 
