@@ -360,15 +360,17 @@ interface FacturaClienteVentaJoin {
   id: string;
   monto: number;
   fecha_compra: string;
-  ofertas_comercios: {
-    metas: { categoria: string; subcategoria: string | null; cliente_id: string | null } | null;
-  } | null;
+  ofertas_comercios: { comercio_id: string | null; meta_id: string | null } | null;
 }
 
 /**
  * Historial de ventas confirmadas del comercio — facturas_cliente de todas sus
- * ofertas, con categoría/subcategoría de la meta y nombre del cliente resuelto
- * aparte (mismo patrón de 2 pasos que fetchPuntosCanjesComercio).
+ * ofertas. categoria/subcategoria/cliente_id NO se pueden traer vía embed a
+ * `metas` (RLS de esa tabla solo permite `cliente_id = auth.uid()`, sin cláusula
+ * para comercio — un embed !inner ahí descarta silenciosamente todas las filas).
+ * Se resuelven aparte con resolver_metas_para_ventas_comercio(), una función
+ * SECURITY DEFINER que valida ownership internamente (solo devuelve metas de
+ * ofertas del comercio que llama) — no se tocó la política RLS general de metas.
  */
 export async function fetchVentasComercio(
   comercioId: string,
@@ -376,14 +378,24 @@ export async function fetchVentasComercio(
   if (!supabase) return { data: null, error: NOT_CONFIGURED };
   const { data, error } = await supabase
     .from('facturas_cliente')
-    .select('id, monto, fecha_compra, ofertas_comercios!inner(comercio_id, metas!inner(categoria, subcategoria, cliente_id))')
+    .select('id, monto, fecha_compra, ofertas_comercios!inner(comercio_id, meta_id)')
     .eq('ofertas_comercios.comercio_id', comercioId)
     .order('fecha_compra', { ascending: false });
   if (error) return { data: null, error: errMessage(error) };
   const rows = (data ?? []) as unknown as FacturaClienteVentaJoin[];
 
+  const metaIds = Array.from(new Set(rows.map((r) => r.ofertas_comercios?.meta_id).filter((id): id is string => !!id)));
+  const metaById = new Map<string, { categoria: string; subcategoria: string | null; cliente_id: string | null }>();
+  if (metaIds.length > 0) {
+    const { data: metas, error: metasError } = await supabase.rpc('resolver_metas_para_ventas_comercio', {
+      p_meta_ids: metaIds,
+    });
+    if (metasError) return { data: null, error: errMessage(metasError) };
+    for (const m of metas ?? []) metaById.set(m.id, m);
+  }
+
   const clienteIds = Array.from(
-    new Set(rows.map((r) => r.ofertas_comercios?.metas?.cliente_id).filter((id): id is string => !!id)),
+    new Set(Array.from(metaById.values()).map((m) => m.cliente_id).filter((id): id is string => !!id)),
   );
   const nombreById = new Map<string, string>();
   if (clienteIds.length > 0) {
@@ -393,13 +405,13 @@ export async function fetchVentasComercio(
 
   return {
     data: rows.map((r) => {
-      const clienteId = r.ofertas_comercios?.metas?.cliente_id ?? null;
+      const meta = r.ofertas_comercios?.meta_id ? metaById.get(r.ofertas_comercios.meta_id) : undefined;
       return {
         id: r.id,
-        clienteNombre: clienteId ? nombreById.get(clienteId) ?? null : null,
+        clienteNombre: meta?.cliente_id ? nombreById.get(meta.cliente_id) ?? null : null,
         monto: Number(r.monto),
-        categoria: r.ofertas_comercios?.metas?.categoria ?? '—',
-        subcategoria: r.ofertas_comercios?.metas?.subcategoria ?? null,
+        categoria: meta?.categoria ?? '—',
+        subcategoria: meta?.subcategoria ?? null,
         fechaCompra: r.fecha_compra,
       };
     }),

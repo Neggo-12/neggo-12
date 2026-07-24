@@ -1454,6 +1454,15 @@ export type Database = {
         Args: { p_comercio_id: string }
         Returns: number
       }
+      resolver_metas_para_ventas_comercio: {
+        Args: { p_meta_ids: string[] }
+        Returns: {
+          id: string
+          categoria: string
+          subcategoria: string | null
+          cliente_id: string | null
+        }[]
+      }
       resolver_tasa_puntos_comercio: {
         Args: { p_comercio_id: string }
         Returns: number
