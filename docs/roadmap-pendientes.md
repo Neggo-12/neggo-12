@@ -36,3 +36,6 @@
 ## Decisiones de negocio pendientes (no técnicas, bloquean features específicas)
 - Modelo de tarifas de puntos por comercio (Estándar/Plus/Premium — valores aún sin definir)
 - Presupuesto de puntos para compras de alto valor (% de comisión real de Neggo)
+
+## Diseño visual pendiente (mejora, no bug)
+- Sistema de Campañas (CampanasListPanel, tarjetas de campaña en OfertasView, mini-CRM por campaña) funciona correctamente pero el diseño visual es plano — necesita una pasada de diseño más cuidada en la próxima sesión (mismo nivel de pulido que el resto del sistema de diseño "fintech premium" ya usado en el resto de Neggo).
