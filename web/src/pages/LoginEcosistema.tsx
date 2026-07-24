@@ -816,6 +816,13 @@ function B2BRegister() {
         </div>
       )}
 
+      {sector === "comercio" && (
+        <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-[11px] font-medium text-amber-400">
+          <BadgeCheck className="h-4 w-4 shrink-0" />
+          Los primeros 50 comercios de Medellín obtienen el Sello de Confianza gratis.
+        </div>
+      )}
+
       <div className="flex items-start gap-2">
         <Checkbox
           id="b2b-eco-acepta-politica"
@@ -905,7 +912,7 @@ function B2BPortal({
 
       <p className="text-xs text-muted-foreground leading-relaxed">
         {authMode === "register"
-          ? "Regístrate como empresa para acceder al ecosistema Neggo. Bancos, constructoras y comercios aliados pueden gestionar leads, publicar ofertas y conectar con clientes verificados."
+          ? "Regístrate como empresa para acceder al ecosistema Neggo. Bancos, constructoras y comercios aliados gestionan leads, publican ofertas y conectan con clientes verificados. La activación toma 24-48h hábiles mientras verificamos tu negocio."
           : "Inicia sesión con tu cuenta empresarial para gestionar leads, publicar ofertas y acceder a tu panel de control."}
       </p>
 
@@ -1653,7 +1660,7 @@ function B2CPortal() {
     <div className="space-y-4 animate-fade-in">
       <p className="text-xs text-muted-foreground leading-relaxed">
         {authMode === "register"
-          ? "Crea tu cuenta personal para acceder a ofertas financieras, proyectos inmobiliarios, metas de ahorro y la red de comercios aliados con Sello de Confianza Neggo."
+          ? "Tu aliado financiero — te protegemos de estafas y te conseguimos las mejores condiciones. Explora ofertas, crea metas de ahorro y conecta con comercios verificados con Sello de Confianza Neggo."
           : "Inicia sesión para acceder a tus metas de ahorro, ofertas personalizadas y el control de tu vida financiera."}
       </p>
 
@@ -1758,7 +1765,7 @@ export default function LoginEcosistema({
             Acceso al Ecosistema
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-            Selecciona tu tipo de portal para acceder o registrarte en Neggo.
+            ¿Sos un negocio o buscás algo para vos? Elige abajo — te toma menos de 2 minutos.
           </p>
         </div>
 
