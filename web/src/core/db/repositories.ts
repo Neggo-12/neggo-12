@@ -1869,7 +1869,8 @@ export async function fetchProyectos(
 }
 
 export interface ProyectosMatchInput {
-  ciudad: string;
+  /** Sin ciudad, devuelve todos los proyectos activos (fallback cuando el cliente no tiene ciudad en su perfil). */
+  ciudad?: string;
   estrato?: number;
   presupuestoMin?: number;
   presupuestoMax?: number;
@@ -1895,9 +1896,11 @@ export async function fetchProyectosMatch(
   let query = supabase
     .from('proyectos')
     .select('*')
-    .eq('ciudad', input.ciudad)
     .eq('estado', 'activo');
 
+  if (input.ciudad !== undefined) {
+    query = query.eq('ciudad', input.ciudad);
+  }
   if (input.estrato !== undefined) {
     query = query
       .lte('estrato_min', input.estrato + ESTRATO_TOLERANCIA)
@@ -2030,6 +2033,8 @@ export interface InsertMeInteresaSolicitudInput {
   presupuestoMax?: number;
   categoria?: string;
   subcategoria?: string;
+  /** Solo cuando la solicitud nace de un CTA "Me interesa este proyecto" sobre un proyecto puntual — NULL en la solicitud genérica de vivienda. */
+  proyectoId?: string;
 }
 
 /** Creates a `me_interesa_solicitudes` row. */
@@ -2051,6 +2056,7 @@ export async function insertMeInteresaSolicitud(
     presupuesto_max: input.presupuestoMax ?? null,
     categoria: input.categoria ?? null,
     subcategoria: input.subcategoria ?? null,
+    proyecto_id: input.proyectoId ?? null,
   });
   return { error: error ? errMessage(error) : null };
 }

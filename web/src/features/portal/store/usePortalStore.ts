@@ -114,6 +114,13 @@ export interface AddSolicitudConstructoraInput {
   estrato?: number;
   presupuestoMin?: number;
   presupuestoMax?: number;
+  /**
+   * Presente solo cuando la solicitud nace del CTA "Me interesa este proyecto"
+   * sobre una tarjeta puntual — en ese caso se salta el match amplio por
+   * ciudad/estrato/presupuesto y el destinatario es SIEMPRE esa única
+   * constructora, sin importar si otras también tendrían match.
+   */
+  proyecto?: { id: string; constructoraUserId: string; constructoraNombre: string };
 }
 
 /** Input para crear una solicitud a comercios — el match a UN solo comercio se resuelve internamente. */
@@ -263,23 +270,30 @@ export const usePortalStore = create<PortalState>((set, get) => ({
       return false;
     }
 
-    const { data: proyectos, error: matchError } = await fetchProyectosMatch({
-      ciudad: input.ciudad,
-      estrato: input.estrato,
-      presupuestoMin: input.presupuestoMin,
-      presupuestoMax: input.presupuestoMax,
-    });
-    if (matchError) {
-      toast.error('No se pudo buscar constructoras', { description: matchError });
-      return false;
-    }
-
     const nombreByUserId = new Map<string, string>();
     const constructoraUserIds: string[] = [];
-    for (const p of proyectos ?? []) {
-      if (p.constructora_id && !nombreByUserId.has(p.constructora_id)) {
-        nombreByUserId.set(p.constructora_id, p.constructora_nombre ?? 'Constructora');
-        constructoraUserIds.push(p.constructora_id);
+
+    if (input.proyecto) {
+      // CTA "Me interesa este proyecto" — destinatario único, ya conocido por la
+      // tarjeta que disparó la solicitud. Nunca se abre a otras constructoras.
+      nombreByUserId.set(input.proyecto.constructoraUserId, input.proyecto.constructoraNombre);
+      constructoraUserIds.push(input.proyecto.constructoraUserId);
+    } else {
+      const { data: proyectos, error: matchError } = await fetchProyectosMatch({
+        ciudad: input.ciudad,
+        estrato: input.estrato,
+        presupuestoMin: input.presupuestoMin,
+        presupuestoMax: input.presupuestoMax,
+      });
+      if (matchError) {
+        toast.error('No se pudo buscar constructoras', { description: matchError });
+        return false;
+      }
+      for (const p of proyectos ?? []) {
+        if (p.constructora_id && !nombreByUserId.has(p.constructora_id)) {
+          nombreByUserId.set(p.constructora_id, p.constructora_nombre ?? 'Constructora');
+          constructoraUserIds.push(p.constructora_id);
+        }
       }
     }
 
@@ -318,6 +332,7 @@ export const usePortalStore = create<PortalState>((set, get) => ({
       estratoMax: input.estrato,
       presupuestoMin: input.presupuestoMin,
       presupuestoMax: input.presupuestoMax,
+      proyectoId: input.proyecto?.id,
     });
     if (solError) {
       set({ dbError: solError });

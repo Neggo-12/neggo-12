@@ -438,6 +438,7 @@ export type Database = {
           financiacion_solicitada: boolean
           categoria: string | null
           subcategoria: string | null
+          proyecto_id: string | null
           created_at: string
         }
         Insert: {
@@ -456,6 +457,7 @@ export type Database = {
           financiacion_solicitada?: boolean
           categoria?: string | null
           subcategoria?: string | null
+          proyecto_id?: string | null
           created_at?: string
         }
         Update: {
@@ -474,6 +476,7 @@ export type Database = {
           financiacion_solicitada?: boolean
           categoria?: string | null
           subcategoria?: string | null
+          proyecto_id?: string | null
           created_at?: string
         }
         Relationships: [
@@ -482,6 +485,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "me_interesa_solicitudes_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
             referencedColumns: ["id"]
           },
         ]

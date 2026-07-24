@@ -1,22 +1,58 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Home, MapPin, Building2, Wallet, Users,
   Loader2, CheckCircle2, Sparkles,
   PiggyBank, Clock, Percent, Gift, Ruler,
   BedDouble, Bath, Car, ShieldCheck,
-  MessageCircle, Trophy, Upload, FileCheck,
+  MessageCircle, Trophy, Upload, FileCheck, AlertTriangle,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-// Production: proyectos are fetched from Supabase, not mock data
-const proyectos: ProyectoConstructora[] = [];
 import { useAuthStore } from '@/store/useAuthStore';
+import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import { cn, formatCOPCompact } from '@/lib/utils';
 import { useRejectionTracking } from '@/hooks/useRejectionTracking';
 import { useClienteProfile } from '@/hooks/useClienteProfile';
+import { fetchProyectosMatch, type ProyectoRow } from '@/core/db/repositories';
+import { isDbConfigured } from '@/core/db/dbClient';
 import type { ProyectoConstructora } from '@/types';
+
+/** Convierte un ProyectoRow real a la forma que ya consume esta vista — analítica (leads/score/conversión) queda en 0: son métricas internas de la constructora, no del cliente que navega ofertas. */
+function rowToProyectoDisplay(row: ProyectoRow): ProyectoConstructora {
+  return {
+    id: row.id,
+    name: row.nombre,
+    city: row.ciudad ?? '',
+    units: row.unidades,
+    priceRangeMin: row.precio_min,
+    priceRangeMax: row.precio_max,
+    leadsGenerated: 0,
+    hipotecarioInterest: 0,
+    avgScore: 0,
+    conversionRate: 0,
+    status: (row.estado as ProyectoConstructora['status']) ?? 'activo',
+    constructora: row.constructora_nombre ?? '',
+    constructoraId: row.constructora_id ?? '',
+    tipoVivienda: (row.tipo_vivienda as ProyectoConstructora['tipoVivienda']) ?? 'apartamento',
+    valorSeparacion: row.valor_separacion,
+    cuotaInicialPct: row.cuota_inicial_pct,
+    plazoCuotaInicialMeses: row.plazo_cuota_inicial_meses,
+    subsidioCajaCompensacion: false,
+    subsidioMiCasaYa: false,
+    bonoComercial: row.bono_comercial ?? '',
+    areaConstruida: '',
+    alcobas: 0,
+    banos: 0,
+    parqueadero: false,
+    cplCosto: row.cpl_costo,
+    successFeePct: row.success_fee_pct,
+    modoLanzamiento: row.modo_lanzamiento,
+    unidadesLanzamiento: row.unidades_lanzamiento,
+    visibilidad: 'publico-general' as const,
+  };
+}
 
 // ───── Helpers ─────
 
@@ -35,6 +71,7 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
   const [reservaAmount, setReservaAmount] = useState('2000000');
   const [isRejected, setIsRejected] = useState(proyecto.offerStatus === 'rejected');
   const { trackRejection } = useRejectionTracking();
+  const addSolicitudConstructora = usePortalStore((s) => s.addSolicitudConstructora);
 
   const handleReject = useCallback(() => {
     void trackRejection({
@@ -46,10 +83,21 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
     });
   }, [proyecto.id, proyecto.tipoVivienda, proyecto.constructora, trackRejection]);
 
-  const handleSolicitar = useCallback(() => {
+  const handleSolicitar = useCallback(async () => {
     setRequestState('loading');
-    setTimeout(() => setRequestState('done'), 1200);
-  }, []);
+    const solicitudId = `SOL-${Date.now().toString(36).toUpperCase()}`;
+    const ok = await addSolicitudConstructora({
+      id: solicitudId,
+      tipoVivienda: proyecto.tipoVivienda,
+      ciudad: proyecto.city,
+      proyecto: {
+        id: proyecto.id,
+        constructoraUserId: proyecto.constructoraId,
+        constructoraNombre: proyecto.constructora,
+      },
+    });
+    setRequestState(ok ? 'done' : 'idle');
+  }, [proyecto, addSolicitudConstructora]);
 
   const handleReservar = useCallback(() => {
     setRequestState('loading');
@@ -397,7 +445,7 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
           >
             {requestState === 'idle' && (
               <>
-                Solicitar Asesoría de Cierre
+                Me interesa este proyecto
                 <MessageCircle className="h-3.5 w-3.5" />
               </>
             )}
@@ -430,10 +478,29 @@ export default function OportunidadesInmobiliariasView() {
   // proyectos activos sin filtrar que inventar un valor por defecto.
   const perfilCompleto = perfilStatus === 'ready' && ciudad !== null;
 
+  const [proyectos, setProyectos] = useState<ProyectoConstructora[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isDbConfigured || perfilStatus === 'loading') return;
+    setIsLoading(true);
+    setError(null);
+    fetchProyectosMatch({ ciudad: ciudad ?? undefined }).then(({ data, error: fetchError }) => {
+      if (fetchError) {
+        setError(fetchError);
+        setIsLoading(false);
+        return;
+      }
+      setProyectos((data ?? []).map(rowToProyectoDisplay));
+      setIsLoading(false);
+    });
+  }, [perfilStatus, ciudad]);
+
   const matchingProjects = useMemo(() => {
     if (!perfilCompleto) return proyectos.filter((p) => p.status === 'activo');
     return proyectos.filter((p) => p.status === 'activo' && p.city === ciudad);
-  }, [perfilCompleto, ciudad]);
+  }, [perfilCompleto, ciudad, proyectos]);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -522,7 +589,17 @@ export default function OportunidadesInmobiliariasView() {
       </div>
 
       {/* Grid of matching projects */}
-      {matchingProjects.length > 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center rounded-2xl border border-border/40 bg-card/40">
+          <AlertTriangle className="h-8 w-8 text-red-400 mb-3" />
+          <h3 className="text-base font-semibold text-foreground mb-1">No se pudieron cargar los proyectos</h3>
+          <p className="text-sm text-muted-foreground max-w-md">{error}</p>
+        </div>
+      ) : matchingProjects.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {matchingProjects.map((proyecto) => (
             <ProjectCard key={proyecto.id} proyecto={proyecto} />
