@@ -2744,6 +2744,24 @@ export interface MeInteresaSolicitudDisplay {
 }
 
 /** Fetches a client's own Me Interesa solicitudes (cualquier origen), con destinatarios resueltos. */
+/**
+ * proyecto_id de las solicitudes que este cliente ya envió — usado para no
+ * mostrar el CTA "Me interesa este proyecto" como disponible si ya se envió
+ * antes (evita duplicados entre remounts/recargas de la vista).
+ */
+export async function fetchProyectoIdsConSolicitud(
+  clienteId: string,
+): Promise<{ data: string[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('me_interesa_solicitudes')
+    .select('proyecto_id')
+    .eq('cliente_id', clienteId)
+    .not('proyecto_id', 'is', null);
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: (data ?? []).map((r) => r.proyecto_id).filter((id): id is string => !!id), error: null };
+}
+
 export async function fetchMeInteresaSolicitudesByCliente(
   clienteId: string,
 ): Promise<{ data: MeInteresaSolicitudDisplay[] | null; error: string | null }> {

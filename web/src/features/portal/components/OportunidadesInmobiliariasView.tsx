@@ -1,9 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  Home, MapPin, Building2, Wallet, Users,
+  Home, MapPin, Building2,
   Loader2, CheckCircle2, Sparkles,
-  PiggyBank, Clock, Percent, Gift, Ruler,
-  BedDouble, Bath, Car, ShieldCheck,
+  PiggyBank, Clock, Percent, Gift,
+  ShieldCheck,
   MessageCircle, Trophy, Upload, FileCheck, AlertTriangle,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import { usePortalStore } from '@/features/portal/store/usePortalStore';
 import { cn, formatCOPCompact } from '@/lib/utils';
 import { useRejectionTracking } from '@/hooks/useRejectionTracking';
 import { useClienteProfile } from '@/hooks/useClienteProfile';
-import { fetchProyectosMatch, type ProyectoRow } from '@/core/db/repositories';
+import { fetchProyectosMatch, fetchProyectoIdsConSolicitud, type ProyectoRow } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
 import type { ProyectoConstructora } from '@/types';
 
@@ -65,13 +65,19 @@ const TIPO_LABELS: Record<string, string> = {
 
 // ───── Project Card ─────
 
-function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
-  const [requestState, setRequestState] = useState<'idle' | 'loading' | 'done'>('idle');
+function ProjectCard({ proyecto, yaSolicitado }: { proyecto: ProyectoConstructora; yaSolicitado: boolean }) {
+  const [requestState, setRequestState] = useState<'idle' | 'loading' | 'done'>(yaSolicitado ? 'done' : 'idle');
   const [showReservaForm, setShowReservaForm] = useState(false);
   const [reservaAmount, setReservaAmount] = useState('2000000');
   const [isRejected, setIsRejected] = useState(proyecto.offerStatus === 'rejected');
   const { trackRejection } = useRejectionTracking();
   const addSolicitudConstructora = usePortalStore((s) => s.addSolicitudConstructora);
+
+  // yaSolicitado llega de una consulta async al montar la vista — puede resolverse
+  // después del primer render, así que se sincroniza aparte del estado inicial.
+  useEffect(() => {
+    if (yaSolicitado) setRequestState('done');
+  }, [yaSolicitado]);
 
   const handleReject = useCallback(() => {
     void trackRejection({
@@ -200,35 +206,6 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
           </div>
         </div>
 
-        {/* ── Amenities + Specs pills ── */}
-        <div className="flex flex-wrap gap-1.5">
-          {/* Area */}
-          <span className="inline-flex items-center gap-1 rounded-full bg-secondary/60 border border-border/40 px-2.5 py-1 text-[10px] text-muted-foreground font-medium">
-            <Ruler className="h-3 w-3 text-blue-400" />
-            {proyecto.areaConstruida}
-          </span>
-          {/* Alcobas */}
-          <span className="inline-flex items-center gap-1 rounded-full bg-secondary/60 border border-border/40 px-2.5 py-1 text-[10px] text-muted-foreground font-medium">
-            <BedDouble className="h-3 w-3 text-purple-400" />
-            {proyecto.alcobas} alcobas
-          </span>
-          {/* Baños */}
-          <span className="inline-flex items-center gap-1 rounded-full bg-secondary/60 border border-border/40 px-2.5 py-1 text-[10px] text-muted-foreground font-medium">
-            <Bath className="h-3 w-3 text-cyan-400" />
-            {proyecto.banos} baños
-          </span>
-          {/* Parqueadero */}
-          <span className={cn(
-            'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium',
-            proyecto.parqueadero
-              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-              : 'bg-secondary/60 border-border/40 text-muted-foreground line-through',
-          )}>
-            <Car className="h-3 w-3" />
-            Parqueadero
-          </span>
-        </div>
-
         {/* ── Subsidies row ── */}
         {hasSubsidio && (
           <div className="flex flex-wrap gap-1.5">
@@ -247,8 +224,8 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
           </div>
         )}
 
-        {/* ── Meta row: city + units + score ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center">
+        {/* ── Meta row: city + units ── */}
+        <div className="grid grid-cols-2 gap-3 text-center">
           <div className="rounded-lg bg-secondary/40 p-2.5 space-y-0.5">
             <MapPin className="h-3.5 w-3.5 text-emerald-400 mx-auto" />
             <p className="text-[10px] text-muted-foreground">Ciudad</p>
@@ -258,39 +235,6 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
             <Home className="h-3.5 w-3.5 text-blue-400 mx-auto" />
             <p className="text-[10px] text-muted-foreground">Unidades</p>
             <p className="text-xs font-semibold text-blue-400">{proyecto.units}</p>
-          </div>
-          <div className="rounded-lg bg-secondary/40 p-2.5 space-y-0.5">
-            <Users className="h-3.5 w-3.5 text-purple-400 mx-auto" />
-            <p className="text-[10px] text-muted-foreground">Score Prom.</p>
-            <p className="text-xs font-semibold text-purple-400 font-mono">{proyecto.avgScore}</p>
-          </div>
-        </div>
-
-        {/* ── Stats row ── */}
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Users className="h-3 w-3 text-blue-400" />
-            {proyecto.leadsGenerated} leads
-          </span>
-          <span className="flex items-center gap-1">
-            <Wallet className="h-3 w-3 text-emerald-400" />
-            {proyecto.hipotecarioInterest} interesados
-          </span>
-        </div>
-
-        {/* ── Conversion rate bar ── */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-muted-foreground">Tasa de conversión</span>
-            <span className="font-mono font-semibold text-purple-400">
-              {proyecto.conversionRate}%
-            </span>
-          </div>
-          <div className="h-1.5 rounded-full bg-secondary/60 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-purple-500 transition-all duration-500"
-              style={{ width: `${Math.min(100, proyecto.conversionRate * 6)}%` }}
-            />
           </div>
         </div>
 
@@ -458,7 +402,7 @@ function ProjectCard({ proyecto }: { proyecto: ProyectoConstructora }) {
             {requestState === 'done' && (
               <>
                 <CheckCircle2 className="h-4 w-4" />
-                Solicitado ✓
+                Solicitud enviada
               </>
             )}
           </Button>
@@ -481,6 +425,7 @@ export default function OportunidadesInmobiliariasView() {
   const [proyectos, setProyectos] = useState<ProyectoConstructora[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [proyectoIdsConSolicitud, setProyectoIdsConSolicitud] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!isDbConfigured || perfilStatus === 'loading') return;
@@ -496,6 +441,13 @@ export default function OportunidadesInmobiliariasView() {
       setIsLoading(false);
     });
   }, [perfilStatus, ciudad]);
+
+  useEffect(() => {
+    if (!isDbConfigured || !userId) return;
+    fetchProyectoIdsConSolicitud(userId).then(({ data }) => {
+      if (data) setProyectoIdsConSolicitud(new Set(data));
+    });
+  }, [userId]);
 
   const matchingProjects = useMemo(() => {
     if (!perfilCompleto) return proyectos.filter((p) => p.status === 'activo');
@@ -602,7 +554,7 @@ export default function OportunidadesInmobiliariasView() {
       ) : matchingProjects.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {matchingProjects.map((proyecto) => (
-            <ProjectCard key={proyecto.id} proyecto={proyecto} />
+            <ProjectCard key={proyecto.id} proyecto={proyecto} yaSolicitado={proyectoIdsConSolicitud.has(proyecto.id)} />
           ))}
         </div>
       ) : (

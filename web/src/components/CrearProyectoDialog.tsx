@@ -113,6 +113,17 @@ export default function CrearProyectoDialog({ onProjectCreated }: { onProjectCre
   const constructoraName = orgNameStatus === 'ready' && orgName ? orgName : 'Mi Constructora';
   const constructoraId = session?.userId ?? null;
 
+  // Ningún campo numérico de este formulario admite valores negativos — sin esto,
+  // un typo de signo (ej. "-18" en vez de "18") se guarda tal cual, sin error visible.
+  const isNonNegative = (value: string) => value.trim() === '' || (!isNaN(Number(value)) && Number(value) >= 0);
+  const numericFieldsValid =
+    isNonNegative(form.units) &&
+    isNonNegative(form.priceMin) &&
+    isNonNegative(form.priceMax) &&
+    isNonNegative(form.valorSeparacion) &&
+    isNonNegative(form.cuotaInicialPct) &&
+    isNonNegative(form.plazoCuotaInicialMeses);
+
   const isValid =
     !!constructoraId &&
     form.name.trim() &&
@@ -120,7 +131,8 @@ export default function CrearProyectoDialog({ onProjectCreated }: { onProjectCre
     form.units &&
     form.priceMin &&
     form.priceMax &&
-    form.tipoVivienda;
+    form.tipoVivienda &&
+    numericFieldsValid;
 
   const handleSubmit = async () => {
     if (!isValid || !constructoraId) {
@@ -311,6 +323,7 @@ export default function CrearProyectoDialog({ onProjectCreated }: { onProjectCre
                 </Label>
                 <Input
                   type="number"
+                  min="0"
                   placeholder="ej. 120"
                   value={form.units}
                   onChange={(e) => updateField('units', e.target.value)}
@@ -343,6 +356,7 @@ export default function CrearProyectoDialog({ onProjectCreated }: { onProjectCre
                 <div className="relative">
                   <Input
                     type="number"
+                    min="0"
                     placeholder="Mínimo"
                     value={form.priceMin}
                     onChange={(e) => updateField('priceMin', e.target.value)}
@@ -353,6 +367,7 @@ export default function CrearProyectoDialog({ onProjectCreated }: { onProjectCre
                 <div className="relative">
                   <Input
                     type="number"
+                    min="0"
                     placeholder="Máximo"
                     value={form.priceMax}
                     onChange={(e) => updateField('priceMax', e.target.value)}
@@ -398,6 +413,7 @@ export default function CrearProyectoDialog({ onProjectCreated }: { onProjectCre
                 </Label>
                 <Input
                   type="number"
+                  min="0"
                   placeholder="ej. 5000000"
                   value={form.valorSeparacion}
                   onChange={(e) => updateField('valorSeparacion', e.target.value)}
@@ -413,6 +429,7 @@ export default function CrearProyectoDialog({ onProjectCreated }: { onProjectCre
                 </Label>
                 <Input
                   type="number"
+                  min="0"
                   placeholder="ej. 30"
                   value={form.cuotaInicialPct}
                   onChange={(e) => updateField('cuotaInicialPct', e.target.value)}
@@ -425,6 +442,7 @@ export default function CrearProyectoDialog({ onProjectCreated }: { onProjectCre
                 </Label>
                 <Input
                   type="number"
+                  min="0"
                   placeholder="ej. 24"
                   value={form.plazoCuotaInicialMeses}
                   onChange={(e) => updateField('plazoCuotaInicialMeses', e.target.value)}
