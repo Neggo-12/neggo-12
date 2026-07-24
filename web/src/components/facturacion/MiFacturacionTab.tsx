@@ -40,7 +40,7 @@ const ESTADO_CONFIG: Record<string, { label: string; bg: string; text: string; b
   confirmado_pagado: { label: 'Pagado', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
 };
 
-export default function MiFacturacionTab({ organizationId }: { organizationId: string | null }) {
+export default function MiFacturacionTab({ organizationId, title = 'Mi Facturación' }: { organizationId: string | null; title?: string }) {
   const [facturas, setFacturas] = useState<FacturaMensualRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -194,7 +194,7 @@ export default function MiFacturacionTab({ organizationId }: { organizationId: s
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h2 className="text-lg font-bold tracking-tight text-foreground">Mi Facturación</h2>
+        <h2 className="text-lg font-bold tracking-tight text-foreground">{title}</h2>
         <p className="text-xs text-muted-foreground mt-0.5">Facturas mensuales generadas por tus cargos de CPL y Success Fee/comisión</p>
       </div>
 

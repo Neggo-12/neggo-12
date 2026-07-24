@@ -8,13 +8,14 @@ import PuntosCanjeadosTab from '@/features/comercios/components/PuntosCanjeadosT
 import ComercioSolicitudesTab from '@/components/comercio/SolicitudesTab';
 import ComercioSuscripcionTab from '@/components/comercio/SuscripcionTab';
 import MiFacturacionTab from '@/components/facturacion/MiFacturacionTab';
+import MisVentasTab from '@/features/comercios/components/MisVentasTab';
 import SeguridadTab from '@/features/shared/components/SeguridadTab';
 import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import KPICard from '@/components/KPICard';
-import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText, TrendingDown, AlertTriangle, Loader2, Inbox, MessageCircle, Receipt, Lock, Gift } from 'lucide-react';
+import { ShieldCheck, Send, TrendingUp, Zap, Store, Radio, CreditCard, MessageSquareText, TrendingDown, AlertTriangle, Loader2, Inbox, MessageCircle, Receipt, Lock, Gift, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchOfertasComercios, type OfertaComercioRow } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
@@ -23,7 +24,7 @@ import { useOrganizationName } from '@/hooks/useOrganizationName';
 import { useOfertaComercioRealtime } from '@/hooks/useOfertaComercioRealtime';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 
-type ComercioSection = 'dashboard' | 'oportunidades' | 'mis-propuestas' | 'suscripcion' | 'solicitudes' | 'solicitudes-clientes' | 'puntos-canjeados' | 'mi-facturacion' | 'feedback' | 'metricas-rechazo' | 'seguridad';
+type ComercioSection = 'dashboard' | 'oportunidades' | 'mis-propuestas' | 'suscripcion' | 'solicitudes' | 'solicitudes-clientes' | 'puntos-canjeados' | 'mis-ventas' | 'mi-facturacion' | 'feedback' | 'metricas-rechazo' | 'seguridad';
 
 const COMERCIO_SECTIONS: SidebarNavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: Store },
@@ -33,7 +34,8 @@ const COMERCIO_SECTIONS: SidebarNavItem[] = [
   { key: 'solicitudes', label: 'Solicitudes (Me Interesa)', icon: Inbox },
   { key: 'solicitudes-clientes', label: 'Solicitudes de Clientes', icon: MessageCircle },
   { key: 'puntos-canjeados', label: 'Puntos Canjeados', icon: Gift },
-  { key: 'mi-facturacion', label: 'Mi Facturación', icon: Receipt },
+  { key: 'mis-ventas', label: 'Mis Ventas', icon: ShoppingBag },
+  { key: 'mi-facturacion', label: 'Lo que le debes a Neggo', icon: Receipt },
   { key: 'feedback', label: 'Feedback Clientes', icon: MessageSquareText },
   { key: 'metricas-rechazo', label: 'Metricas Rechazo', icon: TrendingDown },
   ...(MFA_ENFORCEMENT_ENABLED ? [{ key: 'seguridad', label: 'Seguridad', icon: Lock }] : []),
@@ -277,8 +279,12 @@ export default function ComerciosDashboard() {
             <PuntosCanjeadosTab organizationId={session?.organizationId ?? null} />
           )}
 
+          {activeSection === 'mis-ventas' && (
+            <MisVentasTab comercioId={currentComercio.id} />
+          )}
+
           {activeSection === 'mi-facturacion' && (
-            <MiFacturacionTab organizationId={session?.organizationId ?? null} />
+            <MiFacturacionTab organizationId={session?.organizationId ?? null} title="Lo que le debes a Neggo" />
           )}
 
           {activeSection === 'feedback' && (

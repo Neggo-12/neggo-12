@@ -347,6 +347,66 @@ export async function fetchFacturasPorOfertas(
   return { data: data ?? [], error: null };
 }
 
+export interface VentaComercioRow {
+  id: string;
+  clienteNombre: string | null;
+  monto: number;
+  categoria: string;
+  subcategoria: string | null;
+  fechaCompra: string;
+}
+
+interface FacturaClienteVentaJoin {
+  id: string;
+  monto: number;
+  fecha_compra: string;
+  ofertas_comercios: {
+    metas: { categoria: string; subcategoria: string | null; cliente_id: string | null } | null;
+  } | null;
+}
+
+/**
+ * Historial de ventas confirmadas del comercio — facturas_cliente de todas sus
+ * ofertas, con categoría/subcategoría de la meta y nombre del cliente resuelto
+ * aparte (mismo patrón de 2 pasos que fetchPuntosCanjesComercio).
+ */
+export async function fetchVentasComercio(
+  comercioId: string,
+): Promise<{ data: VentaComercioRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('facturas_cliente')
+    .select('id, monto, fecha_compra, ofertas_comercios!inner(comercio_id, metas!inner(categoria, subcategoria, cliente_id))')
+    .eq('ofertas_comercios.comercio_id', comercioId)
+    .order('fecha_compra', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  const rows = (data ?? []) as unknown as FacturaClienteVentaJoin[];
+
+  const clienteIds = Array.from(
+    new Set(rows.map((r) => r.ofertas_comercios?.metas?.cliente_id).filter((id): id is string => !!id)),
+  );
+  const nombreById = new Map<string, string>();
+  if (clienteIds.length > 0) {
+    const { data: clientes } = await supabase.from('users').select('id, nombre').in('id', clienteIds);
+    for (const c of clientes ?? []) nombreById.set(c.id, c.nombre);
+  }
+
+  return {
+    data: rows.map((r) => {
+      const clienteId = r.ofertas_comercios?.metas?.cliente_id ?? null;
+      return {
+        id: r.id,
+        clienteNombre: clienteId ? nombreById.get(clienteId) ?? null : null,
+        monto: Number(r.monto),
+        categoria: r.ofertas_comercios?.metas?.categoria ?? '—',
+        subcategoria: r.ofertas_comercios?.metas?.subcategoria ?? null,
+        fechaCompra: r.fecha_compra,
+      };
+    }),
+    error: null,
+  };
+}
+
 /** Ofertas reales sobre una meta del cliente — protegido por RLS (cliente_comercio_admin_selecciona_ofertas). */
 export async function fetchOfertasParaCliente(
   metaId: string,
