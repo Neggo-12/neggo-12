@@ -26,7 +26,6 @@ import type {
 
 export type UserRow = Database['public']['Tables']['users']['Row'];
 export type ProyectoRow = Database['public']['Tables']['proyectos']['Row'];
-export type LeadRow = Database['public']['Tables']['leads']['Row'];
 export type SolicitudBancaRow = Database['public']['Tables']['solicitudes_banca']['Row'];
 export type OfertaComercioRow = Database['public']['Tables']['ofertas_comercios']['Row'];
 export type FacturaLedgerRow = Database['public']['Tables']['facturas_ledger']['Row'];
@@ -1965,53 +1964,6 @@ export async function insertProyecto(
   return { error: error ? errMessage(error) : null };
 }
 
-// ───── Leads inmobiliarios ─────
-
-/** Fetches only the leads owned by this constructora (scoped by `constructora_id`, the constructora's own user id). */
-export async function fetchLeads(
-  constructoraId: string,
-): Promise<{ data: LeadRow[] | null; error: string | null }> {
-  if (!supabase) return { data: null, error: NOT_CONFIGURED };
-  const { data, error } = await supabase
-    .from('leads')
-    .select('*')
-    .eq('constructora_id', constructoraId)
-    .order('created_at', { ascending: false });
-  if (error) return { data: null, error: errMessage(error) };
-  return { data: data ?? [], error: null };
-}
-
-export interface UpsertLeadEstadoInput {
-  id: string;
-  clienteRef: string;
-  clienteNombre: string;
-  proyectoId: string;
-  constructoraId: string;
-  status: string;
-  asesorAsignado: string;
-  canalContacto: string;
-}
-
-export async function upsertLeadEstado(
-  input: UpsertLeadEstadoInput,
-): Promise<{ error: string | null }> {
-  if (!supabase) return { error: NOT_CONFIGURED };
-  const { error } = await supabase.from('leads').upsert(
-    {
-      id: input.id,
-      cliente_ref: input.clienteRef,
-      cliente_nombre: input.clienteNombre,
-      proyecto_id: input.proyectoId || null,
-      constructora_id: input.constructoraId || null,
-      estado: input.status,
-      asesor_asignado: input.asesorAsignado,
-      canal_contacto: input.canalContacto,
-    },
-    { onConflict: 'id' },
-  );
-  return { error: error ? errMessage(error) : null };
-}
-
 // ───── Me Interesa (solicitudes + destinatarios) ─────
 
 export interface MeInteresaDestinatarioInput {
@@ -2361,6 +2313,8 @@ export interface MeInteresaLeadDisplay {
   presupuestoMax: number | null;
   categoria: string | null;
   subcategoria: string | null;
+  /** proyecto_id de la solicitud, si nació del CTA "Me interesa este proyecto" — NULL en la solicitud genérica de vivienda. */
+  proyectoId: string | null;
   clienteNombre: string;
   clienteTelefono: string;
   /** Código anti-phishing (6 dígitos) — el asesor debe mencionarlo al contactar al cliente. */
@@ -2395,7 +2349,7 @@ export async function fetchMeInteresaLeadsByOrganization(
   const solicitudIds = destinatarios.map((d) => d.solicitud_id);
   const { data: solicitudes, error: solError } = await supabase
     .from('me_interesa_solicitudes')
-    .select('id, cliente_id, origen, producto_bancario, tipo_vivienda, ciudad, comuna, estrato_min, estrato_max, presupuesto_min, presupuesto_max, categoria, subcategoria')
+    .select('id, cliente_id, origen, producto_bancario, tipo_vivienda, ciudad, comuna, estrato_min, estrato_max, presupuesto_min, presupuesto_max, categoria, subcategoria, proyecto_id')
     .in('id', solicitudIds);
   if (solError) return { data: null, error: errMessage(solError) };
 
@@ -2439,6 +2393,7 @@ export async function fetchMeInteresaLeadsByOrganization(
       presupuestoMax: solicitud?.presupuesto_max ?? null,
       categoria: solicitud?.categoria ?? null,
       subcategoria: solicitud?.subcategoria ?? null,
+      proyectoId: solicitud?.proyecto_id ?? null,
       clienteNombre: cliente?.nombre ?? 'Cliente',
       clienteTelefono: cliente?.telefono ?? '',
       codigoVerificacion: d.codigo_verificacion,
