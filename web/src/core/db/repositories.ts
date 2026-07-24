@@ -2025,7 +2025,12 @@ export async function insertCampana(input: InsertCampanaInput): Promise<{ error:
     segmentacion: input.segmentacion as unknown as Database['public']['Tables']['campanas']['Insert']['segmentacion'],
     creado_por: input.creadoPor,
   });
-  return { error: error ? errMessage(error) : null };
+  if (error) {
+    const message = errMessage(error);
+    logFalloApp('insert_campana', message, error);
+    return { error: message };
+  }
+  return { error: null };
 }
 
 export interface CampanaAdminRow {

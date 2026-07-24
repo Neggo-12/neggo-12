@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Megaphone, MapPin, Target,
   Building2, FileText, Plus, Check, Sparkles,
@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useOrganizationName } from '@/hooks/useOrganizationName';
-import { insertCampana, type CampanaSegmentacion } from '@/core/db/repositories';
+import { insertCampana, fetchOrganizationIdByUserId, type CampanaSegmentacion } from '@/core/db/repositories';
 import { PRODUCT_LABELS, RANGO_INGRESOS_LABELS } from '@/components/crm/leadLabels';
 import { CIUDADES } from '@/types';
 
@@ -57,7 +57,17 @@ export default function CrearCampanaDialog({ onCampanaCreated }: { onCampanaCrea
   const getOrganizationId = useAuthStore((s) => s.getOrganizationId);
   const { name: orgName, status: orgNameStatus } = useOrganizationName();
   const bankName = orgNameStatus === 'ready' && orgName ? orgName : 'Mi Banco';
-  const organizationId = getOrganizationId();
+  const [organizationId, setOrganizationId] = useState<string | null>(getOrganizationId());
+
+  // El snapshot de session.organizationId se resuelve una sola vez, en el login —
+  // si la membresía se activó después, queda obsoleto (null) hasta un nuevo login.
+  // Se refresca en caliente cada vez que se abre el diálogo, no solo al montar.
+  useEffect(() => {
+    if (!open || !session?.userId) return;
+    fetchOrganizationIdByUserId(session.userId).then(({ data }) => {
+      if (data) setOrganizationId(data);
+    });
+  }, [open, session?.userId]);
 
   const updateField = <K extends keyof CampanaForm>(key: K, value: CampanaForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));

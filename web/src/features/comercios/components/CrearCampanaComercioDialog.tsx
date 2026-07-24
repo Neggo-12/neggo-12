@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Megaphone, MapPin, Target,
   Store, FileText, Plus, Check, Sparkles,
@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { insertCampana, type CampanaSegmentacion } from '@/core/db/repositories';
+import { insertCampana, fetchOrganizationIdByUserId, type CampanaSegmentacion } from '@/core/db/repositories';
 import { RANGO_INGRESOS_LABELS } from '@/components/crm/leadLabels';
 import { CIUDADES } from '@/types';
 
@@ -51,6 +51,17 @@ export default function CrearCampanaComercioDialog({
   const [form, setForm] = useState<CampanaForm>(initialForm);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [resolvedOrganizationId, setResolvedOrganizationId] = useState<string | null>(organizationId);
+
+  // El organizationId recibido por prop puede venir de un snapshot de sesión
+  // obsoleto (session.organizationId se resuelve una sola vez, en el login) —
+  // se refresca en caliente cada vez que se abre el diálogo.
+  useEffect(() => {
+    if (!open || !creadoPor) return;
+    fetchOrganizationIdByUserId(creadoPor).then(({ data }) => {
+      if (data) setResolvedOrganizationId(data);
+    });
+  }, [open, creadoPor]);
 
   const updateField = <K extends keyof CampanaForm>(key: K, value: CampanaForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -72,10 +83,10 @@ export default function CrearCampanaComercioDialog({
     }));
   };
 
-  const isValid = form.titulo.trim() !== '' && !!organizationId && !!creadoPor;
+  const isValid = form.titulo.trim() !== '' && !!resolvedOrganizationId && !!creadoPor;
 
   const handleSubmit = async () => {
-    if (!isValid || !organizationId || !creadoPor) return;
+    if (!isValid || !resolvedOrganizationId || !creadoPor) return;
     setSubmitting(true);
 
     const segmentacion: CampanaSegmentacion = {
@@ -85,7 +96,7 @@ export default function CrearCampanaComercioDialog({
 
     const { error } = await insertCampana({
       id: `CAMP-${Date.now().toString(36).toUpperCase()}`,
-      organizationId,
+      organizationId: resolvedOrganizationId,
       tipo: 'comercio',
       titulo: form.titulo.trim(),
       descripcion: form.descripcion.trim() || undefined,
