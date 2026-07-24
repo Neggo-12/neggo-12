@@ -206,6 +206,56 @@ export default function LandingHub() {
       </section>
 
       {/* ═════════════════════════════════════════════════════════
+          PROOF — "no es una promesa, ya está construido"
+         ═════════════════════════════════════════════════════════ */}
+      <section className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12 text-center">
+        <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground font-semibold mb-3">
+          No es una promesa
+        </p>
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight mb-8">
+          Esto ya está construido y funcionando
+        </h2>
+        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+          {[
+            "CRM real con seguimiento por sector",
+            "Facturación automática mensual, con conciliación",
+            "Tarifas negociables — no un precio fijo para todos",
+            "Sistema de puntos que ya se canjea entre comercios aliados",
+          ].map((item) => (
+            <div key={item} className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═════════════════════════════════════════════════════════
+          TRUST BAR
+         ═════════════════════════════════════════════════════════ */}
+      <section className="border-y border-border/30 bg-card/20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+            {[
+              { icon: Lock, label: "Doble verificación", value: "MFA", desc: "Obligatoria en cuentas de negocio" },
+              { icon: Shield, label: "Candados de datos", value: "24", desc: "37 reglas de acceso auditadas, una por una" },
+              { icon: Zap, label: "Notificaciones", value: "Instantáneo", desc: "Te enteras apenas responden tu solicitud" },
+              { icon: ShieldCheck, label: "Datos protegidos", value: "Ley 1581", desc: "Como exige la ley colombiana" },
+            ].map((item) => (
+              <div key={item.label} className="flex flex-col items-center text-center gap-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border/40">
+                  <item.icon className="h-5 w-5 text-emerald-400" />
+                </div>
+                <div className="text-lg font-bold font-mono text-foreground">{item.value}</div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{item.label}</div>
+                <div className="text-[10px] text-muted-foreground/60">{item.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═════════════════════════════════════════════════════════
           AUDIENCE PATHS
          ═════════════════════════════════════════════════════════ */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-20">
@@ -280,24 +330,40 @@ export default function LandingHub() {
       </section>
 
       {/* ═════════════════════════════════════════════════════════
-          TRUST BAR
+          FAQ — objeciones ya validadas (marketing-neggo.md, sección 8)
          ═════════════════════════════════════════════════════════ */}
       <section className="border-y border-border/30 bg-card/20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-16">
+          <div className="text-center mb-10">
+            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground font-semibold mb-3">
+              Antes de que preguntes
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+              Las dudas que ya nos hicieron
+            </h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
             {[
-              { icon: Lock, label: "Doble verificación", value: "MFA", desc: "Obligatoria en cuentas de negocio" },
-              { icon: Shield, label: "Candados de datos", value: "24", desc: "37 reglas de acceso auditadas, una por una" },
-              { icon: Zap, label: "Notificaciones", value: "Instantáneo", desc: "Te enteras apenas responden tu solicitud" },
-              { icon: ShieldCheck, label: "Datos protegidos", value: "Ley 1581", desc: "Como exige la ley colombiana" },
+              {
+                q: "¿Cómo sé que esto es real y no es basura?",
+                a: "Verificamos identidad y legitimidad antes de conectarte con nadie. Si algo no cuadra, se marca para revisión antes de llegar a vos.",
+              },
+              {
+                q: "¿Qué pasa si me registro y no me sirve?",
+                a: "Sin permanencia. Si no te genera valor, dejás de usarlo — sin contrato de salida ni letra chica.",
+              },
+              {
+                q: "¿Por qué no buscar directo en Instagram o Google?",
+                a: "Porque ahí nadie verifica nada. Ese es el trabajo que hacemos por vos antes de ponerte en contacto con alguien.",
+              },
+              {
+                q: "¿Mis datos están seguros?",
+                a: "Doble verificación en cuentas de negocio, protección bajo la Ley 1581, y nunca compartimos tu información sin tu autorización explícita.",
+              },
             ].map((item) => (
-              <div key={item.label} className="flex flex-col items-center text-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border/40">
-                  <item.icon className="h-5 w-5 text-emerald-400" />
-                </div>
-                <div className="text-lg font-bold font-mono text-foreground">{item.value}</div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{item.label}</div>
-                <div className="text-[10px] text-muted-foreground/60">{item.desc}</div>
+              <div key={item.q} className="rounded-2xl border border-border/40 bg-card/60 p-5">
+                <p className="text-sm font-semibold text-foreground mb-1.5">{item.q}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.a}</p>
               </div>
             ))}
           </div>
@@ -312,12 +378,16 @@ export default function LandingHub() {
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mx-auto mb-4">
             <ShieldCheck className="h-7 w-7 text-emerald-400" />
           </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[10px] font-semibold text-amber-400 mb-4">
+            Cupos limitados — primeros 50 comercios con Sello de Confianza gratis
+          </div>
           <h3 className="text-lg font-bold text-foreground mb-2">
             Acceso al Ecosistema
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-            Ingresa a tu portal seguro. Bancos, constructoras, comercios y clientes
-            en un entorno regulado con cifrado de extremo a extremo.
+            Verificamos todo antes de conectarte, sin letra chica y sin permanencia —
+            si no te sirve, te vas sin líos. Bancos, constructoras, comercios y clientes,
+            en un solo lugar seguro.
           </p>
           <Link
             to="/login-ecosistema"

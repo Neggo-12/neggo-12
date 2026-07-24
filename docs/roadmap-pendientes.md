@@ -39,3 +39,10 @@
 
 ## Diseño visual pendiente (mejora, no bug)
 - Sistema de Campañas (CampanasListPanel, tarjetas de campaña en OfertasView, mini-CRM por campaña) funciona correctamente pero el diseño visual es plano — necesita una pasada de diseño más cuidada en la próxima sesión (mismo nivel de pulido que el resto del sistema de diseño "fintech premium" ya usado en el resto de Neggo).
+
+## Regla permanente — Auditoría de seguridad/arquitectura
+Pendiente disparar cuando el usuario lo indique explícitamente ("toca la arquitectura"), no automático: auditoría enfocada en prevenir accesos indebidos y fuga de datos de clientes, con foco en cumplimiento de la Ley 1581 (protección de datos personales). Referencia: `docs/seguridad-infraestructura-futura.md` y el patrón ya usado en la auditoría del 24 jul (RLS, linter, MFA, hardening de funciones).
+
+## Completado (sesión 24 jul 2026, continuación 2)
+- Rediseño del home/landing y login por claridad de mensaje (ver `docs/landing-rediseno.md`, sección "Ronda 2") — motivado por feedback real de 15+ personas que no entendían qué hace Neggo.
+- Agregada guía de arquitectura de contenido ("dónde va cada cosa") en `docs/landing-rediseno.md` para futuras rondas de copy.
