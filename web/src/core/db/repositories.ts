@@ -1290,7 +1290,11 @@ export async function fetchTarifasBancoOrganizacion(
     .select('clave, tipo_tarifa, valor, periodo_vigente_desde')
     .eq('banco_organization_id', organizationId)
     .lte('periodo_vigente_desde', periodoActualYYYYMM())
-    .order('periodo_vigente_desde', { ascending: false });
+    .order('periodo_vigente_desde', { ascending: false })
+    // Desempate: esta tabla es editable in-place (no append-only, sin created_at) —
+    // sin esto, dos filas de la misma clave en el mismo periodo quedan en orden no
+    // determinista. Mismo fix aplicado hoy a consolidar_facturacion_mensual (backend).
+    .order('updated_at', { ascending: false });
   if (error) return { data: null, error: errMessage(error) };
   const seen = new Set<string>();
   const result: TarifaBancoOrganizacionRow[] = [];
