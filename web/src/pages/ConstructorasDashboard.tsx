@@ -5,6 +5,8 @@ import {
   Loader2, AlertTriangle, Inbox,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 import CrearProyectoDialog from '@/components/CrearProyectoDialog';
 import ConstructoraSolicitudesTab from '@/components/constructora/SolicitudesTab';
 import PuntosCanjeadosTab from '@/features/comercios/components/PuntosCanjeadosTab';
@@ -13,11 +15,13 @@ import WorkspaceSidebar from '@/components/WorkspaceSidebar';
 import CrossSectorFeedbackPanel from '@/components/feedback/CrossSectorFeedbackPanel';
 import RejectionMetricsPanel from '@/components/rejection/RejectionMetricsPanel';
 import SeguridadTab from '@/features/shared/components/SeguridadTab';
+import { ESTADOS_CIERRE } from '@/components/crm/pipelineConfig';
 import type { SidebarNavItem } from '@/components/WorkspaceSidebar';
 import { cn } from '@/lib/utils';
 import {
   fetchProyectos,
   fetchMeInteresaLeadsByOrganization,
+  updateProyectoEstado,
   type ProyectoRow,
   type MeInteresaLeadDisplay,
 } from '@/core/db/repositories';
@@ -142,6 +146,37 @@ export default function ConstructorasDashboard() {
       hipotecarioInterest: 0,
     };
   }, [proyectos, meInteresaLeads]);
+
+  // Leads "activos" por proyecto — ni perdidos ni ya cerrados — para la advertencia
+  // informativa al marcar un proyecto como 'vendido' con leads aún en curso.
+  const leadsActivosPorProyecto = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const lead of meInteresaLeads) {
+      if (!lead.proyectoId) continue;
+      if (lead.estadoPipeline === 'perdido' || lead.estadoPipeline === ESTADOS_CIERRE[lead.origen]) continue;
+      counts.set(lead.proyectoId, (counts.get(lead.proyectoId) ?? 0) + 1);
+    }
+    return counts;
+  }, [meInteresaLeads]);
+
+  const handleEstadoChange = useCallback(async (proyectoId: string, nuevoEstado: 'activo' | 'vendido' | 'pausado') => {
+    const anterior = proyectos.find((p) => p.id === proyectoId)?.status;
+    setProyectos((prev) => prev.map((p) => (p.id === proyectoId ? { ...p, status: nuevoEstado } : p)));
+    const { error } = await updateProyectoEstado(proyectoId, nuevoEstado);
+    if (error) {
+      toast.error('No se pudo actualizar el estado del proyecto', { description: error });
+      setProyectos((prev) => prev.map((p) => (p.id === proyectoId && anterior ? { ...p, status: anterior } : p)));
+      return;
+    }
+    const leadsActivos = leadsActivosPorProyecto.get(proyectoId) ?? 0;
+    if (nuevoEstado === 'vendido' && leadsActivos > 0) {
+      toast.success('Estado actualizado a Vendido', {
+        description: `Este proyecto tenía ${leadsActivos} lead${leadsActivos === 1 ? '' : 's'} activo${leadsActivos === 1 ? '' : 's'} — considera contactarlos antes de cerrar el pipeline.`,
+      });
+    } else {
+      toast.success('Estado del proyecto actualizado');
+    }
+  }, [proyectos, leadsActivosPorProyecto]);
 
   // ───── DB Not Configured ─────
   if (!isDbConfigured) {
@@ -300,6 +335,8 @@ export default function ConstructorasDashboard() {
                       project={project}
                       isActive={activeProject === project.id}
                       onClick={() => setActiveProject(activeProject === project.id ? null : project.id)}
+                      leadsActivos={leadsActivosPorProyecto.get(project.id) ?? 0}
+                      onEstadoChange={(nuevoEstado) => handleEstadoChange(project.id, nuevoEstado)}
                     />
                   ))}
                 </div>
@@ -392,7 +429,19 @@ export default function ConstructorasDashboard() {
   );
 }
 
-function ProjectCard({ project, isActive, onClick }: { project: ProyectoConstructora; isActive: boolean; onClick: () => void }) {
+function ProjectCard({
+  project,
+  isActive,
+  onClick,
+  leadsActivos,
+  onEstadoChange,
+}: {
+  project: ProyectoConstructora;
+  isActive: boolean;
+  onClick: () => void;
+  leadsActivos: number;
+  onEstadoChange: (nuevoEstado: 'activo' | 'vendido' | 'pausado') => void;
+}) {
   const statusConfig = {
     activo: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
     vendido: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20' },
@@ -439,9 +488,28 @@ function ProjectCard({ project, isActive, onClick }: { project: ProyectoConstruc
           </div>
           <div className="flex items-center gap-2 mt-1">
             <span className="flex items-center gap-1 text-[11px] text-muted-foreground"><MapPin className="h-3 w-3" /> {project.city}</span>
-            <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-medium', cfg.bg, cfg.text, cfg.border)}>
-              {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-            </span>
+            <div onClick={(e) => e.stopPropagation()}>
+              <Select value={project.status} onValueChange={(v) => onEstadoChange(v as 'activo' | 'vendido' | 'pausado')}>
+                <SelectTrigger
+                  className={cn(
+                    'h-5 w-auto gap-1 rounded-full border px-2 py-0 text-[10px] font-medium capitalize',
+                    cfg.bg, cfg.text, cfg.border,
+                  )}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="activo" className="text-xs">Activo</SelectItem>
+                  <SelectItem value="pausado" className="text-xs">Pausado</SelectItem>
+                  <SelectItem value="vendido" className="text-xs">Vendido</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {leadsActivos > 0 && (
+              <span className="text-[10px] text-muted-foreground" title="Leads activos en este proyecto">
+                {leadsActivos} lead{leadsActivos === 1 ? '' : 's'} activo{leadsActivos === 1 ? '' : 's'}
+              </span>
+            )}
           </div>
         </div>
         <div className="text-right">

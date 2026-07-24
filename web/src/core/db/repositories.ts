@@ -1964,6 +1964,29 @@ export async function insertProyecto(
   return { error: error ? errMessage(error) : null };
 }
 
+/**
+ * Cambia el estado de un proyecto propio ('activo' | 'vendido' | 'pausado' —
+ * únicos valores del CHECK constraint real, no existe 'cancelado'). RLS ya
+ * restringe el UPDATE a constructora_id = auth.uid() (proyectos_update_owner);
+ * se verifica igual la fila afectada por si esa RLS bloquea silenciosamente.
+ */
+export async function updateProyectoEstado(
+  proyectoId: string,
+  nuevoEstado: 'activo' | 'vendido' | 'pausado',
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('proyectos')
+    .update({ estado: nuevoEstado })
+    .eq('id', proyectoId)
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: noRowsError('No se pudo actualizar el estado del proyecto (posible bloqueo de RLS).') };
+  }
+  return { error: null };
+}
+
 // ───── Me Interesa (solicitudes + destinatarios) ─────
 
 export interface MeInteresaDestinatarioInput {
