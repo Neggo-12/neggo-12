@@ -185,8 +185,9 @@ export default function EnviarPropuestaDialog({ open, onOpenChange }: EnviarProp
                       Facturación Automática
                     </Label>
                     <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
-                      Al activarse, cuando el cliente concrete la compra, el sistema depositará la
-                      factura digital de forma automática en la Bóveda del Cliente usando su ID IFC.
+                      Al activarse, cuando el cliente confirme la compra, Neggo cobrará
+                      automáticamente tu comisión (Success Fee) además de depositar la factura
+                      digital en la Bóveda del Cliente usando su ID IFC.
                     </p>
                   </div>
                   <Switch
@@ -196,7 +197,7 @@ export default function EnviarPropuestaDialog({ open, onOpenChange }: EnviarProp
                 </div>
                 {facturacionAutomatica && (
                   <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px]">
-                    La factura se sincronizará automáticamente con la bóveda del cliente
+                    Se cobrará tu comisión automáticamente al confirmarse la venta
                   </Badge>
                 )}
               </div>
