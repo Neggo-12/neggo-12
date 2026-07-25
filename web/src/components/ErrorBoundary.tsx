@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logFalloApp } from '@/core/infrastructure/fallosApp';
 import { reportReactError } from '@/core/infrastructure/sentry';
@@ -10,7 +10,19 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   hasError: boolean;
+  isRecoveringFromDeploy: boolean;
 }
+
+/**
+ * Un chunk de React.lazy que falla al cargar casi siempre es porque hubo un
+ * deploy nuevo mientras la pestaña estaba abierta — los archivos cambian de
+ * nombre (hash) en cada build, así que el que el navegador tiene en memoria
+ * ya no existe en el servidor. Era el 13/23 de los fallos reales registrados
+ * en fallos_app (25 jul 2026) — no es un bug de lógica, es ruido esperado de
+ * cada deploy que se puede resolver solo con un reload.
+ */
+const CHUNK_LOAD_ERROR_PATTERN = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/i;
+const CHUNK_RELOAD_FLAG_KEY = 'neggo_chunk_reload_attempted';
 
 /**
  * Red de seguridad de último recurso — sin esto, cualquier error no
@@ -21,9 +33,9 @@ interface ErrorBoundaryState {
  * de mostrar la pantalla de recuperación.
  */
 export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false };
+  state: ErrorBoundaryState = { hasError: false, isRecoveringFromDeploy: false };
 
-  static getDerivedStateFromError(): ErrorBoundaryState {
+  static getDerivedStateFromError(): Partial<ErrorBoundaryState> {
     return { hasError: true };
   }
 
@@ -31,9 +43,27 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
     const message = error instanceof Error ? error.message : 'Error desconocido no manejado';
     logFalloApp('error_boundary', message, error);
     reportReactError(error, info.componentStack);
+
+    // Auto-recuperación: un solo reload alcanza para traer la versión nueva.
+    // Guardado en sessionStorage para no entrar en loop si el error persiste
+    // por otra razón (ej. sin internet) — ahí sí se muestra la pantalla normal
+    // con el botón manual, en vez de recargar en bucle.
+    if (CHUNK_LOAD_ERROR_PATTERN.test(message) && !sessionStorage.getItem(CHUNK_RELOAD_FLAG_KEY)) {
+      sessionStorage.setItem(CHUNK_RELOAD_FLAG_KEY, '1');
+      this.setState({ isRecoveringFromDeploy: true });
+      window.location.reload();
+    }
   }
 
   render() {
+    if (this.state.isRecoveringFromDeploy) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
+          <RefreshCw className="h-7 w-7 text-muted-foreground animate-spin" />
+          <p className="max-w-sm text-sm text-muted-foreground">Actualizando a la última versión…</p>
+        </div>
+      );
+    }
     if (this.state.hasError) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
