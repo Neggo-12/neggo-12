@@ -14,3 +14,16 @@ La primera versión de este doc proponía Wazuh como "SIEM gratis" para cuando e
 ## Recomendación de fases
 - Fase actual (piloto): Cloudflare DDoS + audit_log + fallos_app + Sentry + PostHog + revisión semanal de advisors — cubre observabilidad de aplicación y trazabilidad de acciones sensibles, sin costo de infraestructura nuevo.
 - Fase futura (si Neggo llega a operar servidores propios): recién ahí evaluar Wazuh u otro SIEM con nodos de red reales, dimensionados al tráfico medido.
+
+## Registro de trabajo de seguridad — sesión 25 jul 2026
+Todo lo tocado en materia de seguridad en esta sesión, en un solo lugar:
+
+- **Validación de registro (defensa en profundidad):** `validateEmail`/`validatePhone` nuevos en `web/src/core/db/supabaseClient.ts`. Correo exige formato válido siempre; para Bancos/Constructoras además exige dominio corporativo real (rechaza gmail/hotmail/outlook/etc.). Celular exige 10 dígitos, móvil colombiano (inicia en 3), rechaza secuencias repetidas (`1111111111`). Replicado server-side dentro de `registrar_b2b_completo`/`registrar_b2c_completo` (funciones `_validar_formato_email`/`_validar_celular_co`) para que no se pueda saltar por RPC directo — migración `supabase/migrations/20260725_validacion_email_celular_registro.sql`. Alcance: solo registro nuevo, no afecta cuentas existentes ni login.
+- **Corrección propia:** se había dicho que "Leaked Password Protection" de Supabase Auth era gratis — es incorrecto, requiere plan Pro ($25/mes). Ruta real en el dashboard cuando se active: Authentication → Sign In/Providers → Email (no Database → Policies).
+- **SIEM-lite (ver secciones arriba):**
+  - `supabase/migrations/20260725_activar_audit_log.sql` — helper `_log_audit()` + activación en las 7 funciones sensibles.
+  - `supabase/migrations/20260725_restringir_ejecucion_log_audit.sql` — fix de un hallazgo propio: `_log_audit` quedó ejecutable por `anon`/`authenticated` vía RPC directo (permitía forjar auditoría), revocado a solo uso interno.
+  - `supabase/migrations/20260725_seguridad_advisors_snapshot.sql` — tabla de snapshots + RLS admin-only.
+  - `web/src/features/admin/components/AuditoriaPanel.tsx` — panel nuevo en el Admin.
+  - Tarea programada `revision-seguridad-neggo` (Cowork, lunes 8am) — revisión semanal automática con bajo ruido.
+- **Deploy:** todo lo anterior está confirmado en producción (`neggo.co`, commit `b260606`, verificado en el dashboard de Cloudflare) — ver `docs/roadmap-pendientes.md` para el detalle del deploy. El panel de Admin no reflejaba el cambio en el navegador de Jhey pese al deploy correcto; en investigación (ver roadmap).
