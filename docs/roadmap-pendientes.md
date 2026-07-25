@@ -2,6 +2,10 @@
 
 Última actualización: 25 de julio de 2026.
 
+## Deploy a producción confirmado (25 jul 2026)
+`neggo.co` (Cloudflare Workers, proyecto `neggo-12`) quedó sincronizado con `main` — versión activa `65b02c99`, deployada vía `npm run build && npx wrangler deploy`, 100% del tráfico. Corresponde al commit `b260606` ("SIEM-lite"), que incluye todo lo anterior en la rama (validación de correo/celular, panel de Auditoría, hardening de seguridad). Confirmado visualmente en el dashboard de Cloudflare (Workers & Pages → neggo-12 → Deployments), no solo por el mensaje de build.
+Recordatorio para las próximas sesiones: un commit en git NO despliega solo — hace falta correr el build+deploy manualmente (no hay CI/CD automático a Cloudflare todavía, el workflow de GitHub Actions solo corre type-check/lint/test). Si algo nuevo no aparece en el sitio en vivo, este es el primer sospechoso.
+
 ## Completado (sesión 24 jul 2026)
 - Auditoría de seguridad completa (RLS, linter, MFA, hardening de funciones)
 - Despliegue a producción real: neggo.co vía Cloudflare Workers
