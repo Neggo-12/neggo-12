@@ -8,13 +8,9 @@
 - **Arranque de marketing** — en definición ahora mismo.
 
 ## Corto plazo (próximas sesiones, sin bloqueo de plata ni de decisión de negocio)
-1. npm audit — 2 vulnerabilidades restantes (paso a ya resuelto), ninguna con exploit activo conocido en producción hoy. Plan de ejecución: una por sesión, de menor a mayor riesgo:
-   - ~~a. eslint chain (brace-expansion anidado) → eslint 10~~ — **hecho y commiteado (`24f963a`, 25 jul)**. eslint-plugin-react-hooks 7.1.1 cambió su `recommended` a incluir por defecto reglas de React Compiler (que Neggo no usa) — generaron 63 errores falsos de alcance ajeno al fix; se fijaron explícitamente solo `rules-of-hooks` + `exhaustive-deps` (mismo comportamiento que antes) en `eslint.config.js`. tsc, lint (0 errores) y vitest (24/24) reales vía Claude Code, todos limpios. 0 vulnerabilidades de esta cadena.
-   - ~~b. esbuild/vite → vite 8~~ — **hecho y commiteado (`b36c3fd`, 25 jul)**. Vite 8 cambió de bundler interno a Rolldown — nuestro `vite.config.ts` es mínimo, no necesitó cambios. Se detectó y corrigió de paso una incompatibilidad real: `@vitejs/plugin-react-swc@3.11.0` solo soportaba hasta vite 7 (peer dep), bumpeado a `4.3.2`. `vitest` también bumpeado 3.2.4→4.1.10 en el mismo paso (vitest 3 no declaraba vite como peer explícito). tsc, lint, build y vitest (24/24, verificado test-por-test vía Claude Code) todos limpios. Bonus: bundle principal bajó de 1.634 kB a 1.196 kB con Rolldown. Pendiente sin acción (no bloqueante): Vite sugiere migrar de `@vitejs/plugin-react-swc` a `@vitejs/plugin-react` ahora que Rolldown ya no se beneficia de SWC — es una recomendación de performance, no una vulnerabilidad.
-   - **c. react-router-dom 6→7** — el único que corre en producción real. Cambios de API que rompen (breaking). Requiere sesión dedicada con regresión manual completa (todas las rutas, todos los roles) vía Claude Code terminal, porque `vitest` no corre en este sandbox (bug arm64 conocido).
-2. Transferencia de puntos entre clientes — necesita definir condiciones anti-fraude antes de construirse.
-3. Sistema de Puntos Fase 2 (campañas: doble/triple puntos, happy hour) — ver `docs/sistema-puntos-neggo.md`.
-4. Sistema de Puntos Fase 3 (Paquete de Bienvenida multi-aliado, compras grandes tipo vivienda).
+1. Transferencia de puntos entre clientes — necesita definir condiciones anti-fraude antes de construirse.
+2. Sistema de Puntos Fase 2 (campañas: doble/triple puntos, happy hour) — ver `docs/sistema-puntos-neggo.md`.
+3. Sistema de Puntos Fase 3 (Paquete de Bienvenida multi-aliado, compras grandes tipo vivienda).
 
 ## Bloqueado por decisión de negocio (no técnico — Jhey decide, no requiere código)
 - Confirmar el valor de la franja del Sello de Confianza para ingresos >$20.000.000/mes (hoy $40.000, propuesto por Claude, nunca confirmado explícitamente).
@@ -35,6 +31,7 @@
 - Wazuh / SIEM real con servidor propio — solo tiene sentido si Neggo llega a operar servidores propios (poco probable dado el rumbo serverless). Hoy cubierto por el "SIEM-lite" (audit_log + panel Auditoría + revisión semanal).
 
 ## Completado recientemente (para contexto, detalle completo en roadmap-pendientes.md)
+- npm audit — las 3 vulnerabilidades restantes cerradas: eslint chain (`24f963a`), vite/vitest (`b36c3fd`), react-router-dom 6→7 (`2cb6571`, con regresión manual real verificada) — todo pusheado (25 jul).
 - Comercios más buscados / secciones más usadas en Estadísticas Admin — analítica propia en Supabase (no PostHog, decisión de arquitectura explícita), commiteado, pendiente de deploy (25 jul).
 - Fix "Failed to fetch dynamically imported module" — deployado (version `886423d9-ec13-48ba-ae1a-c00a20c84f90`) y verificado en vivo cargando el bundle real de neggo.co en el navegador (25 jul).
 - SIEM-lite: audit_log activo, panel Auditoría, revisión semanal automática (25 jul).
