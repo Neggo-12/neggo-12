@@ -3,6 +3,14 @@
 ## Verificación — regla de oro
 NUNCA dar por confirmado que algo funciona sin evidencia real (resultado de SQL, o prueba real en el navegador). "Compiló limpio" no es lo mismo que "funciona". Antes de decir "confirmado", correr una consulta de verificación.
 
+## Verificación de despliegue — regla de oro (no negociable)
+El dashboard de Cloudflare mostrando una versión como "Active Deployment" con 100% de tráfico NO es evidencia de que el cambio se vea en producción — solo prueba que el build se subió. Confundir esto causó un incidente real (25 jul 2026): se declaró "deploy confirmado" sin haber cargado la página real, y el cambio no se veía ni en incógnito.
+Antes de decir "confirmado" sobre CUALQUIER deploy:
+1. Cargar la URL real de producción (neggo.co) con herramienta de navegador (Claude in Chrome) y verificar visualmente que el cambio específico está presente — no alcanza con `curl`/`fetch` a la home si el cambio está detrás de login o en una ruta interna.
+2. Si no hay navegador disponible (extensión desconectada, sandbox sin acceso a internet), decirlo explícitamente y pedirle a Jhey que verifique él mismo con un paso concreto (qué URL abrir, qué botón tocar, qué debería ver) — nunca inferir éxito solo del pipeline de build/deploy.
+3. Si el cambio no aparece pese a un deploy "exitoso", el primer sospechoso es un desajuste entre el dominio público y el proyecto/entorno de Cloudflare al que se deployó (dominios mal enrutados, proyecto equivocado, entorno preview vs producción) — verificarlo en la pestaña "Domains" del proyecto en Cloudflare antes de asumir caché de navegador.
+4. Un "build exitoso" o "deploy exitoso" reportado por Claude Code en otra terminal tampoco es evidencia suficiente por sí solo — sigue aplicando el paso 1.
+
 ## TypeScript
 Usar SIEMPRE: npx tsc --noEmit -p tsconfig.app.json
 NUNCA usar: npx tsc --noEmit -p . (el tsconfig raíz es "solution-style", no revisa nada sin --build)
