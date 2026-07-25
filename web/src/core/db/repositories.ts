@@ -1755,6 +1755,76 @@ export async function insertTarifaSelloNegociada(input: {
   return { error: null };
 }
 
+export interface SelloVigenteInfo {
+  valorMensual: number | null;
+  esNegociada: boolean;
+  ingresoDeclarado: number | null;
+}
+
+/** Calcula la franja automática del Sello a partir del ingreso declarado — debe coincidir exactamente con resolver_sello_comercio (SQL). */
+function calcularFranjaSello(ingreso: number | null): number | null {
+  if (ingreso === null) return null;
+  if (ingreso < 300000) return 5000;
+  if (ingreso <= 10000000) return 20000;
+  if (ingreso <= 20000000) return 28000;
+  return 40000;
+}
+
+/**
+ * Para una lista de comercios, resuelve en bloque (sin N+1) el valor del Sello vigente:
+ * negociado > franja automática por ingreso declarado > null (sin declarar). Usado por la
+ * lista de Comercios — resolverSelloComercio (RPC) es la fuente de verdad para un solo
+ * comercio, pero llamarlo N veces en una lista sería un N+1 innecesario.
+ */
+export async function fetchTarifasSelloVigentesPorComercios(
+  organizationIds: string[],
+): Promise<{ data: Map<string, SelloVigenteInfo> | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  if (organizationIds.length === 0) return { data: new Map(), error: null };
+  const periodoActual = new Date().toISOString().slice(0, 7);
+
+  const [negociadasRes, orgsRes] = await Promise.all([
+    supabase
+      .from('tarifas_sello_negociadas')
+      .select('comercio_organization_id, valor_mensual, periodo_vigente_desde, created_at')
+      .in('comercio_organization_id', organizationIds)
+      .lte('periodo_vigente_desde', periodoActual)
+      .order('comercio_organization_id', { ascending: true })
+      .order('periodo_vigente_desde', { ascending: false })
+      // Desempate: sin esto, dos filas del mismo comercio en el mismo periodo
+      // quedan en orden no determinista — mismo patrón que fetchTarifasVigentesPorComercios.
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('organizations')
+      .select('id, ingresos_mensuales_declarados')
+      .in('id', organizationIds),
+  ]);
+  if (negociadasRes.error) return { data: null, error: errMessage(negociadasRes.error) };
+  if (orgsRes.error) return { data: null, error: errMessage(orgsRes.error) };
+
+  const negociadaPorComercio = new Map<string, number>();
+  for (const r of negociadasRes.data ?? []) {
+    if (negociadaPorComercio.has(r.comercio_organization_id)) continue; // ya tiene la más reciente (ordenado desc)
+    negociadaPorComercio.set(r.comercio_organization_id, Number(r.valor_mensual));
+  }
+
+  const ingresoPorComercio = new Map<string, number | null>();
+  for (const o of orgsRes.data ?? []) {
+    ingresoPorComercio.set(o.id, o.ingresos_mensuales_declarados === null ? null : Number(o.ingresos_mensuales_declarados));
+  }
+
+  const result = new Map<string, SelloVigenteInfo>();
+  for (const id of organizationIds) {
+    const ingresoDeclarado = ingresoPorComercio.get(id) ?? null;
+    if (negociadaPorComercio.has(id)) {
+      result.set(id, { valorMensual: negociadaPorComercio.get(id)!, esNegociada: true, ingresoDeclarado });
+    } else {
+      result.set(id, { valorMensual: calcularFranjaSello(ingresoDeclarado), esNegociada: false, ingresoDeclarado });
+    }
+  }
+  return { data: result, error: null };
+}
+
 /** Bulk-fetches display fields (name, type, plan_negociacion) for a list of organization ids. */
 export async function fetchOrganizationsByIds(
   organizationIds: string[],

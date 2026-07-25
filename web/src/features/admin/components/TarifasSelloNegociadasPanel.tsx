@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { cn, formatCOP } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useAdminStore } from '@/features/admin/store/useAdminStore';
 import {
   fetchComerciosConSelloActivo,
   resolverSelloComercio,
@@ -26,6 +27,14 @@ import {
   type ComercioSelloRow,
   type TarifaSelloNegociadaRow,
 } from '@/core/db/repositories';
+
+const FRANJA_PERSONALIZADO = 'personalizado';
+const FRANJAS_ESTANDAR = [
+  { clave: 'menos_300k', label: 'Menos de $300.000/mes', valor: 5000 },
+  { clave: '300k_10m', label: '$300.000 – $10.000.000/mes', valor: 20000 },
+  { clave: '10m_20m', label: '$10.000.001 – $20.000.000/mes', valor: 28000 },
+  { clave: 'mas_20m', label: 'Más de $20.000.000/mes', valor: 40000 },
+];
 
 function currentPeriodo(): string {
   return new Date().toISOString().slice(0, 7); // 'YYYY-MM'
@@ -43,9 +52,20 @@ function formatFechaHora(iso: string): string {
 
 export default function TarifasSelloNegociadasPanel() {
   const session = useAuthStore((s) => s.session);
+  const { selloPreseleccionComercioId, setSelloPreseleccionComercioId } = useAdminStore();
   const [comercios, setComercios] = useState<ComercioSelloRow[]>([]);
   const [isLoadingComercios, setIsLoadingComercios] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(selloPreseleccionComercioId);
+
+  // Llegada desde el botón "Sello" en Comercios — preselecciona una sola vez y limpia
+  // el puente, mismo patrón que tarifasPreseleccionComercioId en el panel de CPL.
+  useEffect(() => {
+    if (selloPreseleccionComercioId) {
+      setSelectedId(selloPreseleccionComercioId);
+      setSelloPreseleccionComercioId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [historial, setHistorial] = useState<TarifaSelloNegociadaRow[]>([]);
   const [vigenteId, setVigenteId] = useState<string | null>(null);
@@ -58,6 +78,22 @@ export default function TarifasSelloNegociadasPanel() {
   const [motivo, setMotivo] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Franja estándar seleccionada — único punto donde se aplica: prellena el valor, pero
+  // sigue siendo editable a mano (en cuyo caso queda como "Personalizado").
+  const [franjaSeleccionada, setFranjaSeleccionada] = useState<string>(FRANJA_PERSONALIZADO);
+
+  const handleSeleccionarFranja = useCallback((clave: string) => {
+    setFranjaSeleccionada(clave);
+    if (clave === FRANJA_PERSONALIZADO) return;
+    const franja = FRANJAS_ESTANDAR.find((f) => f.clave === clave);
+    if (franja) setValorMensual(String(franja.valor));
+  }, []);
+
+  const handleValorMensualChange = useCallback((value: string) => {
+    setValorMensual(value);
+    setFranjaSeleccionada(FRANJA_PERSONALIZADO);
+  }, []);
 
   const [ingresoEditando, setIngresoEditando] = useState(false);
   const [ingresoInput, setIngresoInput] = useState('');
@@ -120,6 +156,7 @@ export default function TarifasSelloNegociadasPanel() {
     setValorMensual('');
     setMotivo('');
     setPeriodo(currentPeriodo());
+    setFranjaSeleccionada(FRANJA_PERSONALIZADO);
     await loadComercioData(selectedId);
   }, [canSubmit, selectedId, session?.userId, valorNum, periodo, motivo, loadComercioData]);
 
@@ -238,10 +275,26 @@ export default function TarifasSelloNegociadasPanel() {
             {/* ── Nueva tarifa negociada ── */}
             <div className="rounded-lg border border-border/40 p-4 space-y-3">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Asignar nueva tarifa negociada</h4>
+              <div className="space-y-1.5 max-w-xs">
+                <Label className="text-xs text-muted-foreground">Aplicar franja estándar <span className="normal-case font-normal text-muted-foreground/70">(opcional — prellena el valor, seguís pudiendo editarlo o poner $0 para regalar)</span></Label>
+                <Select value={franjaSeleccionada} onValueChange={handleSeleccionarFranja}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={FRANJA_PERSONALIZADO} className="text-sm">Personalizado</SelectItem>
+                    {FRANJAS_ESTANDAR.map((f) => (
+                      <SelectItem key={f.clave} value={f.clave} className="text-sm">
+                        {f.label} — {formatCOP(f.valor)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Valor mensual (COP) — 0 = gratis</Label>
-                  <Input type="number" value={valorMensual} onChange={(e) => setValorMensual(e.target.value)} className="h-9 text-sm font-mono" placeholder="20000" />
+                  <Input type="number" value={valorMensual} onChange={(e) => handleValorMensualChange(e.target.value)} className="h-9 text-sm font-mono" placeholder="20000" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Vigente desde</Label>

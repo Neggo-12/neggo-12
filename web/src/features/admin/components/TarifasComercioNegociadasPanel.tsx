@@ -29,6 +29,8 @@ import {
   type PlanComercioRow,
 } from '@/core/db/repositories';
 
+const PLANTILLA_PERSONALIZADO = 'personalizado';
+
 function currentPeriodo(): string {
   return new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 }
@@ -90,11 +92,38 @@ export default function TarifasComercioNegociadasPanel() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Plantillas globales (Balanceado/Solo Pauta/Solo Resultados) — único punto donde se
+  // aplican: elegir una prellena CPL/comisión, pero el valor sigue siendo editable a mano
+  // (en cuyo caso queda registrado como "Personalizado" en el historial).
+  const [planesGlobales, setPlanesGlobales] = useState<PlanComercioRow[]>([]);
+  const [plantillaSeleccionada, setPlantillaSeleccionada] = useState<string>(PLANTILLA_PERSONALIZADO);
+
   useEffect(() => {
     fetchComerciosConSelloActivo().then(({ data }) => {
       setComercios(data ?? []);
       setIsLoadingComercios(false);
     });
+    fetchPlanesComercio().then(({ data }) => setPlanesGlobales(data ?? []));
+  }, []);
+
+  const handleSeleccionarPlantilla = useCallback((clave: string) => {
+    setPlantillaSeleccionada(clave);
+    if (clave === PLANTILLA_PERSONALIZADO) return;
+    const plan = planesGlobales.find((p) => p.clave === clave);
+    if (!plan) return;
+    setCpl(String(plan.cpl));
+    setComisionPct(String(plan.comisionPct));
+  }, [planesGlobales]);
+
+  // Editar el valor a mano después de elegir una plantilla lo convierte en personalizado —
+  // ya no representa exactamente ese plan.
+  const handleCplChange = useCallback((value: string) => {
+    setCpl(value);
+    setPlantillaSeleccionada(PLANTILLA_PERSONALIZADO);
+  }, []);
+  const handleComisionChange = useCallback((value: string) => {
+    setComisionPct(value);
+    setPlantillaSeleccionada(PLANTILLA_PERSONALIZADO);
   }, []);
 
   const loadComercioData = useCallback(async (comercioId: string) => {
@@ -152,8 +181,7 @@ export default function TarifasComercioNegociadasPanel() {
       periodoVigenteDesde: periodo,
       creadoPor: session.userId,
       motivo: motivo.trim() || null,
-      // Este formulario siempre es un valor a mano — nunca viene de una plantilla.
-      planOrigen: null,
+      planOrigen: plantillaSeleccionada === PLANTILLA_PERSONALIZADO ? null : plantillaSeleccionada,
     });
     setIsSubmitting(false);
     if (error) {
@@ -166,8 +194,9 @@ export default function TarifasComercioNegociadasPanel() {
     setComisionPct('');
     setMotivo('');
     setPeriodo(currentPeriodo());
+    setPlantillaSeleccionada(PLANTILLA_PERSONALIZADO);
     await loadComercioData(selectedId);
-  }, [canSubmit, selectedId, session?.userId, cplNum, comisionNum, periodo, motivo, loadComercioData]);
+  }, [canSubmit, selectedId, session?.userId, cplNum, comisionNum, periodo, motivo, plantillaSeleccionada, loadComercioData]);
 
   return (
     <div className="rounded-xl border border-border/40 bg-card/40 overflow-hidden">
@@ -233,14 +262,30 @@ export default function TarifasComercioNegociadasPanel() {
             {/* ── Nueva tarifa ── */}
             <div className="rounded-lg border border-border/40 p-4 space-y-3">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Asignar nueva tarifa negociada</h4>
+              <div className="space-y-1.5 max-w-xs">
+                <Label className="text-xs text-muted-foreground">Aplicar plantilla <span className="normal-case font-normal text-muted-foreground/70">(opcional — prellena los campos, seguís pudiendo editarlos)</span></Label>
+                <Select value={plantillaSeleccionada} onValueChange={handleSeleccionarPlantilla}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PLANTILLA_PERSONALIZADO} className="text-sm">Personalizado</SelectItem>
+                    {planesGlobales.map((p) => (
+                      <SelectItem key={p.clave} value={p.clave} className="text-sm">
+                        {p.label} — {formatCOP(p.cpl)} CPL, {p.comisionPct}%
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">CPL (COP)</Label>
-                  <Input type="number" value={cpl} onChange={(e) => setCpl(e.target.value)} className="h-9 text-sm font-mono" placeholder="10000" />
+                  <Input type="number" value={cpl} onChange={(e) => handleCplChange(e.target.value)} className="h-9 text-sm font-mono" placeholder="10000" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Comisión (%)</Label>
-                  <Input type="number" value={comisionPct} onChange={(e) => setComisionPct(e.target.value)} className="h-9 text-sm font-mono" placeholder="2.25" />
+                  <Input type="number" value={comisionPct} onChange={(e) => handleComisionChange(e.target.value)} className="h-9 text-sm font-mono" placeholder="2.25" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Vigente desde</Label>

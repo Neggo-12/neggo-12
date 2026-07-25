@@ -93,9 +93,12 @@ interface AdminState {
   activeSection: 'resumen' | 'autorizaciones' | 'bancos' | 'constructoras' | 'comercios' | 'clientes' | 'analitica' | 'estadisticas' | 'facturacion' | 'tarifas' | 'puntos' | 'conciliacion' | 'senales-interes' | 'seguridad' | 'salud-sistema';
   /** organizationId de un comercio a preseleccionar al entrar a "Tarifas y Planes" — puente entre el badge de Comercios y el panel de tarifas negociadas. */
   tarifasPreseleccionComercioId: string | null;
+  /** Mismo puente que tarifasPreseleccionComercioId, pero hacia el panel del Sello de Confianza. */
+  selloPreseleccionComercioId: string | null;
 
   setActiveSection: (section: AdminState['activeSection']) => void;
   setTarifasPreseleccionComercioId: (organizationId: string | null) => void;
+  setSelloPreseleccionComercioId: (organizationId: string | null) => void;
   /** Carga usuarios desde Supabase — re-fetch en cada montaje para datos frescos */
   hydrateOnboarding: () => Promise<void>;
   /** Forza un re-fetch completo (ignora el flag de hidratación) */
@@ -139,9 +142,11 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   algorithmEquity: EMPTY_ALGORITHM,
   activeSection: 'resumen',
   tarifasPreseleccionComercioId: null,
+  selloPreseleccionComercioId: null,
 
   setActiveSection: (section) => set({ activeSection: section }),
   setTarifasPreseleccionComercioId: (organizationId) => set({ tarifasPreseleccionComercioId: organizationId }),
+  setSelloPreseleccionComercioId: (organizationId) => set({ selloPreseleccionComercioId: organizationId }),
 
   hydrateOnboarding: async () => {
     // Re-fetch en cada montaje para datos frescos (sin caché vieja)

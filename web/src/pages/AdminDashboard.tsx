@@ -42,7 +42,6 @@ import {
   Menu,
   X,
   Handshake,
-  AlertTriangle,
   Coins,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -62,7 +61,7 @@ import {
   fetchTarifasBancos, updateTarifaBanco, fetchPlanesComercio, updatePlanComercio,
   fetchOrganizationIdsByUserIds, fetchOrganizationsByIds,
   fetchTarifasVigentesPorComercios, type TarifaComercioNegociadaRow,
-  insertTarifaComercioNegociada,
+  fetchTarifasSelloVigentesPorComercios, type SelloVigenteInfo,
   fetchFacturasResumenPorNegocio, fetchFacturasTotalesGlobales, fetchFacturasLedgerByOrganization,
   fetchBancosAprobados, fetchTarifasBancoOrganizacion, upsertTarifaBancoOrganizacion,
   fetchTodasLasFacturasMensuales, confirmarPagoFactura,
@@ -615,13 +614,11 @@ const PLAN_TEMPLATE_LABELS: Record<string, string> = {
 };
 
 function ComerciosAdminPanel() {
-  const { onboardingRequests, setActiveSection, setTarifasPreseleccionComercioId } = useAdminStore();
-  const session = useAuthStore((s) => s.session);
+  const { onboardingRequests, setActiveSection, setTarifasPreseleccionComercioId, setSelloPreseleccionComercioId } = useAdminStore();
   const [comercios, setComercios] = useState<ComercioAdmin[]>([]);
   const [tarifasVigentes, setTarifasVigentes] = useState<Map<string, TarifaComercioNegociadaRow>>(new Map());
+  const [selloVigentes, setSelloVigentes] = useState<Map<string, SelloVigenteInfo>>(new Map());
   const [planes, setPlanes] = useState<PlanComercioRow[]>([]);
-  const [pendingPlantilla, setPendingPlantilla] = useState<{ organizationId: string; nombre: string; clave: string } | null>(null);
-  const [isApplyingPlantilla, setIsApplyingPlantilla] = useState(false);
   const rawComercios = useMemo(() => onboardingRequests.filter((r) => r.entityType === 'comercio'), [onboardingRequests]);
 
   useEffect(() => {
@@ -629,8 +626,12 @@ function ComerciosAdminPanel() {
   }, []);
 
   const refreshTarifas = useCallback(async (orgIds: string[]) => {
-    const { data: vigentes } = await fetchTarifasVigentesPorComercios(orgIds);
+    const [{ data: vigentes }, { data: sello }] = await Promise.all([
+      fetchTarifasVigentesPorComercios(orgIds),
+      fetchTarifasSelloVigentesPorComercios(orgIds),
+    ]);
     setTarifasVigentes(vigentes ?? new Map());
+    setSelloVigentes(sello ?? new Map());
   }, []);
 
   useEffect(() => {
@@ -673,41 +674,19 @@ function ComerciosAdminPanel() {
     }
   }, []);
 
+  // Único punto de entrada para modificar la tarifa CPL/comisión de un comercio — la
+  // asignación real (plantilla o personalizada) vive solo en Tarifas y Planes, esta
+  // lista es de solo lectura + navegación, para evitar dos lugares que puedan pisarse.
   const handleVerTarifaNegociada = useCallback((organizationId: string) => {
     setTarifasPreseleccionComercioId(organizationId);
     setActiveSection('tarifas');
   }, [setTarifasPreseleccionComercioId, setActiveSection]);
 
-  const handleSeleccionarPlantilla = useCallback((organizationId: string, nombre: string, value: string) => {
-    if (value === 'personalizado') {
-      handleVerTarifaNegociada(organizationId);
-      return;
-    }
-    setPendingPlantilla({ organizationId, nombre, clave: value });
-  }, [handleVerTarifaNegociada]);
-
-  const planPendiente = pendingPlantilla ? planes.find((p) => p.clave === pendingPlantilla.clave) : null;
-
-  const handleConfirmarPlantilla = useCallback(async () => {
-    if (!pendingPlantilla || !planPendiente || !session?.userId) return;
-    setIsApplyingPlantilla(true);
-    const { error } = await insertTarifaComercioNegociada({
-      comercioOrganizationId: pendingPlantilla.organizationId,
-      cpl: planPendiente.cpl,
-      comisionPct: planPendiente.comisionPct,
-      periodoVigenteDesde: new Date().toISOString().slice(0, 7),
-      creadoPor: session.userId,
-      planOrigen: pendingPlantilla.clave,
-    });
-    setIsApplyingPlantilla(false);
-    if (error) {
-      toast.error('No se pudo asignar la tarifa', { description: error });
-      return;
-    }
-    toast.success('Tarifa asignada', { description: `${pendingPlantilla.nombre} ahora usa el plan ${PLAN_TEMPLATE_LABELS[pendingPlantilla.clave] ?? pendingPlantilla.clave}.` });
-    setPendingPlantilla(null);
-    await refreshTarifas(comercios.map((c) => c.organizationId));
-  }, [pendingPlantilla, planPendiente, session?.userId, comercios, refreshTarifas]);
+  // Mismo criterio para el Sello: la lista solo muestra y navega, nunca modifica in-place.
+  const handleVerSello = useCallback((organizationId: string) => {
+    setSelloPreseleccionComercioId(organizationId);
+    setActiveSection('tarifas');
+  }, [setSelloPreseleccionComercioId, setActiveSection]);
 
   const totalComercios = comercios.length;
   const conSello = comercios.filter((c) => c.hasTrustSeal).length;
@@ -774,18 +753,21 @@ function ComerciosAdminPanel() {
                     <Badge variant="outline" className="text-[10px] border-border/40 bg-secondary/40">{c.categoria}</Badge>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <div className="flex flex-col items-center gap-1">
-                      {tarifasVigentes.has(c.organizationId) && (
+                    <button
+                      type="button"
+                      onClick={() => handleVerTarifaNegociada(c.organizationId)}
+                      title="Ver / modificar en Tarifas y Planes — único lugar donde se edita"
+                      className="group/tarifa inline-flex flex-col items-center gap-1"
+                    >
+                      {tarifasVigentes.has(c.organizationId) ? (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => handleVerTarifaNegociada(c.organizationId)}
-                            title="Este comercio tiene una tarifa negociada que sobreescribe el plan global — click para ver el historial"
-                            className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 text-[9px] font-semibold text-purple-400 hover:bg-purple-500/20 transition-colors"
-                          >
+                          <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 text-[9px] font-semibold text-purple-400 group-hover/tarifa:bg-purple-500/20 transition-colors">
                             <Handshake className="h-2.5 w-2.5" />
-                            Tarifa negociada activa
-                          </button>
+                            Tarifa negociada
+                          </span>
+                          <span className="text-[10px] font-mono text-foreground">
+                            {formatCOP(tarifasVigentes.get(c.organizationId)!.cpl)} CPL · {tarifasVigentes.get(c.organizationId)!.comisionPct}%
+                          </span>
                           <span className="text-[9px] text-muted-foreground">
                             {(() => {
                               const origen = tarifasVigentes.get(c.organizationId)?.planOrigen ?? null;
@@ -793,25 +775,51 @@ function ComerciosAdminPanel() {
                             })()}
                           </span>
                         </>
+                      ) : (
+                        <>
+                          <span className="text-[10px] font-medium text-foreground">
+                            {(() => {
+                              const plan = planes.find((p) => p.clave === c.planNegociacion);
+                              return plan?.label ?? PLAN_TEMPLATE_LABELS[c.planNegociacion] ?? c.planNegociacion;
+                            })()}
+                          </span>
+                          <span className="text-[10px] font-mono text-muted-foreground">
+                            {(() => {
+                              const plan = planes.find((p) => p.clave === c.planNegociacion);
+                              return plan ? `${formatCOP(plan.cpl)} CPL · ${plan.comisionPct}%` : '—';
+                            })()}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground underline decoration-dotted group-hover/tarifa:text-foreground">
+                            Plan global — click para negociar
+                          </span>
+                        </>
                       )}
-                      <Select value="" onValueChange={(v) => handleSeleccionarPlantilla(c.organizationId, c.nombre, v)}>
-                        <SelectTrigger className="h-7 w-36 text-[10px] mx-auto">
-                          <SelectValue placeholder="Asignar plantilla..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="solo_pauta" className="text-xs">Solo Pauta</SelectItem>
-                          <SelectItem value="balanceado" className="text-xs">Balanceado</SelectItem>
-                          <SelectItem value="solo_resultados" className="text-xs">Solo Resultados</SelectItem>
-                          <SelectItem value="personalizado" className="text-xs">Personalizado (ir a Tarifas y Planes)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    </button>
                   </td>
                   <td className="px-4 py-3 text-center">
                     {c.hasTrustSeal ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 border border-emerald-500/20">
-                        <ShieldCheck className="h-3 w-3" /> Activo
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleVerSello(c.organizationId)}
+                        title="Ver / modificar en Tarifas y Planes — único lugar donde se edita"
+                        className="group/sello inline-flex flex-col items-center gap-1"
+                      >
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 border border-emerald-500/20 group-hover/sello:bg-emerald-500/20 transition-colors">
+                          <ShieldCheck className="h-3 w-3" /> Activo
+                        </span>
+                        {(() => {
+                          const info = selloVigentes.get(c.organizationId);
+                          if (!info) return null;
+                          return (
+                            <>
+                              <span className={cn('text-[10px] font-mono', info.valorMensual !== null && info.valorMensual > 0 ? 'text-foreground' : 'text-emerald-400')}>
+                                {info.valorMensual === null ? 'Sin ingreso declarado' : info.valorMensual > 0 ? `${formatCOP(info.valorMensual)}/mes` : 'Gratis'}
+                              </span>
+                              {info.esNegociada && <span className="text-[9px] text-purple-400">Tarifa negociada</span>}
+                            </>
+                          );
+                        })()}
+                      </button>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground border border-border/40">
                         Pendiente
@@ -831,36 +839,6 @@ function ComerciosAdminPanel() {
           </table>
         </div>
       </div>
-
-      <Dialog open={pendingPlantilla !== null} onOpenChange={(open) => !open && setPendingPlantilla(null)}>
-        <DialogContent className="max-w-md border-border/60 bg-card/95 backdrop-blur-xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-semibold flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-400" />
-              Confirmar tarifa
-            </DialogTitle>
-            <DialogDescription className="text-sm pt-2 text-foreground">
-              ¿Confirmas asignar el plan <span className="font-semibold">{pendingPlantilla ? PLAN_TEMPLATE_LABELS[pendingPlantilla.clave] ?? pendingPlantilla.clave : ''}</span>{' '}
-              ({planPendiente ? `${formatCOP(planPendiente.cpl)} CPL, ${planPendiente.comisionPct}% comisión` : '—'}) a{' '}
-              <span className="font-semibold">{pendingPlantilla?.nombre}</span>, vigente desde este mes?
-              <br />
-              <span className="text-xs text-muted-foreground">Queda registrado en el historial de tarifas negociadas — no se puede deshacer con una edición.</span>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" size="sm" onClick={() => setPendingPlantilla(null)} disabled={isApplyingPlantilla}>Cancelar</Button>
-            <Button
-              size="sm"
-              onClick={handleConfirmarPlantilla}
-              disabled={isApplyingPlantilla}
-              className="bg-purple-600 hover:bg-purple-500 text-white gap-1.5"
-            >
-              {isApplyingPlantilla ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Handshake className="h-3.5 w-3.5" />}
-              Confirmar y asignar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
