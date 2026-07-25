@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Megaphone, Loader2, AlertTriangle, MapPin } from 'lucide-react';
+import { Megaphone, Loader2, AlertTriangle, MapPin, Landmark, Store, Sparkles, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -8,26 +8,35 @@ import { fetchCampanasByOrganization, updateCampanaEstado, type CampanaAdminRow 
 import { isDbConfigured } from '@/core/db/dbClient';
 import { PRODUCT_LABELS, RANGO_INGRESOS_LABELS } from '@/components/crm/leadLabels';
 
-const ESTADO_CONFIG: Record<CampanaAdminRow['estado'], { label: string; bg: string; text: string; border: string }> = {
-  activa: { label: 'Activa', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
-  pausada: { label: 'Pausada', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
-  cancelada: { label: 'Cancelada', bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
-  finalizada: { label: 'Finalizada', bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/20' },
+const ESTADO_CONFIG: Record<CampanaAdminRow['estado'], { label: string; bg: string; text: string; border: string; dot: string }> = {
+  activa: { label: 'Activa', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20', dot: 'bg-emerald-400' },
+  pausada: { label: 'Pausada', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', dot: 'bg-amber-400' },
+  cancelada: { label: 'Cancelada', bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20', dot: 'bg-red-400' },
+  finalizada: { label: 'Finalizada', bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/20', dot: 'bg-slate-400' },
 };
 
-function segmentacionResumen(campana: CampanaAdminRow): string {
-  const partes: string[] = [];
-  if (campana.modoLanzamiento === 'alcance_amplio') partes.push('Alcance amplio');
+const TIPO_CONFIG: Record<CampanaAdminRow['tipo'], { icon: typeof Landmark; bg: string; text: string; border: string }> = {
+  banco: { icon: Landmark, bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20' },
+  comercio: { icon: Store, bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
+};
+
+/** Chips de segmentación — mismo criterio visual que segmentacionChips en OfertasView (CampanaOfferCard). */
+function segmentacionChips(campana: CampanaAdminRow): string[] {
+  const chips: string[] = [];
   const seg = campana.segmentacion;
-  if (seg.ciudades && seg.ciudades.length > 0) partes.push(seg.ciudades.join(', '));
-  if (seg.producto) partes.push(PRODUCT_LABELS[seg.producto] ?? seg.producto);
+  if (seg.ciudades && seg.ciudades.length > 0) chips.push(seg.ciudades.join(', '));
+  if (seg.producto) chips.push(PRODUCT_LABELS[seg.producto] ?? seg.producto);
   if (seg.rangoIngresos && seg.rangoIngresos.length > 0) {
-    partes.push(seg.rangoIngresos.map((r) => RANGO_INGRESOS_LABELS[r] ?? r).join(', '));
+    chips.push(seg.rangoIngresos.map((r) => RANGO_INGRESOS_LABELS[r] ?? r).join(', '));
   }
   if (seg.scoreMin !== undefined || seg.scoreMax !== undefined) {
-    partes.push(`Score ${seg.scoreMin ?? '—'}–${seg.scoreMax ?? '—'}`);
+    chips.push(`Score ${seg.scoreMin ?? '—'}–${seg.scoreMax ?? '—'}`);
   }
-  return partes.length > 0 ? partes.join(' · ') : 'Sin filtros adicionales';
+  return chips;
+}
+
+function formatFecha(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 /** Lista + gestión de estado de campañas propias — compartido entre bancos y comercios. */
@@ -119,44 +128,80 @@ export default function CampanasListPanel({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
       {campanas.map((campana) => {
         const cfg = ESTADO_CONFIG[campana.estado];
+        const tipoCfg = TIPO_CONFIG[campana.tipo];
+        const TipoIcon = tipoCfg.icon;
         const isSelected = selectedCampanaId === campana.id;
+        const chips = segmentacionChips(campana);
         return (
           <div
             key={campana.id}
             onClick={() => onSelectCampana?.(campana)}
             className={cn(
-              'rounded-xl border p-4 space-y-2.5 transition-colors',
-              onSelectCampana && 'cursor-pointer hover:border-border/60',
-              isSelected ? 'border-blue-500/40 bg-blue-500/5' : 'border-border/40 bg-card/40',
+              'group relative rounded-2xl border bg-card/50 overflow-hidden transition-all duration-200',
+              onSelectCampana && 'cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10',
+              isSelected
+                ? 'border-blue-500/50 bg-blue-500/[0.04] ring-1 ring-blue-500/20'
+                : 'border-border/40 hover:border-border/60',
             )}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h4 className="text-sm font-semibold text-foreground truncate">{campana.titulo}</h4>
-                {campana.descripcion && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{campana.descripcion}</p>
-                )}
+            {isSelected && (
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
+            )}
+
+            <div className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border', tipoCfg.bg, tipoCfg.border)}>
+                    <TipoIcon className={cn('h-4 w-4', tipoCfg.text)} />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-semibold text-foreground truncate">{campana.titulo}</h4>
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <Calendar className="h-2.5 w-2.5" />
+                      {formatFecha(campana.createdAt)}
+                    </div>
+                  </div>
+                </div>
+                <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                  <Select value={campana.estado} onValueChange={(v) => handleEstadoChange(campana.id, v as CampanaAdminRow['estado'])}>
+                    <SelectTrigger className={cn('h-6 w-auto gap-1 rounded-full border px-2 py-0 text-[10px] font-medium', cfg.bg, cfg.text, cfg.border)}>
+                      <span className={cn('h-1.5 w-1.5 rounded-full', cfg.dot)} />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="activa" className="text-xs">Activa</SelectItem>
+                      <SelectItem value="pausada" className="text-xs">Pausada</SelectItem>
+                      <SelectItem value="cancelada" className="text-xs">Cancelada</SelectItem>
+                      <SelectItem value="finalizada" className="text-xs">Finalizada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div onClick={(e) => e.stopPropagation()}>
-                <Select value={campana.estado} onValueChange={(v) => handleEstadoChange(campana.id, v as CampanaAdminRow['estado'])}>
-                  <SelectTrigger className={cn('h-6 w-auto shrink-0 gap-1 rounded-full border px-2 py-0 text-[10px] font-medium', cfg.bg, cfg.text, cfg.border)}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="activa" className="text-xs">Activa</SelectItem>
-                    <SelectItem value="pausada" className="text-xs">Pausada</SelectItem>
-                    <SelectItem value="cancelada" className="text-xs">Cancelada</SelectItem>
-                    <SelectItem value="finalizada" className="text-xs">Finalizada</SelectItem>
-                  </SelectContent>
-                </Select>
+
+              {campana.descripcion && (
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{campana.descripcion}</p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold',
+                  campana.modoLanzamiento === 'segmentado'
+                    ? 'bg-cyan-500/10 text-cyan-400'
+                    : 'bg-purple-500/10 text-purple-400',
+                )}>
+                  <Sparkles className="h-2.5 w-2.5" />
+                  {campana.modoLanzamiento === 'segmentado' ? 'Segmentado' : 'Alcance Amplio'}
+                </span>
+                {chips.map((chip, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 rounded-full bg-secondary/60 border border-border/40 px-2 py-0.5 text-[9px] text-muted-foreground font-medium">
+                    {i === 0 && <MapPin className="h-2.5 w-2.5 text-emerald-400" />}
+                    {chip}
+                  </span>
+                ))}
               </div>
-            </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <MapPin className="h-3 w-3" />
-              <span className="truncate">{segmentacionResumen(campana)}</span>
             </div>
           </div>
         );

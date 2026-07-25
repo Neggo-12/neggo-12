@@ -54,10 +54,12 @@ export default function CampanasTab({ bankName, organizationId }: { bankName: st
           campanaNombre={selectedCampana.titulo}
         />
       ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl border border-border/40 bg-card/40">
-          <Megaphone className="h-10 w-10 text-muted-foreground/40 mb-3" />
-          <p className="text-sm font-medium text-foreground mb-1">Selecciona una campaña para ver sus leads</p>
-          <p className="text-xs text-muted-foreground">
+        <div className="flex flex-col items-center justify-center py-16 text-center rounded-2xl border border-dashed border-border/50 bg-card/30">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/20 mb-4">
+            <Megaphone className="h-6 w-6 text-blue-400" />
+          </div>
+          <p className="text-sm font-semibold text-foreground mb-1">Selecciona una campaña para ver sus leads</p>
+          <p className="text-xs text-muted-foreground max-w-sm">
             Haz clic en una campaña arriba para ver su mini-CRM: leads, código de verificación y gestión de pipeline.
           </p>
         </div>
