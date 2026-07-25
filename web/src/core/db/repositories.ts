@@ -921,7 +921,7 @@ export interface FacturaResumenNegocio {
  */
 export async function fetchFacturasResumenPorNegocio(input: {
   search?: string;
-  orderBy?: 'organization_name' | 'total_pendiente';
+  orderBy?: 'organization_name' | 'total_pendiente' | 'total_facturado';
   offset: number;
   limit: number;
 }): Promise<{ data: FacturaResumenNegocio[] | null; error: string | null }> {
@@ -929,7 +929,7 @@ export async function fetchFacturasResumenPorNegocio(input: {
   let query = supabase
     .from('facturas_resumen_por_negocio')
     .select('organization_id, organization_name, organization_type, cantidad_cargos, total_pendiente, total_facturado, total_pagado')
-    .order(input.orderBy ?? 'organization_name', { ascending: input.orderBy !== 'total_pendiente' })
+    .order(input.orderBy ?? 'organization_name', { ascending: input.orderBy === 'organization_name' })
     .range(input.offset, input.offset + input.limit - 1);
   if (input.search) {
     query = query.ilike('organization_name', `%${input.search}%`);
@@ -1032,6 +1032,38 @@ export async function fetchClientesAdmin(): Promise<{
       createdAt: r.created_at,
       lastLoginAt: r.last_login_at,
     })),
+    error: null,
+  };
+}
+
+export interface ClientesUsoAgregado {
+  clientesConMeta: number;
+  clientesConSolicitud: number;
+  clientesConPuntos: number;
+}
+
+/** Uso real de la plataforma por Clientes B2C — cuántos ya crearon una Meta, enviaron una solicitud "Me Interesa", o tienen puntos. Para el panel de Estadísticas del Admin. */
+export async function fetchClientesUsoAgregado(): Promise<{
+  data: ClientesUsoAgregado | null;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const [metasRes, solicitudesRes, puntosRes] = await Promise.all([
+    supabase.from('metas').select('cliente_id'),
+    supabase.from('me_interesa_solicitudes').select('cliente_id'),
+    supabase.from('puntos_movimientos').select('cliente_id'),
+  ]);
+  if (metasRes.error) return { data: null, error: errMessage(metasRes.error) };
+  if (solicitudesRes.error) return { data: null, error: errMessage(solicitudesRes.error) };
+  if (puntosRes.error) return { data: null, error: errMessage(puntosRes.error) };
+  const countDistinct = (rows: { cliente_id: string | null }[] | null) =>
+    new Set((rows ?? []).map((r) => r.cliente_id).filter((id): id is string => !!id)).size;
+  return {
+    data: {
+      clientesConMeta: countDistinct(metasRes.data),
+      clientesConSolicitud: countDistinct(solicitudesRes.data),
+      clientesConPuntos: countDistinct(puntosRes.data),
+    },
     error: null,
   };
 }
@@ -2068,6 +2100,59 @@ export async function fetchCampanasByOrganization(
     })),
     error: null,
   };
+}
+
+export interface CampanaRankingRow {
+  id: string;
+  titulo: string;
+  organizationId: string;
+  organizationName: string;
+  organizationType: string;
+  estado: CampanaAdminRow['estado'];
+  totalLeads: number;
+}
+
+/** Ranking de todas las campañas (Bancos + Comercios) por cantidad de leads recibidos — para Estadísticas del Admin. */
+export async function fetchCampanasRankingAdmin(): Promise<{
+  data: CampanaRankingRow[] | null;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data: campanas, error: campanasError } = await supabase
+    .from('campanas')
+    .select('id, titulo, organization_id, estado');
+  if (campanasError) return { data: null, error: errMessage(campanasError) };
+
+  const { data: solicitudes, error: solicitudesError } = await supabase
+    .from('me_interesa_solicitudes')
+    .select('campana_id')
+    .not('campana_id', 'is', null);
+  if (solicitudesError) return { data: null, error: errMessage(solicitudesError) };
+
+  const orgIds = [...new Set((campanas ?? []).map((c) => c.organization_id))];
+  const { data: orgs, error: orgsError } = await fetchOrganizationsByIds(orgIds);
+  if (orgsError) return { data: null, error: orgsError };
+  const orgById = new Map((orgs ?? []).map((o) => [o.id, o]));
+
+  const leadCounts = new Map<string, number>();
+  for (const row of solicitudes ?? []) {
+    if (!row.campana_id) continue;
+    leadCounts.set(row.campana_id, (leadCounts.get(row.campana_id) ?? 0) + 1);
+  }
+
+  const ranking = (campanas ?? [])
+    .map((c) => ({
+      id: c.id,
+      titulo: c.titulo,
+      organizationId: c.organization_id,
+      organizationName: orgById.get(c.organization_id)?.name ?? '—',
+      organizationType: orgById.get(c.organization_id)?.type ?? '—',
+      estado: c.estado as CampanaAdminRow['estado'],
+      totalLeads: leadCounts.get(c.id) ?? 0,
+    }))
+    .sort((a, b) => b.totalLeads - a.totalLeads);
+
+  return { data: ranking, error: null };
 }
 
 /**

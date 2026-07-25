@@ -5,6 +5,7 @@ import KPICard from '@/components/KPICard';
 import SeguridadTab from '@/features/shared/components/SeguridadTab';
 import SaludSistemaPanel from '@/features/admin/components/SaludSistemaPanel';
 import ClientesPanel from '@/features/admin/components/ClientesPanel';
+import EstadisticasPanel from '@/features/admin/components/EstadisticasPanel';
 import TarifasComercioNegociadasPanel from '@/features/admin/components/TarifasComercioNegociadasPanel';
 import SistemaPuntosPanel from '@/features/admin/components/SistemaPuntosPanel';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
@@ -80,6 +81,7 @@ const adminSections = [
   { key: 'constructoras' as const, label: 'Constructoras', icon: Home },
   { key: 'comercios' as const, label: 'Comercios', icon: ShoppingBag },
   { key: 'clientes' as const, label: 'Clientes', icon: Users },
+  { key: 'estadisticas' as const, label: 'Estadísticas', icon: TrendingUp },
   { key: 'analitica' as const, label: 'Analítica IFC', icon: BarChart3 },
   { key: 'facturacion' as const, label: 'Facturación Ecosistema', icon: Receipt },
   { key: 'tarifas' as const, label: 'Tarifas y Planes', icon: SlidersHorizontal },
@@ -283,6 +285,8 @@ export default function AdminDashboard() {
           {activeSection === 'comercios' && <ComerciosAdminPanel />}
 
           {activeSection === 'clientes' && <ClientesPanel />}
+
+          {activeSection === 'estadisticas' && <EstadisticasPanel />}
 
           {activeSection === 'facturacion' && <FacturacionLedger />}
 
