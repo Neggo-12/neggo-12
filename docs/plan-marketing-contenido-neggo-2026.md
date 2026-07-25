@@ -237,7 +237,24 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 - **Incentivo de referido (L5) sin definir:** necesita que decidas el incentivo concreto (descuento, prioridad de match, u otro) antes de publicar — no inventar uno para no romper la regla de "nunca urgencia inventada".
 - **Consistencia de tono entre canales:** LinkedIn en primera persona (vos como fundador) vs. Instagram como marca Neggo — mantener ambas voces sin mezclarlas es intencional (fundador da autoridad B2B, marca da cercanía B2C).
 
-## 9. Próximos pasos
+## 9. Estado de publicación (lo actualiza la automatización cada vez que arma un post)
+
+| Post | Canal | Semana | Estado |
+|---|---|---|---|
+| L1 — El ancla del "hazlo tú mismo" | LinkedIn | 1 | Armado en el cuadro de LinkedIn el 25 jul, pendiente de que Jhey le dé Publicar |
+| I1 — ¿Buscás algo en Medellín? | Instagram/Facebook | 1 | Pendiente |
+| I2 — Cómo funciona Neggo en 3 pasos | Instagram/Facebook | 1 | Pendiente |
+| L2 — El miedo real detrás de cada búsqueda | LinkedIn | 2 | Pendiente |
+| L3 — Evidencia, no promesas | LinkedIn | 2 | Pendiente |
+| I3 — Qué es el Sello de Confianza | Instagram/Facebook | 2 | Pendiente |
+| L4 — Riesgo cero, en serio | LinkedIn | 3 | Pendiente |
+| L5 — Por qué "referí a un amigo" funciona | LinkedIn | 3 | Pendiente — **bloqueado hasta que Jhey defina el incentivo de referido (sección 8)** |
+| I4 — Primeros 50 comercios, Sello gratis | Instagram/Facebook | 3 | Pendiente |
+| I5 — No todo lo que dice ser tu banco, es tu banco | Instagram/Facebook | 3 | Pendiente |
+
+Regla para la automatización: tomar siempre el primer post "Pendiente" de arriba hacia abajo (que no esté bloqueado), dejarlo armado en el compositor del canal correspondiente, actualizar su estado acá a "Armado el [fecha], pendiente de Publicar", y avisar a Jhey en el chat. Nunca saltar L5 hasta que su bloqueo se resuelva — pasar al siguiente pendiente en su lugar. Nunca tocar el botón de publicar/compartir — eso lo hace Jhey siempre.
+
+## 10. Próximos pasos
 
 1. Confirmar el incentivo de referido pendiente (sección 8) antes de publicar L5.
 2. Publicar L1 e I1/I2 esta semana — son los de comprensión general, base de todo lo demás.
