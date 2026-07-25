@@ -1,0 +1,245 @@
+# Plan de Marketing y Contenido — "Entendé Neggo" (campaña de comprensión + adquisición)
+
+Última actualización: 25 de julio de 2026. Construido sobre `marketing-neggo.md` (posicionamiento y mensajes ya validados) y `estrategia-adquisicion-clientes-neggo.md` (secuencia de adquisición ya en marcha: Comercios → Clientes B2C → Constructoras → Bancos en pausa). Este documento no reemplaza esos dos — los ejecuta en forma de contenido concreto, listo para publicar.
+
+## 1. Resumen de campaña
+
+**Problema real que dispara esta campaña:** 15+ personas contactadas dijeron no entender qué hace Neggo al ver el sitio (mismo disparador que llevó al rediseño de `LandingHub.tsx`, documentado en `landing-rediseno.md`). El sitio ya se arregló. El contenido en redes todavía no cuenta la misma historia.
+
+**Objetivo primario:** que cualquier persona — banco, constructora, dueño de comercio o cliente final en Medellín — entienda en menos de 30 segundos qué es Neggo y cómo funciona, usando el mismo lenguaje humano ya validado (sin jerga de "sistema operativo" ni "enterprise").
+
+**Objetivo secundario (medible):** alimentar la secuencia de adquisición ya definida — tráfico calificado hacia el registro de Comercios y Clientes B2C esta semana; calentar terreno con Constructoras y Bancos para cuando llegue su fase (secciones 9-10 de `estrategia-adquisicion-clientes-neggo.md`).
+
+**Por qué contenido con gancho psicológico:** el ejemplo que compartiste (precio ancla) funciona porque enseña algo real primero y conecta con el producto después — nunca al revés. Cada pieza de este plan sigue esa misma estructura: gancho (pregunta o afirmación) → principio psicológico real → advertencia de uso responsable → conexión concreta con Neggo → CTA.
+
+**Regla que se mantiene de `landing-rediseno.md`:** cero cifras inventadas, cero testimonios ficticios. Solo hechos ya construidos y auditados (MFA, Sello de Confianza, success fee 2.25%, CPL por resultado, código anti-phishing, Ley 1581). Si no existe el dato real, no se usa.
+
+## 2. Audiencia (reutilizando `marketing-neggo.md` sección 2)
+
+| Audiencia | Dolor real | Mensaje ya validado |
+|---|---|---|
+| Comercios | Pautar sin saber si convierte | "Tu canal de crecimiento — clientes ya calificados, listos para comprar" |
+| Clientes B2C | Miedo a estafas al buscar servicios/ofertas | "Tu aliado financiero — te protegemos de estafas y te conseguimos las mejores condiciones" |
+| Constructoras | Leads sin score financiero real, pautar sin certeza | "Tu equipo de captación digital — leads reales con score financiero, sin pautar" |
+| Bancos | Adquisición de clientes cara y con fraude | "Infraestructura de adquisición de clientes verificados, con anti-fraude incorporado" |
+
+Orden de prioridad de esta campaña = mismo orden de `estrategia-adquisicion-clientes-neggo.md`: **Comercios y Clientes B2C primero** (self-service, sin fricción, generan cierres esta semana); Constructoras se calienta pero no se cierra todavía; Bancos solo contenido de autoridad/marca, sin pitch formal (los 3 pendientes de la sección 10 de ese documento siguen abiertos).
+
+## 3. Estrategia de canales
+
+| Canal | Rol | Voz | Por qué |
+|---|---|---|---|
+| LinkedIn personal (Jhey) | Autoridad + explicación + B2B | Fundador, primera persona, estilo del ejemplo del precio ancla | Bancos y constructoras se deciden por relación fundador-a-fundador (ya documentado); dueños de comercio "premium" (odontología, spa, remodelación) también están en LinkedIn buscando proveedores. |
+| Instagram/Facebook Neggo | Alcance local + generación de demanda B2C | Marca Neggo, cercana, Medellín | Ya recomendado en `estrategia-adquisicion-clientes-neggo.md` sección 8 ("publicaciones orgánicas... enfocadas en Medellín") — es donde están los clientes finales y muchos dueños de comercio gestionan su propio Instagram. |
+
+Esfuerzo: 100% orgánico, sin pauta paga — consistente con "cosas que no requieran de plata por ahora". Costo real: tiempo del founder (mismo ritmo sugerido en la cadencia diaria de prospección, sección 3 de `estrategia-adquisicion-clientes-neggo.md`).
+
+## 4. Calendario de contenido — 3 semanas
+
+| Semana | Enfoque | LinkedIn (Jhey) | Instagram/Facebook (Neggo) |
+|---|---|---|---|
+| 1 | Comprensión general — "qué es Neggo" | L1: El ancla del "hazlo tú mismo" | I1: ¿Buscás algo en Medellín? · I2: Cómo funciona Neggo en 3 pasos (carrusel) |
+| 2 | Profundización por audiencia | L2: Miedo a la estafa (Clientes) · L3: Evidencia, no promesas (Bancos) | I3: Qué es el Sello de Confianza |
+| 3 | Urgencia + prueba social + cierre | L4: Riesgo cero (Constructoras) · L5: Reciprocidad (referidos) | I4: Primeros 50 comercios, Sello gratis · I5: Anti-estafa (protección real) |
+
+11 piezas en total (6 LinkedIn + 5 Instagram/Facebook) — dentro del rango de calendario de 2-3 semanas que pediste. Cadencia: 2 posts/semana en LinkedIn, 1-2/semana en Instagram — sostenible para founder solo, sin sacrificar personalización (mismo criterio de calidad-sobre-volumen de la cadencia de prospección).
+
+## 5. Piezas de contenido — listas para publicar
+
+### LinkedIn (voz personal de Jhey)
+
+---
+
+**L1 — El ancla del "hazlo tú mismo"** (Semana 1, gancho: anchoring — mismo principio de tu ejemplo del precio ancla, aplicado a decisiones de negocio en vez de precios)
+
+> ¿Alguna vez cotizaste construir algo internamente y el número te pareció razonable... hasta que lo comparaste con la alternativa real?
+>
+> Es el mismo sesgo del precio ancla, pero aplicado a decisiones de "hazlo tú mismo". Cuando un banco o una constructora piensa en armar su propio motor de adquisición de clientes, el ancla mental es "un desarrollador nos sale barato". El cerebro no compara contra el costo real: meses de desarrollo, un sistema de anti-fraude desde cero, un CRM con pipeline, facturación automática, tarifas negociables por período.
+>
+> Pero ojo: esto no es para menospreciar a ningún equipo de tecnología interno — es para ser honesto con la comparación completa, no con la mitad de ella.
+>
+> En Neggo ya está construido y corriendo:
+> 1. Verificación de identidad y Sello de Confianza para negocios.
+> 2. Pipeline con estados reales por sector (no una hoja de cálculo).
+> 3. Facturación automática mensual, conciliada.
+>
+> No vendemos la idea. Ya está en producción. Pagás por resultado, no por construirlo desde cero.
+>
+> ¿Tu equipo ya evaluó esto o lo tienen en el radar? Contame en los comentarios.
+
+---
+
+**L2 — El miedo real detrás de cada búsqueda** (Semana 2, gancho: aversión a la pérdida — dirigido a Clientes B2C, también visible para comercios que quieran entender el valor que reciben sus propios clientes)
+
+> La mayoría de las estafas no llegan por la puerta. Llegan por WhatsApp, con alguien que dice ser tu banco.
+>
+> El cerebro humano le teme más a perder $500.000 que a ganar $500.000 — es aversión a la pérdida, uno de los sesgos más estudiados en economía del comportamiento. Por eso la gente prefiere no buscar ofertas antes que arriesgarse a caer en un fraude.
+>
+> Ojo: esto no significa asustar a nadie para vender — significa resolver el miedo real, no ignorarlo.
+>
+> Por eso en Neggo cada cliente tiene:
+> 1. Un código de verificación anti-phishing único por sesión — si alguien te contacta diciendo ser de Neggo, el código no coincide, es falso.
+> 2. Score financiero visible antes de cualquier compromiso.
+> 3. Historial de compras propio (Bóveda del Cliente), no disperso en 10 chats distintos.
+>
+> No es "encontrá ofertas". Es buscar sin el miedo de siempre.
+>
+> ¿Te ha pasado que dudás de un contacto "oficial" por WhatsApp? Contame tu caso.
+
+---
+
+**L3 — Evidencia, no promesas** (Semana 2, gancho: prueba de comportamiento real vs. autoridad prometida — dirigido a Bancos/Constructoras)
+
+> Cualquiera puede prometer un "motor de leads". Pocos pueden mostrarte el pipeline corriendo antes de pedirte que confíes.
+>
+> Es un sesgo simple: la gente confía más en lo que puede verificar que en lo que le prometen. Un PowerPoint con proyecciones no es evidencia — es una promesa con diseño bonito.
+>
+> Ojo: esto no reemplaza la debida diligencia que cualquier banco o constructora debe hacer — al contrario, la facilita.
+>
+> Lo que hoy ya es real en Neggo, no una proyección:
+> 1. Pipeline con estados reales por sector (`solicitudes_banca`, sin inventar cifras de negocio ficticio).
+> 2. Tarifas versionadas por período, negociables, con historial.
+> 3. Matching por capacidad de compra real, con algoritmo de equidad en la distribución de leads (constructoras).
+>
+> Si tu equipo evalúa un canal de adquisición nuevo, pedí ver el producto corriendo antes del contrato — es la pregunta que cualquier proveedor serio debería poder responder sin rodeos.
+>
+> ¿Qué es lo primero que le pedís ver a un proveedor nuevo antes de confiar? Comentá.
+
+---
+
+**L4 — Riesgo cero, en serio** (Semana 3, gancho: costo hundido y percepción de riesgo — dirigido a Constructoras)
+
+> La razón #1 por la que una constructora no prueba un canal nuevo de leads no es el precio. Es el miedo a pagar por algo que no cierra.
+>
+> Es percepción de riesgo, no cálculo racional — y es válido, porque la mayoría de la pauta digital se cobra igual, cierre o no cierre.
+>
+> Ojo: esto no es una promesa de "no te va a costar nada nunca" — es explicar exactamente cuándo sí se cobra.
+>
+> El modelo de Neggo con constructoras:
+> 1. Matching por ciudad, estrato y presupuesto real del cliente.
+> 2. Toggle de financiación — constructora y banco conectados en un mismo lead.
+> 3. Success fee del 2.25% que se cobra solo si el negocio cierra la venta.
+>
+> Si no cierra, no pagás success fee. El riesgo lo asume la plataforma, no tu equipo comercial.
+>
+> ¿Cómo mide hoy tu equipo el retorno real de un canal de leads? Contame.
+
+---
+
+**L5 — Por qué "referí a un amigo" funciona mejor que cualquier campaña paga** (Semana 3, gancho: reciprocidad)
+
+> PayPal creció regalando dinero por cada referido. Dropbox regaló espacio de almacenamiento. Ninguno pauteó su camino al crecimiento inicial — usaron reciprocidad.
+>
+> El principio es simple: cuando alguien te da algo de valor, el cerebro siente la necesidad de devolver el favor. Un cliente satisfecho que refiere a un amigo confía más en esa recomendación que en cualquier anuncio.
+>
+> Ojo: esto solo funciona si el producto ya genera valor real primero — la reciprocidad no arregla una mala experiencia.
+>
+> Por eso estamos armando el mismo loop en Neggo: cliente refiere cliente, ambos ganan. Y para los primeros 50 comercios de Medellín, el Sello de Confianza va gratis — sin letra pequeña, ya es automático en el onboarding.
+>
+> Si tenés un comercio en Medellín y querés ser de los primeros 50, escribime.
+
+---
+
+### Instagram / Facebook (marca Neggo, foco Medellín)
+
+---
+
+**I1 — ¿Buscás algo en Medellín?** (Semana 1, formato: post simple + imagen de marca)
+
+> ¿Buscás un comercio, una oferta o un servicio en Medellín y no sabés en quién confiar? 👀
+>
+> Te conectamos gratis con negocios verificados — con Sello de Confianza y sin pauta genérica de por medio.
+>
+> Vos decís qué buscás. Nosotros verificamos. Te conectamos con quien de verdad puede ayudarte.
+>
+> 📍 Medellín · Registro gratis, link en bio.
+>
+> #Medellin #NeggoMedellin #ComerciosVerificados #Poblado #Laureles #Envigado
+
+---
+
+**I2 — Cómo funciona Neggo en 3 pasos** (Semana 1, formato: carrusel de 3-4 slides)
+
+> Slide 1: "¿Qué es Neggo?" — Un solo lugar para conectar con comercios, bancos y constructoras verificados en Medellín.
+> Slide 2: "Paso 1 — Decís qué buscás" (una oferta, un servicio, un producto).
+> Slide 3: "Paso 2 — Verificamos" (Sello de Confianza, sin negocios fantasma).
+> Slide 4: "Paso 3 — Te conectamos" directo, sin intermediarios raros.
+>
+> Caption: Así de simple es Neggo. Sin letra pequeña, sin sorpresas. Link en bio para registrarte gratis.
+>
+> #ComoFunciona #NeggoMedellin #Medellin
+
+---
+
+**I3 — Qué es el Sello de Confianza** (Semana 2, formato: post educativo + imagen del sello)
+
+> El Sello de Confianza de Neggo no es un ícono decorativo. Significa que ese negocio fue verificado antes de aparecer en tu búsqueda.
+>
+> Nada de negocios fantasma ni perfiles falsos. Si tiene el Sello, es real.
+>
+> Buscá siempre el Sello antes de contactar a cualquier negocio en Neggo. 🛡️
+>
+> #SelloDeConfianza #NeggoMedellin #ComerciosVerificados
+
+---
+
+**I4 — Primeros 50 comercios, Sello de Confianza gratis** (Semana 3, formato: post con urgencia real)
+
+> 📢 Si tenés un negocio en Medellín: los primeros 50 comercios en registrarse obtienen el Sello de Confianza completamente gratis.
+>
+> Ya está activo desde el registro — sin trámite extra, sin letra pequeña.
+>
+> Cupos limitados a los primeros 50. Link en bio para registrar tu negocio hoy.
+>
+> #ComerciosMedellin #SelloDeConfianza #NeggoMedellin #Emprendimiento
+
+---
+
+**I5 — No todo lo que dice ser tu banco, es tu banco** (Semana 3, formato: post educativo, aversión a la pérdida)
+
+> Si alguien te escribe por WhatsApp diciendo ser de tu banco o de Neggo, pedile el código de verificación. Si no coincide con el tuyo, es un fraude. Así de simple.
+>
+> En Neggo, cada cliente tiene un código anti-phishing único por sesión — es tu forma de confirmar que quien te contacta es real.
+>
+> Cuidate. Verificá siempre antes de dar cualquier dato. 🔒
+>
+> #Ciberseguridad #AntiEstafa #NeggoMedellin #ProtegeTusDatos
+
+---
+
+## 6. Integración con adquisición de leads
+
+Cada pieza de contenido tiene un destino ya construido, no una promesa:
+
+- **Comercios** (I1, I2, I4, L1): dirige a `/corporativo/comercios` (landing ya rediseñada) → registro con el incentivo "primeros 50 gratis" ya activo en el onboarding.
+- **Clientes B2C** (I1, I2, I3, I5, L2): dirige a `/landing/clientes` → registro con Bóveda del Cliente y código anti-phishing como gancho.
+- **Constructoras** (L3, L4): calienta terreno para la Fase 2 de `estrategia-adquisicion-clientes-neggo.md` (arranca cuando haya 5-10 comercios activos con evidencia real) — sin pitch formal todavía, solo autoridad y contenido educativo.
+- **Bancos** (L3): mismo criterio — conversación exploratoria informal está bien, nada formal hasta cerrar los 3 pendientes de seguridad ya documentados (MFA activo, pentest, política de datos revisada).
+- **Referidos** (L5): activa el loop cliente-a-cliente ya definido en `marketing-neggo.md` — falta decidir el incentivo concreto (descuento vs. prioridad de match) antes de publicar ese post; queda como decisión pendiente tuya, señalada en la sección 8.
+
+Cadencia de publicación sugerida: alinear los posts de Comercios/Clientes con los días de prospección activa (sección 3 y 11 de `estrategia-adquisicion-clientes-neggo.md`) — el contenido calienta la respuesta a los mensajes directos que ya estás enviando.
+
+## 7. Métricas de éxito
+
+| Métrica | Qué mide | Cadencia de revisión |
+|---|---|---|
+| Impresiones / alcance por post | Awareness real, no solo publicado | Semanal |
+| Comentarios y respuestas | Comprensión (¿la gente entiende y reacciona, o pasa de largo?) | Por post |
+| Clics al link de registro (bio / CTA) | Tráfico calificado real hacia landings | Semanal |
+| Registros nuevos Comercios / Clientes B2C | Métrica que ya trackeás en `estrategia-adquisicion-clientes-neggo.md` sección 12 | Semanal |
+| Mensajes directos recibidos por LinkedIn/Instagram | Interés inbound generado por el contenido (vs. solo prospección saliente) | Semanal |
+
+No hay benchmark numérico todavía (sin historial de contenido previo) — la primera semana es la línea base; ajustar frecuencia/formato con datos reales, mismo criterio ya aplicado a las metas de `marketing-neggo.md` sección 4.
+
+## 8. Riesgos y decisiones pendientes
+
+- **Bandwidth de founder solo:** este calendario se suma a la prospección diaria ya definida (15-20 contactos/día). Si se vuelve insostenible, priorizar los posts de Comercios/Clientes (generan acción esta semana) sobre los de Bancos/Constructoras (calientan terreno a más largo plazo).
+- **Incentivo de referido (L5) sin definir:** necesita que decidas el incentivo concreto (descuento, prioridad de match, u otro) antes de publicar — no inventar uno para no romper la regla de "nunca urgencia inventada".
+- **Consistencia de tono entre canales:** LinkedIn en primera persona (vos como fundador) vs. Instagram como marca Neggo — mantener ambas voces sin mezclarlas es intencional (fundador da autoridad B2B, marca da cercanía B2C).
+
+## 9. Próximos pasos
+
+1. Confirmar el incentivo de referido pendiente (sección 8) antes de publicar L5.
+2. Publicar L1 e I1/I2 esta semana — son los de comprensión general, base de todo lo demás.
+3. Revisar métricas al final de la semana 1 (sección 7) antes de ajustar la semana 2.
+4. Si el contenido genera respuesta fuerte de Constructoras o Bancos antes de tiempo, está bien sostener conversación informal — solo no adelantar pitch formal (regla ya establecida en `estrategia-adquisicion-clientes-neggo.md`).
