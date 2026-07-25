@@ -2,9 +2,13 @@
 
 Última actualización: 25 de julio de 2026.
 
-## Deploy a producción confirmado (25 jul 2026)
-`neggo.co` (Cloudflare Workers, proyecto `neggo-12`) quedó sincronizado con `main` — versión activa `65b02c99`, deployada vía `npm run build && npx wrangler deploy`, 100% del tráfico. Corresponde al commit `b260606` ("SIEM-lite"), que incluye todo lo anterior en la rama (validación de correo/celular, panel de Auditoría, hardening de seguridad). Confirmado visualmente en el dashboard de Cloudflare (Workers & Pages → neggo-12 → Deployments), no solo por el mensaje de build.
-Recordatorio para las próximas sesiones: un commit en git NO despliega solo — hace falta correr el build+deploy manualmente (no hay CI/CD automático a Cloudflare todavía, el workflow de GitHub Actions solo corre type-check/lint/test). Si algo nuevo no aparece en el sitio en vivo, este es el primer sospechoso.
+## Deploy a producción + bug real de sidebar (25 jul 2026)
+`neggo.co` (Cloudflare Workers, proyecto `neggo-12`) sincronizado con `main` — deployado vía `npm run build && npx wrangler deploy`. Recordatorio permanente: un commit en git NO despliega solo, no hay CI/CD automático a Cloudflare (el workflow de GitHub Actions solo corre type-check/lint/test) — hay que correr el build+deploy a mano.
+
+**Corrección importante:** el dashboard de Cloudflare mostrando "Active Deployment" 100% NO fue evidencia suficiente — Jhey reportó que "Auditoría" y "Salud del Sistema" seguían sin verse, incluso en incógnito. Se investigó con Claude in Chrome (navegador real, sesión logueada como Admin) en vez de seguir asumiendo:
+- El JS deployado SÍ contenía todo el código nuevo (verificado con `fetch` + `.includes('Auditoría')` sobre el bundle real) — nunca fue un problema de deploy ni de caché de navegador.
+- La causa real: el `<aside>` del sidebar de Admin es `position: fixed; height: 100vh` con `overflow-y: visible` (no `auto`). Con 18 secciones ya no entra en pantallas de 720px de alto y el contenido de más queda fuera de la vista, sin scrollbar — inalcanzable para cualquier usuario, no solo Jhey. Confirmado con JS en la página real (`scrollHeight: 918` vs `clientHeight: 720`, `overflowY: visible`).
+- Fix: `<nav className="flex-1 min-h-0 overflow-y-auto ...">` en `AdminDashboard.tsx` (commit `1124e02`) — solo la lista de secciones hace scroll interno, el logo y "Cerrar sesión" quedan fijos arriba. Ahora aplica también la regla nueva de `CLAUDE.md` ("Verificación de despliegue"): no se declara confirmado sin haber cargado la página real.
 
 ## Completado (sesión 24 jul 2026)
 - Auditoría de seguridad completa (RLS, linter, MFA, hardening de funciones)
