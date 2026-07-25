@@ -319,6 +319,44 @@ export type Database = {
           },
         ]
       }
+      tarifas_sello_negociadas: {
+        Row: {
+          id: string
+          comercio_organization_id: string
+          valor_mensual: number
+          periodo_vigente_desde: string
+          creado_por: string
+          motivo: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          comercio_organization_id: string
+          valor_mensual: number
+          periodo_vigente_desde: string
+          creado_por: string
+          motivo?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          comercio_organization_id?: string
+          valor_mensual?: number
+          periodo_vigente_desde?: string
+          creado_por?: string
+          motivo?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarifas_sello_negociadas_comercio_organization_id_fkey"
+            columns: ["comercio_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tarifas_bancos_por_organizacion: {
         Row: {
           id: string
@@ -954,6 +992,9 @@ export type Database = {
           email: string | null
           has_trust_seal: boolean
           id: string
+          ingresos_declarados_at: string | null
+          ingresos_declarados_por: string | null
+          ingresos_mensuales_declarados: number | null
           metadata: Json | null
           name: string
           nit: string | null
@@ -970,6 +1011,9 @@ export type Database = {
           email?: string | null
           has_trust_seal?: boolean
           id: string
+          ingresos_declarados_at?: string | null
+          ingresos_declarados_por?: string | null
+          ingresos_mensuales_declarados?: number | null
           metadata?: Json | null
           name: string
           nit?: string | null
@@ -986,6 +1030,9 @@ export type Database = {
           email?: string | null
           has_trust_seal?: boolean
           id?: string
+          ingresos_declarados_at?: string | null
+          ingresos_declarados_por?: string | null
+          ingresos_mensuales_declarados?: number | null
           metadata?: Json | null
           name?: string
           nit?: string | null
@@ -1526,6 +1573,14 @@ export type Database = {
       resolver_cpl_comercio: {
         Args: { p_comercio_id: string }
         Returns: number
+      }
+      resolver_sello_comercio: {
+        Args: { p_comercio_id: string }
+        Returns: number
+      }
+      declarar_ingresos_comercio: {
+        Args: { p_organization_id: string; p_valor: number }
+        Returns: undefined
       }
       resolver_metas_para_ventas_comercio: {
         Args: { p_meta_ids: string[] }

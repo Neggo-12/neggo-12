@@ -7,6 +7,7 @@ import SaludSistemaPanel from '@/features/admin/components/SaludSistemaPanel';
 import ClientesPanel from '@/features/admin/components/ClientesPanel';
 import EstadisticasPanel from '@/features/admin/components/EstadisticasPanel';
 import TarifasComercioNegociadasPanel from '@/features/admin/components/TarifasComercioNegociadasPanel';
+import TarifasSelloNegociadasPanel from '@/features/admin/components/TarifasSelloNegociadasPanel';
 import SistemaPuntosPanel from '@/features/admin/components/SistemaPuntosPanel';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 import { cn, formatCOP } from '@/lib/utils';
@@ -1586,6 +1587,8 @@ function TarifasYPlanes() {
       </div>
 
       <TarifasComercioNegociadasPanel />
+
+      <TarifasSelloNegociadasPanel />
 
       <AsignarBancoDialog open={assignBancoOpen} onOpenChange={setAssignBancoOpen} tarifasGlobales={tarifas} />
     </div>

@@ -1,17 +1,106 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronRight, ChevronDown, Receipt, Loader2, AlertTriangle, Clock, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, Receipt, Loader2, AlertTriangle, Clock, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn, formatCOP } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   fetchFacturasMensualesByOrganization,
   fetchFacturasLedgerByFacturaMensual,
   reportarPagoFactura,
+  fetchOrganizationTrustSeal,
+  fetchIngresoDeclaradoComercio,
+  resolverSelloComercio,
+  declararIngresosComercio,
   type FacturaMensualRow,
   type FacturaLedgerRow,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
 import { PRODUCT_LABELS, TIPO_VIVIENDA_LABELS } from '@/components/crm/leadLabels';
+
+/** Tarjeta "Sello de Confianza": muestra el valor mensual vigente y, si aún no se declaró
+ * el ingreso del comercio, pide ese único dato (paso progresivo, no bloquea el resto del panel). */
+function SelloConfianzaCard({ organizationId }: { organizationId: string }) {
+  const [hasTrustSeal, setHasTrustSeal] = useState(false);
+  const [ingresoDeclarado, setIngresoDeclarado] = useState<number | null>(null);
+  const [valorMensual, setValorMensual] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [inputValor, setInputValor] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    const [trustSealRes, ingresoRes, selloRes] = await Promise.all([
+      fetchOrganizationTrustSeal(organizationId),
+      fetchIngresoDeclaradoComercio(organizationId),
+      resolverSelloComercio(organizationId),
+    ]);
+    setHasTrustSeal(trustSealRes.data ?? false);
+    setIngresoDeclarado(ingresoRes.data?.ingresosMensualesDeclarados ?? null);
+    setValorMensual(selloRes.data);
+    setIsLoading(false);
+  }, [organizationId]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const handleDeclarar = async () => {
+    const valor = Number(inputValor.replace(/\D/g, ''));
+    if (!valor || valor < 0) {
+      toast.error('Ingresa un valor válido');
+      return;
+    }
+    setIsSaving(true);
+    const { error } = await declararIngresosComercio(organizationId, valor);
+    if (error) {
+      toast.error('No se pudo guardar', { description: error });
+    } else {
+      toast.success('Ingreso declarado — ya calculamos tu Sello');
+      await load();
+    }
+    setIsSaving(false);
+  };
+
+  if (isLoading || !hasTrustSeal) return null;
+
+  return (
+    <div className="rounded-xl border border-border/40 bg-card/40 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20">
+          <ShieldCheck className="h-5 w-5 text-blue-400" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-foreground">Sello de Confianza</p>
+          <p className="text-[11px] text-muted-foreground">
+            {ingresoDeclarado === null
+              ? 'Declara tu nivel de ingresos mensuales para calcular tu valor'
+              : valorMensual === 0 || valorMensual === null
+                ? 'Cortesía Neggo — sin costo este mes'
+                : `Suscripción mensual — se factura junto con tu CPL/comisión`}
+          </p>
+        </div>
+      </div>
+
+      {ingresoDeclarado === null ? (
+        <div className="flex items-center gap-2">
+          <Input
+            value={inputValor}
+            onChange={(e) => setInputValor(e.target.value)}
+            placeholder="Ingresos mensuales, ej. 3.000.000"
+            inputMode="numeric"
+            className="h-9 w-48 text-xs"
+          />
+          <Button size="sm" onClick={handleDeclarar} disabled={isSaving} className="bg-blue-600 hover:bg-blue-500 text-white">
+            {isSaving ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </div>
+      ) : (
+        <span className={cn('font-mono text-sm font-semibold', valorMensual && valorMensual > 0 ? 'text-foreground' : 'text-emerald-400')}>
+          {valorMensual && valorMensual > 0 ? `${formatCOP(valorMensual)}/mes` : 'Gratis'}
+        </span>
+      )}
+    </div>
+  );
+}
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
@@ -197,6 +286,8 @@ export default function MiFacturacionTab({ organizationId, title = 'Mi Facturaci
         <h2 className="text-lg font-bold tracking-tight text-foreground">{title}</h2>
         <p className="text-xs text-muted-foreground mt-0.5">Facturas mensuales generadas por tus cargos de CPL y Success Fee/comisión</p>
       </div>
+
+      {organizationId && <SelloConfianzaCard organizationId={organizationId} />}
 
       {facturas.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center rounded-2xl border border-border/40 bg-card/40">

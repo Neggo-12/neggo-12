@@ -1618,6 +1618,143 @@ export async function resolverComisionComercio(
   return { data: plan?.comisionPct ?? 0, error: null };
 }
 
+// ───── Sello de Confianza — suscripción mensual (Fase 9.3) ─────
+
+export interface IngresoDeclaradoComercio {
+  ingresosMensualesDeclarados: number | null;
+  ingresosDeclaradosAt: string | null;
+  ingresosDeclaradosPor: string | null;
+}
+
+/** Ingreso mensual declarado por el comercio (o asignado por Admin), usado para calcular la franja del Sello. */
+export async function fetchIngresoDeclaradoComercio(
+  organizationId: string,
+): Promise<{ data: IngresoDeclaradoComercio | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('ingresos_mensuales_declarados, ingresos_declarados_at, ingresos_declarados_por')
+    .eq('id', organizationId)
+    .limit(1)
+    .maybeSingle();
+  if (error) return { data: null, error: errMessage(error) };
+  if (!data) return { data: null, error: null };
+  return {
+    data: {
+      ingresosMensualesDeclarados: data.ingresos_mensuales_declarados === null ? null : Number(data.ingresos_mensuales_declarados),
+      ingresosDeclaradosAt: data.ingresos_declarados_at,
+      ingresosDeclaradosPor: data.ingresos_declarados_por,
+    },
+    error: null,
+  };
+}
+
+/**
+ * Declara el ingreso mensual de un comercio — RPC (declarar_ingresos_comercio), nunca
+ * UPDATE directo: valida que sea no-negativo y que quien llama sea el propio comercio
+ * o un Admin, y deja registro de quién y cuándo lo declaró.
+ */
+export async function declararIngresosComercio(
+  organizationId: string,
+  valor: number,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.rpc('declarar_ingresos_comercio', {
+    p_organization_id: organizationId,
+    p_valor: valor,
+  });
+  if (error) return { error: errMessage(error) };
+  return { error: null };
+}
+
+/** Valor mensual del Sello vigente para un comercio — RPC: negociación vigente > franja automática > null (sin declarar). */
+export async function resolverSelloComercio(
+  comercioId: string,
+): Promise<{ data: number | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.rpc('resolver_sello_comercio', { p_comercio_id: comercioId });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: data === null ? null : Number(data), error: null };
+}
+
+export interface TarifaSelloNegociadaRow {
+  id: string;
+  comercioOrganizationId: string;
+  valorMensual: number;
+  periodoVigenteDesde: string;
+  creadoPor: string;
+  creadoPorNombre: string | null;
+  motivo: string | null;
+  createdAt: string;
+}
+
+/** Historial completo de tarifas del Sello negociadas por un comercio, más reciente primero. */
+export async function fetchTarifasSelloNegociadasComercio(
+  comercioId: string,
+): Promise<{ data: TarifaSelloNegociadaRow[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('tarifas_sello_negociadas')
+    .select('id, comercio_organization_id, valor_mensual, periodo_vigente_desde, creado_por, motivo, created_at')
+    .eq('comercio_organization_id', comercioId)
+    // Mismo desempate por created_at que tarifas_comercio_negociadas — dos filas pueden
+    // compartir periodo_vigente_desde (mismo mes) y Postgres no garantiza el orden sin esto.
+    .order('periodo_vigente_desde', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  const rows = data ?? [];
+
+  const creadorIds = Array.from(new Set(rows.map((r) => r.creado_por)));
+  const nombreById = new Map<string, string>();
+  if (creadorIds.length > 0) {
+    const { data: creadores } = await supabase.from('users').select('id, nombre').in('id', creadorIds);
+    for (const c of creadores ?? []) nombreById.set(c.id, c.nombre);
+  }
+
+  return {
+    data: rows.map((r) => ({
+      id: r.id,
+      comercioOrganizationId: r.comercio_organization_id,
+      valorMensual: Number(r.valor_mensual),
+      periodoVigenteDesde: r.periodo_vigente_desde,
+      creadoPor: r.creado_por,
+      creadoPorNombre: nombreById.get(r.creado_por) ?? null,
+      motivo: r.motivo,
+      createdAt: r.created_at,
+    })),
+    error: null,
+  };
+}
+
+/**
+ * Asigna una nueva tarifa del Sello negociada — SIEMPRE un INSERT nuevo, tabla append-only
+ * (sin política UPDATE). Usar valorMensual: 0 para regalar el Sello a un comercio puntual.
+ */
+export async function insertTarifaSelloNegociada(input: {
+  comercioOrganizationId: string;
+  valorMensual: number;
+  periodoVigenteDesde: string;
+  creadoPor: string;
+  motivo?: string | null;
+}): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('tarifas_sello_negociadas')
+    .insert({
+      comercio_organization_id: input.comercioOrganizationId,
+      valor_mensual: input.valorMensual,
+      periodo_vigente_desde: input.periodoVigenteDesde,
+      creado_por: input.creadoPor,
+      motivo: input.motivo ?? null,
+    })
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: noRowsError('No se pudo asignar la tarifa del Sello (posible bloqueo de RLS).') };
+  }
+  return { error: null };
+}
+
 /** Bulk-fetches display fields (name, type, plan_negociacion) for a list of organization ids. */
 export async function fetchOrganizationsByIds(
   organizationIds: string[],
