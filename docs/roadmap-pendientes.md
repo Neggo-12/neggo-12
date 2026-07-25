@@ -106,6 +106,14 @@ Jhey pidió activar el SIEM que quedó pendiente en la auditoría del 24 jul. An
 - **Fase 3 — Revisión semanal automática:** tarea programada `revision-seguridad-neggo` (lunes 8am) — corre `get_advisors`, compara contra el snapshot anterior para detectar hallazgos nuevos o que empeoraron, cuenta actividad semanal de `audit_log`/`fallos_app`, guarda un snapshot nuevo, y solo genera alarma si hay algo realmente nuevo (evita ruido en un piloto de bajo tráfico, criterio explícito de Jhey).
 - `integrations/supabase/types.ts` sincronizado con `seguridad_advisors_snapshot`. `tsc`/`eslint` limpios.
 
+## Completado (sesión 25 jul 2026, continuación 2) — Vigilancia diaria de Salud del Sistema
+Motivado por fallos reales visibles en el panel: 23 registros en `fallos_app`, revisados con evidencia real (no solo el conteo):
+- 13/23 son "Failed to fetch dynamically imported module" — ruido conocido de deploys (pestaña vieja + hash de chunk nuevo), fix identificado pero pospuesto a pedido de Jhey.
+- 7/23 son de un solo usuario (15 jul), condición de carrera al aceptar política antes de que existiera su fila de usuario — no volvió a repetirse.
+- 1/23 duplicado de NIT (comportamiento esperado, no bug).
+- 1/23 real y sin resolver: `emitir_puntos_por_compra` (24 jul) — violó la FK de `comercio_origen_id`. Rastreado hasta la factura y membresía exactas: hoy la organización y la membresía activa están correctas, así que no es un bug de lógica reproducible — parece un problema puntual/transitorio en el momento exacto de la compra. Impacto real: ese cliente nunca recibió sus puntos. Pendiente de decisión de Jhey si se reintenta manualmente (la función es idempotente, segura de re-ejecutar).
+- Tarea programada nueva `vigilancia-salud-sistema-neggo` (diaria, 7am) — diagnostica fallos nuevos en `fallos_app` con evidencia real (consultas SQL, no conteos a ciegas) y avisa a Jhey. Alcance explícito: **solo diagnostica y avisa, nunca corrige código ni deploya** — decisión explícita de Jhey dado el riesgo de auto-remediación en un fintech.
+
 ## Completado (sesión 25 jul 2026) — Validación de correo/celular en registro
 Motivado por registros de prueba con datos claramente falsos (ej. `correoheg@heico`, celulares tipo `1111111111`). Alcance: SOLO el flujo de registro nuevo — login/restoreSession no se tocaron, las cuentas de prueba ya existentes de Jhey no se ven afectadas.
 - SMS OTP para confirmar el celular real quedó pausado explícitamente por decisión de Jhey — requiere proveedor pago (Twilio, ~$0.02–0.05 USD/mensaje), no hay opción gratuita para SMS real a Colombia. Puede retomarse más adelante como sesión aparte.
