@@ -8,8 +8,11 @@
 - **Arranque de marketing** — en definición ahora mismo.
 
 ## Corto plazo (próximas sesiones, sin bloqueo de plata ni de decisión de negocio)
-1. Fix directo del error más común en producción: "Failed to fetch dynamically imported module" (13 de 23 fallos registrados) — ocurre cuando alguien tiene una pestaña vieja abierta y se hace un deploy nuevo. Fix conocido y chico (recargar una vez al detectar el error), listo para implementar.
-2. npm audit — 3 vulnerabilidades restantes, cada una requiere su propia sesión por ser saltos de versión mayor: esbuild/vite → vite@8, react-router 6→7, brace-expansion anidado → eslint@10. No afectan producción hoy.
+1. Fix directo del error más común en producción: "Failed to fetch dynamically imported module" (13 de 23 fallos registrados) — ocurre cuando alguien tiene una pestaña vieja abierta y se hace un deploy nuevo. Código listo y commiteado (`1c162b5`), pendiente de deploy y verificación en vivo.
+2. npm audit — 3 vulnerabilidades restantes, ninguna con exploit activo conocido en producción hoy. Plan de ejecución: una por sesión, nunca las 3 juntas (para aislar cuál rompe algo si aparece un error), de menor a mayor riesgo:
+   - **a. eslint chain (brace-expansion anidado) → eslint 10** — solo dev, no llega al build de producción. Riesgo más bajo, primera en hacerse.
+   - **b. esbuild/vite → vite 8** — afecta solo el dev server, no el bundle final. Riesgo medio: hay que verificar que `dist/` no cambie de comportamiento tras el bump.
+   - **c. react-router-dom 6→7** — el único que corre en producción real. Cambios de API que rompen (breaking). Requiere sesión dedicada con regresión manual completa (todas las rutas, todos los roles) vía Claude Code terminal, porque `vitest` no corre en este sandbox (bug arm64 conocido).
 3. Comercios más buscados / secciones más usadas por clientes en Estadísticas — requiere conectar el tracking de PostHog (ya integrado) a una vista en Supabase/Admin.
 4. Transferencia de puntos entre clientes — necesita definir condiciones anti-fraude antes de construirse.
 5. Sistema de Puntos Fase 2 (campañas: doble/triple puntos, happy hour) — ver `docs/sistema-puntos-neggo.md`.
