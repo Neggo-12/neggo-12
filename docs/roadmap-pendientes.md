@@ -21,10 +21,17 @@
 ## Pendientes activos (por prioridad)
 1. **Timeout de sesión a 15 min** — bloqueado por plan gratis de Supabase, requiere activar Pro ($25/mes).
 2. **Estadísticas más completas del Admin** — hoy solo 3 KPIs básicos de Clientes; falta desglose más profundo (a definir qué exactamente).
-3. **npm audit**: 2 vulnerabilidades de dev server (Vite/esbuild) — no afectan producción, resolver con calma (posible upgrade a Vite 8, breaking change).
+3. **npm audit**: bajó de 13 a 9 (commit `107d24a`, 24 jul) — cerradas postcss, sharp y la cadena wrangler/workerd/miniflare sin breaking changes. Quedan 9 abiertas, las 3 requieren salto de versión mayor, ninguna aplicada todavía: esbuild/vite (→ vite@8.1.5), react-router (serie 6.x completa vulnerable, fix real es v7.x), brace-expansion anidado en @typescript-eslint (→ eslint@10). No afectan producción hoy. Cada una necesita su propia sesión de evaluación de breaking changes — no resolver a la ligera.
 
 ## Completado (sesión 24 jul 2026, continuación)
 - Bug de no-determinismo (ORDER BY periodo_vigente_desde sin desempate) en tarifas de bancos — mismo patrón ya corregido para comercios (resolver_cpl_comercio). Cerrado en 2 lugares: `consolidar_facturacion_mensual` (backend, desempate `updated_at DESC`) y `fetchTarifasBancoOrganizacion` (frontend, mismo desempate) — el pendiente original solo nombraba el segundo, pero ambos compartían el mismo hueco sobre `tarifas_bancos_por_organizacion`.
+
+## Notas e ideas sueltas (sin priorizar todavía)
+Cualquier idea/nota que Jhey mencione al pasar se anota acá en el momento, con una lectura rápida de prioridad, para no perderla ni desviar la tarea principal en curso.
+
+- **n8n (automatización):** en pausa. Requiere servidor propio (self-host con costo de hosting, o n8n Cloud pago) — no es "conectar y listo". Los dos casos de uso identificados hoy (seguimiento a comercios sin responder, recordatorio de facturas vencidas) se pueden cubrir con tareas programadas de Cowork sin costo adicional. Revisar de nuevo si aparece un caso de uso que Cowork no pueda cubrir.
+- **Stripe (cobro real de comisiones):** cuenta gratis de crear, cobra por transacción. Prioridad media — hoy `facturas_ledger` solo registra internamente, no hay evidencia de cobro real automático a tarjeta. Antes de conectar: definir con Jhey el alcance exacto (qué cobra, a quién, cuándo) como proyecto aparte, con modo test primero — es dinero real de comercios/bancos.
+- **Perplexity:** no tiene conector directo en Claude. La búsqueda web ya integrada cubre research general. Solo relevante si se arma un flujo en n8n más adelante (tiene nodo nativo).
 
 ## Sistema de Puntos — Fases futuras (ver docs/sistema-puntos-neggo.md)
 - Fase 2: Campañas (doble/triple puntos, happy hour, etc.)
