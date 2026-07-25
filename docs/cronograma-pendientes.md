@@ -1,0 +1,42 @@
+# Cronograma — Pendientes de Neggo
+
+Última actualización: 25 de julio de 2026. Compilado desde `docs/roadmap-pendientes.md` — este documento es la vista "qué falta y cuándo", el otro sigue siendo el registro detallado de lo ya hecho.
+
+## Ahora / esta sesión
+- **Deploy del fix del sidebar de Admin** (commit `1124e02`) — pendiente de correr `npm run build && npx wrangler deploy` y verificar en vivo.
+- **Vigilancia de "Salud del Sistema"** — en definición ahora mismo (ver más abajo).
+- **Arranque de marketing** — en definición ahora mismo.
+
+## Corto plazo (próximas sesiones, sin bloqueo de plata ni de decisión de negocio)
+1. Fix directo del error más común en producción: "Failed to fetch dynamically imported module" (13 de 23 fallos registrados) — ocurre cuando alguien tiene una pestaña vieja abierta y se hace un deploy nuevo. Fix conocido y chico (recargar una vez al detectar el error), listo para implementar.
+2. npm audit — 3 vulnerabilidades restantes, cada una requiere su propia sesión por ser saltos de versión mayor: esbuild/vite → vite@8, react-router 6→7, brace-expansion anidado → eslint@10. No afectan producción hoy.
+3. Comercios más buscados / secciones más usadas por clientes en Estadísticas — requiere conectar el tracking de PostHog (ya integrado) a una vista en Supabase/Admin.
+4. Transferencia de puntos entre clientes — necesita definir condiciones anti-fraude antes de construirse.
+5. Sistema de Puntos Fase 2 (campañas: doble/triple puntos, happy hour) — ver `docs/sistema-puntos-neggo.md`.
+6. Sistema de Puntos Fase 3 (Paquete de Bienvenida multi-aliado, compras grandes tipo vivienda).
+
+## Bloqueado por decisión de negocio (no técnico — Jhey decide, no requiere código)
+- Confirmar el valor de la franja del Sello de Confianza para ingresos >$20.000.000/mes (hoy $40.000, propuesto por Claude, nunca confirmado explícitamente).
+- Valor de conversión punto → peso (Sistema de Puntos).
+- Quién financia el fondo de pagos a comercios por puntos: Opción A (Neggo aparta % de su comisión) vs Opción B (el comercio emisor asume el costo).
+- Modelo de tarifas de puntos por comercio (planes Estándar/Plus/Premium — valores sin definir).
+- Presupuesto de puntos para compras de alto valor (% de la comisión real de Neggo).
+
+## Bloqueado por plan pago (requiere presupuesto, no esfuerzo técnico)
+- Timeout de sesión a 15 min — requiere Supabase Pro ($25/mes).
+- Leaked Password Protection (HaveIBeenPwned) — mismo Supabase Pro.
+- SMS OTP para verificar celular real — requiere proveedor pago (Twilio, ~$0.02–0.05 USD/mensaje). Pausado por decisión explícita de Jhey.
+- Cobro real de comisiones vía Stripe — hoy `facturas_ledger` solo registra internamente, no cobra de verdad a tarjeta. Proyecto aparte, con modo test primero antes de tocar dinero real.
+
+## Sin timing definido (bajo impacto o depende de que cambie el contexto)
+- Mover `pg_net` fuera del schema `public` — cosmético, bajo impacto, no se toca por precaución.
+- n8n — en pausa, cubierto hoy por tareas programadas de Cowork sin costo extra. Revisar solo si aparece un caso de uso que Cowork no cubra.
+- Wazuh / SIEM real con servidor propio — solo tiene sentido si Neggo llega a operar servidores propios (poco probable dado el rumbo serverless). Hoy cubierto por el "SIEM-lite" (audit_log + panel Auditoría + revisión semanal).
+
+## Completado recientemente (para contexto, detalle completo en roadmap-pendientes.md)
+- SIEM-lite: audit_log activo, panel Auditoría, revisión semanal automática (25 jul).
+- Validación de correo/celular en registro B2B/B2C (25 jul).
+- Sello de Confianza — suscripción mensual por franja de ingresos (24 jul).
+- Consolidación de Tarifas y Planes en un solo punto de edición (24 jul).
+- Rediseño visual de Campañas (24 jul).
+- Auditoría de seguridad/arquitectura completa (24 jul).
