@@ -32,7 +32,7 @@ Orden de prioridad de esta campaña = mismo orden de `estrategia-adquisicion-cli
 | LinkedIn personal (Jhey) | Autoridad + explicación + B2B | Fundador, primera persona, estilo del ejemplo del precio ancla | Bancos y constructoras se deciden por relación fundador-a-fundador (ya documentado); dueños de comercio "premium" (odontología, spa, remodelación) también están en LinkedIn buscando proveedores. |
 | Instagram/Facebook Neggo | Alcance local + generación de demanda B2C | Marca Neggo, cercana, Medellín | Ya recomendado en `estrategia-adquisicion-clientes-neggo.md` sección 8 ("publicaciones orgánicas... enfocadas en Medellín") — es donde están los clientes finales y muchos dueños de comercio gestionan su propio Instagram. |
 
-Esfuerzo: 100% orgánico, sin pauta paga — consistente con "cosas que no requieran de plata por ahora". Costo real: tiempo del founder (mismo ritmo sugerido en la cadencia diaria de prospección, sección 3 de `estrategia-adquisicion-clientes-neggo.md`).
+Base orgánica (sin costo, tiempo del founder) + capa de pauta paga agregada el 25 jul cuando Jhey confirmó presupuesto disponible — ver sección 11.
 
 ## 4. Calendario de contenido — 3 semanas
 
@@ -254,7 +254,68 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 
 Regla para la automatización: tomar siempre el primer post "Pendiente" de arriba hacia abajo (que no esté bloqueado), dejarlo armado en el compositor del canal correspondiente, actualizar su estado acá a "Armado el [fecha], pendiente de Publicar", y avisar a Jhey en el chat. Nunca saltar L5 hasta que su bloqueo se resuelva — pasar al siguiente pendiente en su lugar. Nunca tocar el botón de publicar/compartir — eso lo hace Jhey siempre.
 
-## 10. Próximos pasos
+## 11. Pauta paga (agregado 25 jul — presupuesto ahora disponible)
+
+Capa nueva sobre la base orgánica de las secciones 3-6, no la reemplaza — la pauta acelera alcance, el contenido orgánico sigue construyendo confianza y comprensión (una campaña 100% paga sin contenido real detrás se siente vacía y sube el costo por lead).
+
+| Canal | Público objetivo | Objetivo | Formato de anuncio |
+|---|---|---|---|
+| LinkedIn Ads | Tomadores de decisión en bancos y constructoras (cargos: gerencia comercial, innovación, digital) en Medellín/Antioquia | Consideración — calentar terreno para Fase 2/3 de `estrategia-adquisicion-clientes-neggo.md` | Sponsored Content usando el copy de L1/L3/L4 como base (ya validado en formato orgánico) |
+| Meta Ads (Instagram/Facebook) | Geolocalizado Medellín — dueños de comercio (Poblado, Laureles, Envigado, Sabaneta) + clientes finales por interés en las categorías del ICP (sección 1 de `estrategia-adquisicion-clientes-neggo.md`) | Conversión directa — registro de Comercios y Clientes B2C | Reels/carrusel usando I2 (cómo funciona) e I4 (primeros 50 gratis) como creatividades base |
+
+**Asignación de presupuesto (framework, ajustar con el número real que definas):**
+- 60-70% al canal de mayor confianza hoy: Meta Ads (ya hay ICP y canales de Medellín bien definidos en `estrategia-adquisicion-clientes-neggo.md`; conversión más directa y medible que LinkedIn Ads).
+- 20-25% a LinkedIn Ads (ciclo de venta más largo, es para calentar Constructoras/Bancos, no cierre inmediato).
+- 10-15% de contingencia/testing (probar públicos, no comprometer todo el presupuesto en la primera semana).
+
+**Falta para activar:** el número real de presupuesto mensual (para convertir los porcentajes en pesos) y que Jhey cree/tenga acceso a las cuentas de LinkedIn Campaign Manager y Meta Ads Manager — yo no puedo crear cuentas publicitarias ni cargar un medio de pago (política del asistente); si ya existen, puedo ayudar a armar la campaña dentro del Ads Manager vía navegador una vez estés logueado.
+
+**Métrica nueva a trackear:** costo por lead pago (CPL de pauta) comparado contra el CPL de prospección directa ya usado con comercios ($30.000 COP, sección 1 de `estrategia-adquisicion-clientes-neggo.md`) — si la pauta sale más cara que prospectar directo, reasignar presupuesto.
+
+## 12. Videos explicativos (B2C y B2B)
+
+No hay conector de generación de video con IA disponible en el registro de Anthropic — se evaluó y no existe integración directa. La opción elegida es un avatar de IA vía herramienta externa, operada por vos con tu propia cuenta (yo no puedo crear la cuenta ni cargar el medio de pago).
+
+**Herramienta recomendada: HeyGen** (investigado el 25 jul) — desde 24 USD/mes, permite crear un "Instant Avatar" tuyo a partir de una selfie/video corto (~5 min de setup), evita tener que grabarte cada vez que cambie el guion. Alternativa evaluada: Synthesia (mejor edición tipo timeline, pero el avatar personalizado cuesta 1.000 USD/año — mucho más caro para un founder solo). Decisión: arrancar con HeyGen por costo y velocidad de setup.
+
+**Cómo seguimos:** creá la cuenta en HeyGen y generá tu Instant Avatar — avisame cuando esté listo y te ayudo a operar la herramienta vía navegador (pegar guion, elegir voz/avatar, generar) con tu sesión ya logueada.
+
+**Guion 1 — B2C (Clientes finales), ~50 segundos**
+
+| Escena | Guion (hablado) | Nota visual |
+|---|---|---|
+| 1 (0-8s) | "¿Alguna vez sentiste miedo de que la 'oferta increíble' que te ofrecen por WhatsApp sea en realidad una estafa?" | Avatar mirando a cámara, tono directo |
+| 2 (8-20s) | "No sos vos siendo paranoico. Las estafas por WhatsApp haciéndose pasar por bancos son reales. Por eso en Neggo cada cliente tiene un código de verificación anti-phishing único — si alguien te contacta y el código no coincide, ya sabés que es falso." | Texto en pantalla: "Código único por sesión" |
+| 3 (20-35s) | "Además, ves el score financiero de cada oferta antes de comprometerte, y todo tu historial de compras queda guardado en un solo lugar — tu Bóveda del Cliente." | Texto en pantalla: 3 íconos (verificación / score / bóveda) |
+| 4 (35-50s) | "Buscá lo que necesitás en Medellín sin el miedo de siempre. Registrate gratis, el link está abajo." | CTA en pantalla + logo Neggo |
+
+**Guion 2 — B2B (Comercios, Constructoras, Bancos — versión general), ~55 segundos**
+
+| Escena | Guion (hablado) | Nota visual |
+|---|---|---|
+| 1 (0-8s) | "Si tu negocio paga por pauta digital y no sabés con certeza si convierte, este video es para vos." | Avatar mirando a cámara |
+| 2 (8-25s) | "En Neggo no pagás por publicidad genérica. Pagás por resultado real: un cliente ya verificado, con score financiero visible, que efectivamente quiere lo que vendés." | Texto en pantalla: "Pagás por resultado, no por impresión" |
+| 3 (25-40s) | "Ya está construido y corriendo: verificación de identidad, pipeline con estados reales por sector, facturación automática mensual. No es una promesa en PowerPoint." | Texto en pantalla: checklist de 3 puntos |
+| 4 (40-55s) | "Los primeros 50 comercios de Medellín obtienen el Sello de Confianza gratis. Escribime o registrate — el link está abajo." | CTA + logo Neggo |
+
+Ambos guiones reutilizan solo hechos ya validados en `marketing-neggo.md` y las piezas L1-L5 — ningún dato nuevo inventado. Si más adelante querés un video por cada vertical B2B (Bancos / Constructoras / Comercios por separado en vez de la versión general), lo armamos sobre la tabla de mensajes de la sección 2.
+
+## 13. Piezas gráficas — dirección creativa
+
+Decisión: conectar Canva (ya sugerido para conectar) en vez de armar piezas simples en SVG — la meta es atracción diaria de clientes, y una pieza que se ve genérica no compite bien en el feed. Canva además ya tiene un flujo armado (brief → diseño terminado → caption) listo para usar una vez conectado.
+
+**Brief creativo — para que NINGUNA pieza se sienta "plantilla de Canva genérica":**
+- Paleta exacta del producto real (no la paleta default de Canva): fondo oscuro, verde esmeralda como color primario (`--primary: 160 84% 39%` en `tailwind.config.ts`), acentos ámbar/rosa/slate — la misma identidad "fintech premium" que ya define `landing-rediseno.md` sección 5. Cualquier pieza que se vea "clara y genérica estilo plantilla" no representa la marca real.
+- Tipografía: Inter para texto, JetBrains Mono para cualquier cifra o dato (mismo criterio que el producto).
+- Cero clip-art ni ilustraciones stock genéricas de personas sonriendo — preferir composiciones tipográficas fuertes (como el ejemplo del precio ancla: la idea es el protagonista, no una foto decorativa) o capturas reales del producto (dashboard, Sello de Confianza) cuando aplique.
+- Cada pieza gráfica debe poder explicarse en menos de 3 segundos de scroll — un concepto por pieza, nunca varios mensajes compitiendo.
+
+**Piezas gráficas prioritarias para esta primera tanda:**
+1. Carrusel I2 ("Cómo funciona Neggo en 3 pasos") — el más urgente, es la pieza de comprensión general.
+2. Tarjeta única para I4 (primeros 50 comercios gratis) — diseño de urgencia, un solo mensaje grande.
+3. Set de 3-4 tarjetas de "quote" con las frases gancho de L1-L4 (reutilizables también como creatividad de pauta paga en Meta Ads, sección 11).
+
+## 14. Próximos pasos
 
 1. Confirmar el incentivo de referido pendiente (sección 8) antes de publicar L5.
 2. Publicar L1 e I1/I2 esta semana — son los de comprensión general, base de todo lo demás.
