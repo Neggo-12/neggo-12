@@ -172,8 +172,8 @@ export default function AdminDashboard() {
           Cerrar sesión
         </button>
 
-        {/* Nav items */}
-        <nav className="flex-1 space-y-1 p-3">
+        {/* Nav items — min-h-0 es necesario para que un hijo flex-1 pueda hacer scroll interno en vez de desbordar el <aside> (bug real: con 18 secciones el contenido ya no entraba en pantallas de 720px de alto y quedaba inalcanzable, sin scrollbar). */}
+        <nav className="flex-1 min-h-0 overflow-y-auto space-y-1 p-3 scrollbar-thin">
           {adminSections.map((section) => {
             const isActive = activeSection === section.key;
             const Icon = section.icon;
