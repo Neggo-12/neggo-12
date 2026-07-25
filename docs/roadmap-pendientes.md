@@ -1,6 +1,6 @@
 # Roadmap y Pendientes — Neggo
 
-Última actualización: 24 de julio de 2026.
+Última actualización: 25 de julio de 2026.
 
 ## Completado (sesión 24 jul 2026)
 - Auditoría de seguridad completa (RLS, linter, MFA, hardening de funciones)
@@ -61,7 +61,7 @@ Disparada explícitamente por Jhey. Verificado con evidencia real (consultas SQL
 - Revisado y descartado como falso positivo: `busquedas_sin_match` y `fallos_app` tienen INSERT abierto (`WITH CHECK true`) pero su SELECT es admin-only — son canales de escritura ciega (telemetría), no fuga de datos.
 
 ### Pendiente de acción (no técnica / requiere decisión)
-- **Leaked Password Protection deshabilitado** en Supabase Auth — gratis, revisa contraseñas contra HaveIBeenPwned. No se puede activar por SQL/MCP, es un toggle en el dashboard de Supabase (Authentication → Policies). Recomendado activarlo ya.
+- **Leaked Password Protection deshabilitado** en Supabase Auth — revisa contraseñas contra HaveIBeenPwned. **Corrección:** no es gratis, requiere plan Pro de Supabase ($25/mes) — mismo plan pago ya postergado antes por el timeout de sesión. No se puede activar por SQL/MCP. Ruta correcta en el dashboard: Authentication → Sign In / Providers → Email (NO Database → Policies, que es RLS, una sección distinta). Queda pendiente de decisión — no urge en el plan gratis actual.
 - **`audit_log` existe pero no se usa de verdad**: 1 sola fila, la más reciente del 2 de julio, y ninguna función del esquema le escribe hoy. Para un fintech bajo Ley 1581, un rastro de auditoría real (quién accedió/modificó qué) es relevante para trazabilidad y respuesta a incidentes — hoy es una tabla de papel. No se construyó en esta sesión (es un feature aparte, no un fix rápido) — queda como decisión pendiente de prioridad.
 - **`pg_net` instalado en schema `public`**: cosmético/lint, moverlo requiere revisar si algo depende de esa ubicación (ej. webhooks) — no se tocó por precaución, bajo impacto.
 
@@ -88,3 +88,12 @@ Motivado por confusión real: la lista de Comercios tenía un selector "Asignar 
 - Panel de Tarifas Negociadas (CPL/comisión): se agregó un selector "Aplicar plantilla" dentro del único formulario de asignación — prellena los valores, pero se pueden seguir editando a mano (queda como "Personalizado" en el historial si se edita).
 - Panel del Sello: mismo tratamiento — selector de franja estándar que prellena el valor mensual, editable, con puente de preselección desde la lista de Comercios (igual que ya existía para CPL).
 - Nueva función `fetchTarifasSelloVigentesPorComercios` (bulk, sin N+1) para resolver el valor del Sello de toda la lista de una sola vez.
+
+## Completado (sesión 25 jul 2026) — Validación de correo/celular en registro
+Motivado por registros de prueba con datos claramente falsos (ej. `correoheg@heico`, celulares tipo `1111111111`). Alcance: SOLO el flujo de registro nuevo — login/restoreSession no se tocaron, las cuentas de prueba ya existentes de Jhey no se ven afectadas.
+- SMS OTP para confirmar el celular real quedó pausado explícitamente por decisión de Jhey — requiere proveedor pago (Twilio, ~$0.02–0.05 USD/mensaje), no hay opción gratuita para SMS real a Colombia. Puede retomarse más adelante como sesión aparte.
+- `validateEmail(email, contexto)` y `validatePhone(phone)` nuevas en `web/src/core/db/supabaseClient.ts`, mismo patrón que `validatePassword`/`PasswordValidation`.
+  - Correo: formato general (`local@dominio.tld`); contexto `'corporativo'` (Bancos/Constructoras) además rechaza webmail genérico (gmail.com, hotmail.com, outlook.com, etc.) — deben usar el dominio real de su entidad (ej. `gerente@bancolombia.co`). Contexto `'general'` (Comercios/Clientes B2C) solo exige formato válido.
+  - Celular: 10 dígitos, debe iniciar en 3 (móvil colombiano), acepta y limpia prefijo +57/57, rechaza secuencias de dígito repetido (ej. `1111111111`, `3333333333`).
+- Wireado en `LoginEcosistema.tsx`: `B2BRegister` (correo con contexto corporativo solo para sector banca/constructora, general para comercio; teléfono siempre validado) y `B2CRegister` (correo general, celular validado) — feedback inline igual al patrón ya usado para confirmación de contraseña, gatea `canSubmit`.
+- Defensa en profundidad server-side: migración `20260725_validacion_email_celular_registro.sql` — helpers `_validar_formato_email`/`_validar_celular_co` (mismas reglas, `SET search_path`) llamados desde `registrar_b2b_completo`/`registrar_b2c_completo` antes de cualquier INSERT. Verificado con evidencia real: consulta SQL directa contra los 2 helpers con 7 casos (correo sin TLD, correo válido, celular `1111111111`, celular válido, celular con prefijo +57, celular repetido `3333333333`, celular corto) — los 7 resultados coincidieron con lo esperado. Revisado `get_advisors` (security) post-migración: sin hallazgos nuevos, solo los ya conocidos de auditorías previas.

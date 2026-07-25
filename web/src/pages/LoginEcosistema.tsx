@@ -38,6 +38,8 @@ import { POLITICA_RUTA } from "@/core/domain/legal/politica";
 import {
   isSupabaseConfigured,
   validatePassword,
+  validateEmail,
+  validatePhone,
 } from "@/core/db/supabaseClient";
 import { fetchBancosAprobados } from "@/core/db/repositories";
 import { RANGO_INGRESOS_LABELS } from "@/components/crm/leadLabels";
@@ -560,6 +562,12 @@ function B2BRegister() {
   const passwordsMatch =
     form.password && form.confirmPassword && form.password === form.confirmPassword;
 
+  // Bancos y Constructoras deben registrarse con el dominio corporativo real de su
+  // entidad (no webmail genérico). Comercios usan la regla general (cualquier .com válido).
+  const emailContexto = sector === "comercio" ? "general" : "corporativo";
+  const emailValidation = validateEmail(form.correo, emailContexto);
+  const phoneValidation = validatePhone(form.telefono);
+
   const canSubmit =
     form.razonSocial.trim() !== "" &&
     form.nit.trim() !== "" &&
@@ -568,6 +576,8 @@ function B2BRegister() {
     form.telefono.trim() !== "" &&
     form.password.trim() !== "" &&
     form.confirmPassword.trim() !== "" &&
+    emailValidation.isValid &&
+    phoneValidation.isValid &&
     pwValidation.isValid &&
     passwordsMatch &&
     aceptaPolitica &&
@@ -758,11 +768,17 @@ function B2BRegister() {
         </Label>
         <Input
           type="email"
-          placeholder="Ej: gerente@empresa.com"
+          placeholder={emailContexto === "corporativo" ? "Ej: gerente@bancolombia.co" : "Ej: gerente@empresa.com"}
           value={form.correo}
           onChange={updateField("correo")}
           className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm"
         />
+        {form.correo.trim() !== "" && !emailValidation.isValid && (
+          <div className="flex items-center gap-2 text-[11px] text-red-400">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            {emailValidation.errors[0]}
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -788,6 +804,12 @@ function B2BRegister() {
           onChange={updateField("telefono")}
           className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm font-mono"
         />
+        {form.telefono.trim() !== "" && !phoneValidation.isValid && (
+          <div className="flex items-center gap-2 text-[11px] text-red-400">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            {phoneValidation.errors[0]}
+          </div>
+        )}
       </div>
 
       {/* ── Password Fields ── */}
@@ -1236,6 +1258,8 @@ function B2CRegister() {
   const pwValidation = validatePassword(form.password);
   const passwordsMatch =
     form.password && form.confirmPassword && form.password === form.confirmPassword;
+  const emailValidation = validateEmail(form.correo, "general");
+  const phoneValidation = validatePhone(form.celular);
 
   const canSubmit =
     form.nombres.trim() !== "" &&
@@ -1247,6 +1271,8 @@ function B2CRegister() {
     form.rangoIngresos !== "" &&
     form.password.trim() !== "" &&
     form.confirmPassword.trim() !== "" &&
+    emailValidation.isValid &&
+    phoneValidation.isValid &&
     pwValidation.isValid &&
     passwordsMatch &&
     aceptaPolitica &&
@@ -1456,6 +1482,12 @@ function B2CRegister() {
           onChange={updateField("correo")}
           className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm"
         />
+        {form.correo.trim() !== "" && !emailValidation.isValid && (
+          <div className="flex items-center gap-2 text-[11px] text-red-400">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            {emailValidation.errors[0]}
+          </div>
+        )}
       </div>
 
       {/* ── Celular ── */}
@@ -1470,6 +1502,12 @@ function B2CRegister() {
           onChange={updateField("celular")}
           className="h-11 rounded-xl border-border/60 bg-secondary/50 text-sm font-mono"
         />
+        {form.celular.trim() !== "" && !phoneValidation.isValid && (
+          <div className="flex items-center gap-2 text-[11px] text-red-400">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            {phoneValidation.errors[0]}
+          </div>
+        )}
       </div>
 
       {/* ── Rango de Ingresos ── */}
