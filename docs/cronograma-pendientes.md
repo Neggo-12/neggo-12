@@ -8,8 +8,8 @@
 - **Arranque de marketing** — en definición ahora mismo.
 
 ## Corto plazo (próximas sesiones, sin bloqueo de plata ni de decisión de negocio)
-1. npm audit — 3 vulnerabilidades restantes, ninguna con exploit activo conocido en producción hoy. Plan de ejecución: una por sesión, nunca las 3 juntas (para aislar cuál rompe algo si aparece un error), de menor a mayor riesgo:
-   - **a. eslint chain (brace-expansion anidado) → eslint 10** — solo dev, no llega al build de producción. Riesgo más bajo, primera en hacerse.
+1. npm audit — 2 vulnerabilidades restantes (paso a ya resuelto), ninguna con exploit activo conocido en producción hoy. Plan de ejecución: una por sesión, de menor a mayor riesgo:
+   - ~~a. eslint chain (brace-expansion anidado) → eslint 10~~ — **hecho (25 jul)**. eslint-plugin-react-hooks 7.1.1 cambió su `recommended` a incluir por defecto reglas de React Compiler (que Neggo no usa) — generaron 63 errores falsos de alcance ajeno al fix; se fijaron explícitamente solo `rules-of-hooks` + `exhaustive-deps` (mismo comportamiento que antes) en `eslint.config.js`. tsc y lint limpios, 0 vulnerabilidades de esta cadena.
    - **b. esbuild/vite → vite 8** — afecta solo el dev server, no el bundle final. Riesgo medio: hay que verificar que `dist/` no cambie de comportamiento tras el bump.
    - **c. react-router-dom 6→7** — el único que corre en producción real. Cambios de API que rompen (breaking). Requiere sesión dedicada con regresión manual completa (todas las rutas, todos los roles) vía Claude Code terminal, porque `vitest` no corre en este sandbox (bug arm64 conocido).
 2. Transferencia de puntos entre clientes — necesita definir condiciones anti-fraude antes de construirse.
