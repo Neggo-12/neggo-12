@@ -12,10 +12,9 @@
    - **a. eslint chain (brace-expansion anidado) → eslint 10** — solo dev, no llega al build de producción. Riesgo más bajo, primera en hacerse.
    - **b. esbuild/vite → vite 8** — afecta solo el dev server, no el bundle final. Riesgo medio: hay que verificar que `dist/` no cambie de comportamiento tras el bump.
    - **c. react-router-dom 6→7** — el único que corre en producción real. Cambios de API que rompen (breaking). Requiere sesión dedicada con regresión manual completa (todas las rutas, todos los roles) vía Claude Code terminal, porque `vitest` no corre en este sandbox (bug arm64 conocido).
-2. Comercios más buscados / secciones más usadas por clientes en Estadísticas — requiere conectar el tracking de PostHog (ya integrado) a una vista en Supabase/Admin.
-3. Transferencia de puntos entre clientes — necesita definir condiciones anti-fraude antes de construirse.
-4. Sistema de Puntos Fase 2 (campañas: doble/triple puntos, happy hour) — ver `docs/sistema-puntos-neggo.md`.
-5. Sistema de Puntos Fase 3 (Paquete de Bienvenida multi-aliado, compras grandes tipo vivienda).
+2. Transferencia de puntos entre clientes — necesita definir condiciones anti-fraude antes de construirse.
+3. Sistema de Puntos Fase 2 (campañas: doble/triple puntos, happy hour) — ver `docs/sistema-puntos-neggo.md`.
+4. Sistema de Puntos Fase 3 (Paquete de Bienvenida multi-aliado, compras grandes tipo vivienda).
 
 ## Bloqueado por decisión de negocio (no técnico — Jhey decide, no requiere código)
 - Confirmar el valor de la franja del Sello de Confianza para ingresos >$20.000.000/mes (hoy $40.000, propuesto por Claude, nunca confirmado explícitamente).
@@ -36,6 +35,7 @@
 - Wazuh / SIEM real con servidor propio — solo tiene sentido si Neggo llega a operar servidores propios (poco probable dado el rumbo serverless). Hoy cubierto por el "SIEM-lite" (audit_log + panel Auditoría + revisión semanal).
 
 ## Completado recientemente (para contexto, detalle completo en roadmap-pendientes.md)
+- Comercios más buscados / secciones más usadas en Estadísticas Admin — analítica propia en Supabase (no PostHog, decisión de arquitectura explícita), commiteado, pendiente de deploy (25 jul).
 - Fix "Failed to fetch dynamically imported module" — deployado (version `886423d9-ec13-48ba-ae1a-c00a20c84f90`) y verificado en vivo cargando el bundle real de neggo.co en el navegador (25 jul).
 - SIEM-lite: audit_log activo, panel Auditoría, revisión semanal automática (25 jul).
 - Validación de correo/celular en registro B2B/B2C (25 jul).
