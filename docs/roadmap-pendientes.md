@@ -44,8 +44,26 @@ Cualquier idea/nota que Jhey mencione al pasar se anota acá en el momento, con 
 - Modelo de tarifas de puntos por comercio (Estándar/Plus/Premium — valores aún sin definir)
 - Presupuesto de puntos para compras de alto valor (% de comisión real de Neggo)
 
-## Diseño visual pendiente (mejora, no bug)
-- Sistema de Campañas (CampanasListPanel, tarjetas de campaña en OfertasView, mini-CRM por campaña) funciona correctamente pero el diseño visual es plano — necesita una pasada de diseño más cuidada en la próxima sesión (mismo nivel de pulido que el resto del sistema de diseño "fintech premium" ya usado en el resto de Neggo).
+## Completado (sesión 24 jul 2026, continuación 5) — Diseño visual de Campañas
+- `CampanasListPanel.tsx` (lista de campañas propias, bancos/comercios): rediseñada al mismo nivel que `CampanaOfferCard` (OfertasView) — icono por tipo (banco/comercio), chips de segmentación en vez de texto plano, badge de modo de lanzamiento, grid de 2 columnas, hover/selected más marcados. Las tarjetas de OfertasView ya estaban en ese nivel (no necesitaron cambios).
+- Empty-state "Selecciona una campaña" en `MisCampanasTab.tsx` y `CampanasTab.tsx`: mismo lenguaje visual (icono en chip de color, borde punteado).
+- Mini-CRM por campaña (`SolicitudesTab.tsx`, bancos/comercios) queda fuera de este pase — es un CRM funcional con pipeline/búsqueda, no una tarjeta plana; si se quiere pulir necesita su propia sesión de diseño.
+
+## Completado (sesión 24 jul 2026, continuación 6) — Auditoría de seguridad/arquitectura
+Disparada explícitamente por Jhey. Verificado con evidencia real (consultas SQL directas, no supuestos):
+- **RLS**: las 31 tablas de `public` tienen RLS habilitado — ninguna tabla expuesta sin RLS.
+- **Funciones sensibles (dinero/estado)**: revisadas 7 funciones SECURITY DEFINER que mueven plata o cambian estado (`canjear_puntos`, `confirmar_pago_factura`, `emitir_puntos_por_compra`, `registrar_cierre_lead`, `registrar_compra_oferta`, `reportar_pago_factura`, `responder_oferta_comercio`) — todas tienen guarda de autorización real (auth.uid()/membership/is_platform_admin()) y `SET search_path`, no dependen solo de RLS.
+- **Tabla `users`**: política SELECT acotada (fila propia, Admin, o relación B2B puntual vía función) — sin fuga de datos personales a cualquier autenticado.
+- **Storage**: un solo bucket (`facturas-clientes`), privado, con RLS por carpeta=dueño + relación de compra — sin bucket público con documentos personales.
+- **Secretos**: sin claves ni service role hardcodeadas en `web/src` (grep verificado).
+- **MFA**: `MFA_ENFORCEMENT_ENABLED = true` en config de la app (confirmado en código).
+- Cerrado en esta sesión: 4 funciones de trigger sin `search_path` fijo (`update_updated_at`, `set_codigo_verificacion`, `generar_codigo_verificacion`, `set_codigo_verificacion_me_interesa`) — riesgo bajo (no eran SECURITY DEFINER) pero gratis de cerrar. Migración `20260724_hardening_search_path_triggers.sql`, verificado con `proconfig` después de aplicar.
+- Revisado y descartado como falso positivo: `busquedas_sin_match` y `fallos_app` tienen INSERT abierto (`WITH CHECK true`) pero su SELECT es admin-only — son canales de escritura ciega (telemetría), no fuga de datos.
+
+### Pendiente de acción (no técnica / requiere decisión)
+- **Leaked Password Protection deshabilitado** en Supabase Auth — gratis, revisa contraseñas contra HaveIBeenPwned. No se puede activar por SQL/MCP, es un toggle en el dashboard de Supabase (Authentication → Policies). Recomendado activarlo ya.
+- **`audit_log` existe pero no se usa de verdad**: 1 sola fila, la más reciente del 2 de julio, y ninguna función del esquema le escribe hoy. Para un fintech bajo Ley 1581, un rastro de auditoría real (quién accedió/modificó qué) es relevante para trazabilidad y respuesta a incidentes — hoy es una tabla de papel. No se construyó en esta sesión (es un feature aparte, no un fix rápido) — queda como decisión pendiente de prioridad.
+- **`pg_net` instalado en schema `public`**: cosmético/lint, moverlo requiere revisar si algo depende de esa ubicación (ej. webhooks) — no se tocó por precaución, bajo impacto.
 
 ## Regla permanente — Auditoría de seguridad/arquitectura
 Pendiente disparar cuando el usuario lo indique explícitamente ("toca la arquitectura"), no automático: auditoría enfocada en prevenir accesos indebidos y fuga de datos de clientes, con foco en cumplimiento de la Ley 1581 (protección de datos personales). Referencia: `docs/seguridad-infraestructura-futura.md` y el patrón ya usado en la auditoría del 24 jul (RLS, linter, MFA, hardening de funciones).
@@ -53,3 +71,20 @@ Pendiente disparar cuando el usuario lo indique explícitamente ("toca la arquit
 ## Completado (sesión 24 jul 2026, continuación 2)
 - Rediseño del home/landing y login por claridad de mensaje (ver `docs/landing-rediseno.md`, sección "Ronda 2") — motivado por feedback real de 15+ personas que no entendían qué hace Neggo.
 - Agregada guía de arquitectura de contenido ("dónde va cada cosa") en `docs/landing-rediseno.md` para futuras rondas de copy.
+
+## Completado (sesión 24 jul 2026, continuación 3) — Sello de Confianza, suscripción mensual
+Motivado por 3 comercios reales esperando confirmación de precio. Sistema nuevo, separado del CPL/comisión existente:
+- Franjas automáticas por ingreso mensual declarado: <$300.000 → $5.000 · $300.000–$10.000.000 → $20.000 · $10.000.001–$20.000.000 → $28.000 · >$20.000.000 → $40.000 (esta última, propuesta mía siguiendo la tendencia de las 2 franjas que dio Jhey — **falta confirmación explícita**).
+- Sin prorrateo — el primer cobro sale completo en el primer ciclo mensual donde el comercio ya tenga el ingreso declarado.
+- `organizations.ingresos_mensuales_declarados` (+ quién y cuándo lo declaró) — se pide progresivo, no todo junto: el comercio lo declara la primera vez que entra ya aprobado (tarjeta en "Lo que le debes a Neggo"), o el Admin lo corrobora/asigna antes desde el panel de Tarifas del Sello.
+- `tarifas_sello_negociadas` (append-only, mismo patrón que `tarifas_comercio_negociadas`) — el Admin puede pisar el valor automático por comercio, incluido ponerlo en $0 para regalar el Sello a algunos clientes sí y a otros no (la promesa "primeros 50 gratis" del landing se resuelve así: decisión manual por comercio, no automática para todos).
+- El cobro entra como línea propia en el ledger (`concepto = 'Sello de Confianza — Suscripción mensual'`), separado de CPL/comisión, dentro de la misma factura mensual — sin ciclo de facturación nuevo.
+- Migración: `supabase/migrations/20260724_sello_confianza_suscripcion.sql`. Verificado con evidencia real (franjas probadas contra los límites exactos, incluido el caso $10.000.001 → $28.000).
+- **Pendiente de confirmación de Jhey:** el valor de la franja >$20.000.000/mes ($40.000, propuesto por mí, no confirmado explícitamente).
+
+## Completado (sesión 24 jul 2026, continuación 4) — Consolidación de Tarifas y Planes
+Motivado por confusión real: la lista de Comercios tenía un selector "Asignar plantilla..." que modificaba la tarifa CPL/comisión desde ahí mismo, duplicando la capacidad de edición que ya existía en el panel de Tarifas Negociadas — dos lugares para tocar lo mismo. Se consolidó a un solo lugar editable:
+- Lista de Comercios: las columnas "Tarifa Vigente" y "Sello" ahora son de solo lectura (plan/valor/si es negociada) con click que navega directo al comercio correcto en Tarifas y Planes — ya no se modifica nada desde la lista.
+- Panel de Tarifas Negociadas (CPL/comisión): se agregó un selector "Aplicar plantilla" dentro del único formulario de asignación — prellena los valores, pero se pueden seguir editando a mano (queda como "Personalizado" en el historial si se edita).
+- Panel del Sello: mismo tratamiento — selector de franja estándar que prellena el valor mensual, editable, con puente de preselección desde la lista de Comercios (igual que ya existía para CPL).
+- Nueva función `fetchTarifasSelloVigentesPorComercios` (bulk, sin N+1) para resolver el valor del Sello de toda la lista de una sola vez.
