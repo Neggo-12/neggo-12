@@ -19,6 +19,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import {
   buscarComerciosVerificados,
   registrarBusquedaSinMatch,
+  registrarEventoUsoCliente,
   registrarContactoComercio,
   fetchClienteComercioContactos,
   fetchOrganizationsByIds,
@@ -405,6 +406,12 @@ export default function BuscarComerciosView() {
     }
   }, [termino, searchStatus, ciudad, session?.userId]);
 
+  const handleContactar = useCallback((comercio: ComercioBuscadorRow) => {
+    setContactando(comercio);
+    // Fire-and-forget: alimenta el ranking de "comercios más buscados" en Admin.
+    void registrarEventoUsoCliente({ tipoEvento: 'seleccion_comercio', organizationId: comercio.id });
+  }, []);
+
   return (
     <div className="animate-fade-in space-y-6">
       {/* Header */}
@@ -466,7 +473,7 @@ export default function BuscarComerciosView() {
       ) : results.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {results.map((c) => (
-            <ComercioCard key={c.id} comercio={c} onContactar={setContactando} />
+            <ComercioCard key={c.id} comercio={c} onContactar={handleContactar} />
           ))}
         </div>
       ) : (

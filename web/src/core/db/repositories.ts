@@ -2620,6 +2620,87 @@ export async function registrarBusquedaSinMatch(input: {
   return { error: null };
 }
 
+/**
+ * Registra un evento de uso del cliente (analítica propia, no PostHog) —
+ * fire-and-forget, nunca debe bloquear la UI. Alimenta las vistas
+ * `comercios_mas_buscados` y `secciones_mas_usadas` que ve Admin en
+ * Estadísticas.
+ */
+export async function registrarEventoUsoCliente(
+  input:
+    | { tipoEvento: 'seleccion_comercio'; organizationId: string }
+    | { tipoEvento: 'cambio_seccion'; seccion: string },
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.from('eventos_uso_cliente').insert({
+    tipo_evento: input.tipoEvento,
+    organization_id: input.tipoEvento === 'seleccion_comercio' ? input.organizationId : null,
+    seccion: input.tipoEvento === 'cambio_seccion' ? input.seccion : null,
+  });
+  if (error) return { error: errMessage(error) };
+  return { error: null };
+}
+
+export interface ComercioMasBuscado {
+  organizationId: string;
+  name: string;
+  ciudad: string | null;
+  totalSelecciones: number;
+  ultimaSeleccion: string;
+}
+
+/** Ranking de comercios más seleccionados/contactados por clientes (vista `comercios_mas_buscados`, security_invoker=true — solo Admin puede leerla vía RLS de eventos_uso_cliente). */
+export async function fetchComerciosMasBuscados(
+  limit = 20,
+): Promise<{ data: ComercioMasBuscado[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('comercios_mas_buscados')
+    .select('organization_id, name, ciudad, total_selecciones, ultima_seleccion')
+    // El ORDER BY de la vista no se garantiza en la consulta externa (doc de
+    // Postgres sobre CREATE VIEW) — hay que repetirlo acá, mismo motivo que
+    // fetchFacturasResumenPorNegocio.
+    .order('total_selecciones', { ascending: false })
+    .limit(limit);
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      organizationId: r.organization_id,
+      name: r.name,
+      ciudad: r.ciudad,
+      totalSelecciones: r.total_selecciones,
+      ultimaSeleccion: r.ultima_seleccion,
+    })),
+    error: null,
+  };
+}
+
+export interface SeccionMasUsada {
+  seccion: string;
+  totalVistas: number;
+  ultimaVista: string;
+}
+
+/** Ranking de secciones más visitadas por clientes (vista `secciones_mas_usadas`, security_invoker=true — solo Admin puede leerla). */
+export async function fetchSeccionesMasUsadas(): Promise<{ data: SeccionMasUsada[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('secciones_mas_usadas')
+    .select('seccion, total_vistas, ultima_vista')
+    // Mismo motivo que fetchComerciosMasBuscados: el ORDER BY de la vista no
+    // se garantiza en la consulta externa, hay que repetirlo acá.
+    .order('total_vistas', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return {
+    data: (data ?? []).map((r) => ({
+      seccion: r.seccion,
+      totalVistas: r.total_vistas,
+      ultimaVista: r.ultima_vista,
+    })),
+    error: null,
+  };
+}
+
 /** Registra el contacto de un cliente a un comercio verificado — RPC SECURITY DEFINER (valida Sello activo y cobra el CPL del plan). */
 export async function registrarContactoComercio(input: {
   comercioId: string;

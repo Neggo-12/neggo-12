@@ -16,6 +16,7 @@ import {
   insertSenalInteres,
   fetchSenalesInteresByCliente,
   fetchClienteContactInfo,
+  registrarEventoUsoCliente,
   type MeInteresaDestinatarioDisplay,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
@@ -225,7 +226,11 @@ export const usePortalStore = create<PortalState>((set, get) => ({
   isMetasHydrated: false,
   dbError: null,
 
-  setActiveTab: (tab) => set({ activeTab: tab }),
+  setActiveTab: (tab) => {
+    set({ activeTab: tab });
+    // Fire-and-forget: alimenta el ranking de "secciones más usadas" en Admin.
+    void registrarEventoUsoCliente({ tipoEvento: 'cambio_seccion', seccion: tab });
+  },
   setNuevaSolicitudOpen: (open) => set({ isNuevaSolicitudOpen: open }),
 
   addSolicitudBanco: async (input) => {

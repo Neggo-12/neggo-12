@@ -1442,6 +1442,41 @@ export type Database = {
           },
         ]
       }
+      eventos_uso_cliente: {
+        Row: {
+          id: string
+          tipo_evento: string
+          organization_id: string | null
+          seccion: string | null
+          cliente_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tipo_evento: string
+          organization_id?: string | null
+          seccion?: string | null
+          cliente_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tipo_evento?: string
+          organization_id?: string | null
+          seccion?: string | null
+          cliente_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_uso_cliente_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       puntos_liquidaciones: {
         Row: {
           id: string
@@ -1486,6 +1521,24 @@ export type Database = {
       }
     }
     Views: {
+      comercios_mas_buscados: {
+        Row: {
+          organization_id: string
+          name: string
+          ciudad: string | null
+          total_selecciones: number
+          ultima_seleccion: string
+        }
+        Relationships: []
+      }
+      secciones_mas_usadas: {
+        Row: {
+          seccion: string
+          total_vistas: number
+          ultima_vista: string
+        }
+        Relationships: []
+      }
       facturas_resumen_por_negocio: {
         Row: {
           organization_id: string
