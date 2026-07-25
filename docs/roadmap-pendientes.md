@@ -20,7 +20,7 @@
 
 ## Pendientes activos (por prioridad)
 1. **Timeout de sesión a 15 min** — bloqueado por plan gratis de Supabase, requiere activar Pro ($25/mes).
-2. **Estadísticas más completas del Admin** — hoy solo 3 KPIs básicos de Clientes; falta desglose más profundo (a definir qué exactamente).
+2. ~~**Estadísticas más completas del Admin**~~ — completado (commit `c7530f9`, 24 jul): activos/inactivos (30d), top ciudades, tendencia de registros, uso real (Meta/solicitud/puntos) en Clientes; nuevo panel Estadísticas con ranking de campañas por leads y de negocios B2B por ingresos reales. Pendiente: comercios más buscados y secciones más usadas por clientes — requieren conectar PostHog (ya integrado en producción), no hay tracking de eso en Supabase hoy. Seguridad revisada: PostHog es SOC 2 Type II y GDPR-compliant (hosting EU disponible), plan gratis sin tarjeta (1M eventos/mes) — evaluar cuando se decida conectar.
 3. **npm audit**: bajó de 13 a 9 (commit `107d24a`, 24 jul) — cerradas postcss, sharp y la cadena wrangler/workerd/miniflare sin breaking changes. Quedan 9 abiertas, las 3 requieren salto de versión mayor, ninguna aplicada todavía: esbuild/vite (→ vite@8.1.5), react-router (serie 6.x completa vulnerable, fix real es v7.x), brace-expansion anidado en @typescript-eslint (→ eslint@10). No afectan producción hoy. Cada una necesita su propia sesión de evaluación de breaking changes — no resolver a la ligera.
 
 ## Completado (sesión 24 jul 2026, continuación)
