@@ -125,3 +125,11 @@ Motivado por registros de prueba con datos claramente falsos (ej. `correoheg@hei
   - Celular: 10 dígitos, debe iniciar en 3 (móvil colombiano), acepta y limpia prefijo +57/57, rechaza secuencias de dígito repetido (ej. `1111111111`, `3333333333`).
 - Wireado en `LoginEcosistema.tsx`: `B2BRegister` (correo con contexto corporativo solo para sector banca/constructora, general para comercio; teléfono siempre validado) y `B2CRegister` (correo general, celular validado) — feedback inline igual al patrón ya usado para confirmación de contraseña, gatea `canSubmit`.
 - Defensa en profundidad server-side: migración `20260725_validacion_email_celular_registro.sql` — helpers `_validar_formato_email`/`_validar_celular_co` (mismas reglas, `SET search_path`) llamados desde `registrar_b2b_completo`/`registrar_b2c_completo` antes de cualquier INSERT. Verificado con evidencia real: consulta SQL directa contra los 2 helpers con 7 casos (correo sin TLD, correo válido, celular `1111111111`, celular válido, celular con prefijo +57, celular repetido `3333333333`, celular corto) — los 7 resultados coincidieron con lo esperado. Revisado `get_advisors` (security) post-migración: sin hallazgos nuevos, solo los ya conocidos de auditorías previas.
+
+## Deploy verificado — fix de chunk-error (25 jul 2026, continuación)
+
+Commit `1c162b5` (ErrorBoundary.tsx + main.tsx, auto-reload al fallar la carga de un chunk dinámico) deployado vía Claude Code terminal:
+- `npx wrangler login` con compramosfacil.com@gmail.com, luego `npx wrangler deploy`.
+- Version ID: `886423d9-ec13-48ba-ae1a-c00a20c84f90`.
+- Verificación en vivo (no solo dashboard/curl, per regla de CLAUDE.md): con Claude in Chrome se cargó `https://neggo.co/assets/index-CA3VgZ9V.js` directamente en el navegador (1.632.214 bytes, mismo hash del build) y se confirmó por contenido real que el código del fix está presente: `neggo_chunk_reload_attempted`, `vite:preloadError`, y el patrón de detección `Failed to fetch dynamically imported module` — los tres presentes en el bundle servido por el dominio público.
+- Pendiente (no bloqueante): reproducir el escenario real (pestaña vieja abierta + deploy nuevo) para observar el reload automático en acción, no solo confirmar que el código está.

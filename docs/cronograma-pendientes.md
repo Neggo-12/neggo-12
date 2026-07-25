@@ -8,15 +8,14 @@
 - **Arranque de marketing** — en definición ahora mismo.
 
 ## Corto plazo (próximas sesiones, sin bloqueo de plata ni de decisión de negocio)
-1. Fix directo del error más común en producción: "Failed to fetch dynamically imported module" (13 de 23 fallos registrados) — ocurre cuando alguien tiene una pestaña vieja abierta y se hace un deploy nuevo. Código listo y commiteado (`1c162b5`), pendiente de deploy y verificación en vivo.
-2. npm audit — 3 vulnerabilidades restantes, ninguna con exploit activo conocido en producción hoy. Plan de ejecución: una por sesión, nunca las 3 juntas (para aislar cuál rompe algo si aparece un error), de menor a mayor riesgo:
+1. npm audit — 3 vulnerabilidades restantes, ninguna con exploit activo conocido en producción hoy. Plan de ejecución: una por sesión, nunca las 3 juntas (para aislar cuál rompe algo si aparece un error), de menor a mayor riesgo:
    - **a. eslint chain (brace-expansion anidado) → eslint 10** — solo dev, no llega al build de producción. Riesgo más bajo, primera en hacerse.
    - **b. esbuild/vite → vite 8** — afecta solo el dev server, no el bundle final. Riesgo medio: hay que verificar que `dist/` no cambie de comportamiento tras el bump.
    - **c. react-router-dom 6→7** — el único que corre en producción real. Cambios de API que rompen (breaking). Requiere sesión dedicada con regresión manual completa (todas las rutas, todos los roles) vía Claude Code terminal, porque `vitest` no corre en este sandbox (bug arm64 conocido).
-3. Comercios más buscados / secciones más usadas por clientes en Estadísticas — requiere conectar el tracking de PostHog (ya integrado) a una vista en Supabase/Admin.
-4. Transferencia de puntos entre clientes — necesita definir condiciones anti-fraude antes de construirse.
-5. Sistema de Puntos Fase 2 (campañas: doble/triple puntos, happy hour) — ver `docs/sistema-puntos-neggo.md`.
-6. Sistema de Puntos Fase 3 (Paquete de Bienvenida multi-aliado, compras grandes tipo vivienda).
+2. Comercios más buscados / secciones más usadas por clientes en Estadísticas — requiere conectar el tracking de PostHog (ya integrado) a una vista en Supabase/Admin.
+3. Transferencia de puntos entre clientes — necesita definir condiciones anti-fraude antes de construirse.
+4. Sistema de Puntos Fase 2 (campañas: doble/triple puntos, happy hour) — ver `docs/sistema-puntos-neggo.md`.
+5. Sistema de Puntos Fase 3 (Paquete de Bienvenida multi-aliado, compras grandes tipo vivienda).
 
 ## Bloqueado por decisión de negocio (no técnico — Jhey decide, no requiere código)
 - Confirmar el valor de la franja del Sello de Confianza para ingresos >$20.000.000/mes (hoy $40.000, propuesto por Claude, nunca confirmado explícitamente).
@@ -37,6 +36,7 @@
 - Wazuh / SIEM real con servidor propio — solo tiene sentido si Neggo llega a operar servidores propios (poco probable dado el rumbo serverless). Hoy cubierto por el "SIEM-lite" (audit_log + panel Auditoría + revisión semanal).
 
 ## Completado recientemente (para contexto, detalle completo en roadmap-pendientes.md)
+- Fix "Failed to fetch dynamically imported module" — deployado (version `886423d9-ec13-48ba-ae1a-c00a20c84f90`) y verificado en vivo cargando el bundle real de neggo.co en el navegador (25 jul).
 - SIEM-lite: audit_log activo, panel Auditoría, revisión semanal automática (25 jul).
 - Validación de correo/celular en registro B2B/B2C (25 jul).
 - Sello de Confianza — suscripción mensual por franja de ingresos (24 jul).
