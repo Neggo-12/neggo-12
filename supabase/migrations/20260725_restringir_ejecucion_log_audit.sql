@@ -1,0 +1,11 @@
+-- Hallazgo propio (no de advisors): _log_audit quedó con EXECUTE abierto a
+-- anon/authenticated por el comportamiento default de Postgres (GRANT EXECUTE
+-- a PUBLIC en toda función nueva). Eso permitía a cualquier usuario autenticado
+-- llamar directo a /rest/v1/rpc/_log_audit y forjar entradas de auditoría
+-- (event_type y user_id arbitrarios, sin verificar auth.uid()) — inutilizaría
+-- el propósito del audit_log. Se restringe a solo uso interno: las 7 funciones
+-- que lo invocan (SECURITY DEFINER, dueñas = postgres) lo pueden seguir
+-- llamando sin problema porque el chequeo de EXECUTE corre bajo el rol dueño,
+-- no bajo el rol del cliente. Verificado: tras el revoke, role_routine_grants
+-- solo muestra postgres/service_role para _log_audit.
+revoke execute on function public._log_audit(text, text, text, jsonb) from public, anon, authenticated;

@@ -3255,6 +3255,46 @@ export async function fetchMeInteresaSolicitudesByCliente(
   };
 }
 
+// ───── Auditoría / SIEM-lite (Admin) ─────
+
+export type AuditLogRow = Database['public']['Tables']['audit_log']['Row'];
+export type SeguridadAdvisorsSnapshotRow = Database['public']['Tables']['seguridad_advisors_snapshot']['Row'];
+
+/** Últimas 50 entradas de audit_log (acciones sensibles: dinero/estado). Solo Admin (RLS). */
+export async function fetchAuditLogReciente(): Promise<{
+  data: AuditLogRow[] | null;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+
+  const { data, error } = await supabase
+    .from('audit_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: data ?? [], error: null };
+}
+
+/** Último snapshot de advisors de seguridad (lo escribe la revisión periódica externa). Solo Admin (RLS). */
+export async function fetchUltimoSnapshotAdvisors(): Promise<{
+  data: SeguridadAdvisorsSnapshotRow | null;
+  error: string | null;
+}> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+
+  const { data, error } = await supabase
+    .from('seguridad_advisors_snapshot')
+    .select('*')
+    .order('checked_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: data ?? null, error: null };
+}
+
 // ───── Salud del Sistema (Admin) ─────
 
 /** Últimos 50 fallos de escrituras críticas + conteo de las últimas 24h. Solo Admin (RLS). */

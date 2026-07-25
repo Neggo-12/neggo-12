@@ -4,6 +4,7 @@ import AlgorithmMonitor from '@/features/admin/components/AlgorithmMonitor';
 import KPICard from '@/components/KPICard';
 import SeguridadTab from '@/features/shared/components/SeguridadTab';
 import SaludSistemaPanel from '@/features/admin/components/SaludSistemaPanel';
+import AuditoriaPanel from '@/features/admin/components/AuditoriaPanel';
 import ClientesPanel from '@/features/admin/components/ClientesPanel';
 import EstadisticasPanel from '@/features/admin/components/EstadisticasPanel';
 import TarifasComercioNegociadasPanel from '@/features/admin/components/TarifasComercioNegociadasPanel';
@@ -43,6 +44,7 @@ import {
   X,
   Handshake,
   Coins,
+  ScrollText,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Fragment, useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -89,6 +91,7 @@ const adminSections = [
   { key: 'conciliacion' as const, label: 'Conciliación de Pagos', icon: ClipboardCheck },
   { key: 'senales-interes' as const, label: 'Clientes en Espera', icon: Bell },
   { key: 'salud-sistema' as const, label: 'Salud del Sistema', icon: HeartPulse },
+  { key: 'auditoria' as const, label: 'Auditoría', icon: ScrollText },
   ...(MFA_ENFORCEMENT_ENABLED ? [{ key: 'seguridad' as const, label: 'Seguridad', icon: Lock }] : []),
 ];
 
@@ -303,6 +306,8 @@ export default function AdminDashboard() {
           {activeSection === 'seguridad' && <SeguridadTab />}
 
           {activeSection === 'salud-sistema' && <SaludSistemaPanel />}
+
+          {activeSection === 'auditoria' && <AuditoriaPanel />}
         </div>
       </div>
     </div>

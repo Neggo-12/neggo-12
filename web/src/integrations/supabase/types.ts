@@ -110,6 +110,36 @@ export type Database = {
         }
         Relationships: []
       }
+      seguridad_advisors_snapshot: {
+        Row: {
+          id: string
+          checked_at: string
+          security_warnings_count: number
+          performance_warnings_count: number | null
+          hallazgos: Json
+          notas: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          checked_at?: string
+          security_warnings_count?: number
+          performance_warnings_count?: number | null
+          hallazgos?: Json
+          notas?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          checked_at?: string
+          security_warnings_count?: number
+          performance_warnings_count?: number | null
+          hallazgos?: Json
+          notas?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       facturas_ledger: {
         Row: {
           id: string
