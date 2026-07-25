@@ -32,7 +32,7 @@ Orden de prioridad de esta campaña = mismo orden de `estrategia-adquisicion-cli
 | LinkedIn personal (Jhey) | Autoridad + explicación + B2B | Fundador, primera persona, estilo del ejemplo del precio ancla | Bancos y constructoras se deciden por relación fundador-a-fundador (ya documentado); dueños de comercio "premium" (odontología, spa, remodelación) también están en LinkedIn buscando proveedores. |
 | Instagram/Facebook Neggo | Alcance local + generación de demanda B2C | Marca Neggo, cercana, Medellín | Ya recomendado en `estrategia-adquisicion-clientes-neggo.md` sección 8 ("publicaciones orgánicas... enfocadas en Medellín") — es donde están los clientes finales y muchos dueños de comercio gestionan su propio Instagram. |
 
-Base orgánica (sin costo, tiempo del founder) + capa de pauta paga agregada el 25 jul cuando Jhey confirmó presupuesto disponible — ver sección 11.
+Base orgánica (sin costo, tiempo del founder) + capa de pauta paga agregada el 25 jul cuando Jhey confirmó presupuesto disponible — ver sección 12.
 
 ## 4. Calendario de contenido — 3 semanas
 
@@ -254,37 +254,66 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 
 Regla para la automatización: tomar siempre el primer post "Pendiente" de arriba hacia abajo (que no esté bloqueado), dejarlo armado en el compositor del canal correspondiente, actualizar su estado acá a "Armado el [fecha], pendiente de Publicar", y avisar a Jhey en el chat. Nunca saltar L5 hasta que su bloqueo se resuelva — pasar al siguiente pendiente en su lugar. Nunca tocar el botón de publicar/compartir — eso lo hace Jhey siempre.
 
-## 11. Pauta paga (agregado 25 jul — presupuesto ahora disponible)
+## 11. Stack de herramientas — torre de control (agregado 25 jul)
 
-Capa nueva sobre la base orgánica de las secciones 3-6, no la reemplaza — la pauta acelera alcance, el contenido orgánico sigue construyendo confianza y comprensión (una campaña 100% paga sin contenido real detrás se siente vacía y sube el costo por lead).
+Jhey compartió una lista de 13 herramientas de IA (imagen "Mi stack de IA", de Giovanni Stella/IA Con Canas) y pidió organizar cuáles usar para Neggo, con pro/contra, evitando desorden de herramientas sueltas. Veredicto por herramienta, evaluado específicamente para un founder solo operando un fintech en Medellín — no para una agencia con equipo grande:
 
-| Canal | Público objetivo | Objetivo | Formato de anuncio |
-|---|---|---|---|
-| LinkedIn Ads | Tomadores de decisión en bancos y constructoras (cargos: gerencia comercial, innovación, digital) en Medellín/Antioquia | Consideración — calentar terreno para Fase 2/3 de `estrategia-adquisicion-clientes-neggo.md` | Sponsored Content usando el copy de L1/L3/L4 como base (ya validado en formato orgánico) |
-| Meta Ads (Instagram/Facebook) | Geolocalizado Medellín — dueños de comercio (Poblado, Laureles, Envigado, Sabaneta) + clientes finales por interés en las categorías del ICP (sección 1 de `estrategia-adquisicion-clientes-neggo.md`) | Conversión directa — registro de Comercios y Clientes B2C | Reels/carrusel usando I2 (cómo funciona) e I4 (primeros 50 gratis) como creatividades base |
+| Herramienta | Categoría | Costo | A favor | En contra | Veredicto para Neggo |
+|---|---|---|---|---|---|
+| **Claude** (yo) | Estrategia, redacción, orquestación | Ya la usás | Es quien arma la estrategia, escribe el copy, opera Canva y el navegador por vos, y mantiene todo versionado en git | No genera video ni imágenes nativamente — ver aclaración abajo | **Usar** — es el centro de todo esto |
+| **NotebookLM** (Google) | Q&A grondado en tus propios documentos | Gratis (100 notebooks, 50 fuentes, 50 preguntas/día) | Subís `marketing-neggo.md` + `estrategia-adquisicion-clientes-neggo.md` + este plan como fuentes, y cualquiera en tu equipo futuro pregunta y solo responde con hechos reales — cero improvisación en una llamada. También genera un "video overview" automático desde tus documentos, gratis | Es un resumen automático, no un video de venta pulido | **Usar** — como "cerebro de marca" con fuente de verdad, y para probar gratis un primer video explicativo generado desde los documentos |
+| **Gamma** | Generador de presentaciones con IA | Tiene plan gratis | Arma el pitch deck que falta para bancos (pendiente en `marketing-neggo.md` sección 7: "guion de primera llamada/reunión con un banco") en minutos, a partir de texto | No reemplaza el copy ya trabajado, es solo el armado visual | **Usar** — específicamente para el deck de Bancos/Constructoras cuando llegue esa fase |
+| **Canva** | Piezas gráficas | Gratis (ya conectado) | Ya conectado a esta conversación, flujo brief→diseño armado, plantillas reales de redes | Requiere brief fuerte para no verse genérico (ver sección 14) | **Usar** — ya está conectado, arrancamos con esto |
+| **Gemini** | Asistente general / Q&A sobre video largo | Gratis con cuenta Google | Útil para analizar un video de una hora (ej. una charla, un webinar) | Redundante con Claude para lo que necesitás hoy | **Omitir por ahora** — no hay caso de uso claro todavía |
+| **ChatGPT en voz** | Brainstorming hablado | Gratis/pago | Pensar en voz alta caminando | Redundante — ya hacemos ese trabajo acá | **Omitir** |
+| **Higgsfield** | Generación de video con IA | Plan gratis existe pero con marca de agua, 720p, y límite diario — no viable para producción real | — | Marca de agua = no profesional para una marca fintech | **Omitir el plan gratis** — solo considerar si hay presupuesto para plan pago |
+| **Magnific** | Mejora/escalado de imágenes | Sin plan gratis | Resolución de estudio para fotos/capturas | Sin capa gratuita real | **Omitir por ahora** — no es prioridad sin presupuesto asignado a esto |
+| **Notion** | Segundo cerebro / notas | Gratis/pago | — | Ya tenés un sistema que funciona (documentos versionados en git, el mismo que usa todo el proyecto) — sumar Notion fragmenta en vez de organizar | **Omitir** — sería más desorden, no menos |
+| **Obsidian** | Notas personales locales | Gratis | — | Mismo motivo que Notion, y además no se comparte fácil en equipo | **Omitir** |
+| **Zapier / Make / n8n** | Automatización | Gratis/pago | — | Ya definiste en `cronograma-pendientes.md` que n8n queda en pausa porque las tareas programadas de Cowork (las que ya armamos) cubren esto sin costo extra | **Omitir** — decisión ya tomada, no reabrir sin una razón nueva |
+| **Anthropic Academy / Hugging Face** | Educación | Gratis | Útiles si en algún momento querés aprender a construir agentes vos mismo | No son herramientas operativas de marketing | **Opcional, no urgente** |
 
-**Asignación de presupuesto (framework, ajustar con el número real que definas):**
-- 60-70% al canal de mayor confianza hoy: Meta Ads (ya hay ICP y canales de Medellín bien definidos en `estrategia-adquisicion-clientes-neggo.md`; conversión más directa y medible que LinkedIn Ads).
-- 20-25% a LinkedIn Ads (ciclo de venta más largo, es para calentar Constructoras/Bancos, no cierre inmediato).
-- 10-15% de contingencia/testing (probar públicos, no comprometer todo el presupuesto en la primera semana).
+**Aclaración importante sobre Claude y video:** no genero ni edito video de forma nativa — no es una función real de este asistente, aunque exista la percepción de que sí. Lo que sí puedo hacer: escribir guiones, operar herramientas externas de video por vos usando tu sesión ya logueada (Claude in Chrome), y coordinar todo el proceso. La generación real de píxeles de video la hace siempre una herramienta externa — ver sección 13.
 
-**Falta para activar:** el número real de presupuesto mensual (para convertir los porcentajes en pesos) y que Jhey cree/tenga acceso a las cuentas de LinkedIn Campaign Manager y Meta Ads Manager — yo no puedo crear cuentas publicitarias ni cargar un medio de pago (política del asistente); si ya existen, puedo ayudar a armar la campaña dentro del Ads Manager vía navegador una vez estés logueado.
+## 12. Pauta paga — checklist de activación (agregado 25 jul, reorganizado para que no quede disperso)
 
-**Métrica nueva a trackear:** costo por lead pago (CPL de pauta) comparado contra el CPL de prospección directa ya usado con comercios ($30.000 COP, sección 1 de `estrategia-adquisicion-clientes-neggo.md`) — si la pauta sale más cara que prospectar directo, reasignar presupuesto.
+Capa nueva sobre la base orgánica de las secciones 3-6, no la reemplaza — la pauta acelera alcance, el contenido orgánico sigue construyendo confianza y comprensión.
 
-## 12. Videos explicativos (B2C y B2B)
+**Paso 1 — Definir el número.** Decidí el presupuesto mensual real en pesos. Sin este número no se puede activar nada — todo lo de abajo son porcentajes esperando ese dato.
 
-No hay conector de generación de video con IA disponible en el registro de Anthropic — se evaluó y no existe integración directa. La opción elegida es un avatar de IA vía herramienta externa, operada por vos con tu propia cuenta (yo no puedo crear la cuenta ni cargar el medio de pago).
+**Paso 2 — A qué canal va cada peso (una vez tengas el número):**
 
-**Herramienta recomendada: HeyGen** (investigado el 25 jul) — desde 24 USD/mes, permite crear un "Instant Avatar" tuyo a partir de una selfie/video corto (~5 min de setup), evita tener que grabarte cada vez que cambie el guion. Alternativa evaluada: Synthesia (mejor edición tipo timeline, pero el avatar personalizado cuesta 1.000 USD/año — mucho más caro para un founder solo). Decisión: arrancar con HeyGen por costo y velocidad de setup.
+| Canal | % sugerido | Público objetivo | Objetivo | Creatividad base |
+|---|---|---|---|---|
+| Meta Ads (Instagram/Facebook) | 60-70% | Geolocalizado Medellín — dueños de comercio (Poblado, Laureles, Envigado, Sabaneta) + clientes finales por interés en las categorías del ICP | Conversión directa — registro de Comercios y Clientes B2C | I2 (cómo funciona) e I4 (primeros 50 gratis) |
+| LinkedIn Ads | 20-25% | Tomadores de decisión en bancos y constructoras (gerencia comercial, innovación, digital), Medellín/Antioquia | Consideración — calienta Fase 2/3 de `estrategia-adquisicion-clientes-neggo.md`, no cierre inmediato | L1/L3/L4 |
+| Contingencia/testing | 10-15% | — | Probar públicos nuevos, no comprometer todo en la primera semana | — |
 
-**Cómo seguimos:** creá la cuenta en HeyGen y generá tu Instant Avatar — avisame cuando esté listo y te ayudo a operar la herramienta vía navegador (pegar guion, elegir voz/avatar, generar) con tu sesión ya logueada.
+Por qué Meta se lleva más: ya hay ICP y canales de Medellín bien definidos en `estrategia-adquisicion-clientes-neggo.md`, y la conversión es más directa y medible que LinkedIn Ads (ciclo de venta más largo, para B2B).
+
+**Paso 3 — Cuentas.** Crear (o darme acceso a) LinkedIn Campaign Manager y Meta Ads Manager. Yo no puedo crear cuentas publicitarias ni cargar un medio de pago — es una acción financiera que te corresponde a vos. Una vez estés logueado, te ayudo a armar la campaña completa dentro del Ads Manager vía navegador (targeting, creatividad, presupuesto por campaña).
+
+**Paso 4 — Lanzar y medir.** Métrica clave: costo por lead pago (CPL de pauta) comparado contra el CPL de prospección directa ya usado con comercios ($30.000 COP, sección 1 de `estrategia-adquisicion-clientes-neggo.md`). Si la pauta sale más cara que prospectar directo, reasignar presupuesto — revisar semanalmente, no dejarlo corriendo sin mirar.
+
+## 13. Videos explicativos (B2C y B2B) — stack 100% gratuito
+
+Pediste específicamente herramientas de video gratuitas y eficientes (no la opción paga que había propuesto antes con HeyGen). Investigado el 25 jul — esto es lo que realmente es gratis y sirve hoy:
+
+| Herramienta | Rol | Por qué |
+|---|---|---|
+| **NotebookLM** | Primer video de prueba, ya mismo, $0 | Subí los documentos de Neggo como fuentes y generá su "video overview" automático — es la forma más rápida de tener un primer video explicativo sin configurar nada nuevo. Calidad de resumen automático, no de venta pulida, pero sirve para validar el mensaje antes de invertir tiempo en algo más producido. |
+| **Seedance 2.0** | Generación de clips/B-roll | 100 créditos gratis que se renuevan cada día, 1080p real, **sin marca de agua**, sin tarjeta de crédito — la mejor opción gratuita para generar clips visuales de apoyo (no un avatar hablando, sino video conceptual/B-roll para acompañar los guiones). |
+| **CapCut (escritorio)** | Edición y armado final | Gratis, sin marca de agua, es el flujo gratuito más usado en 2026 para armar Reels/TikToks/Shorts — ahí se junta el B-roll de Seedance, texto en pantalla, y tu voz (grabada con el celular) o una voz de IA. |
+
+**Sobre el avatar hablando tipo fundador:** las opciones gratuitas de avatar realista (HeyGen, Synthesia) tienen marca de agua y límites diarios en su plan free — no se ven profesionales para una marca fintech. Si más adelante el presupuesto de pauta (sección 12) deja margen, ahí sí conviene pasar a HeyGen pago (24 USD/mes) para el avatar personalizado. Mientras tanto, el guion funciona igual de bien grabado por vos con el celular — de hecho, la voz real del fundador suele generar más confianza que un avatar sintético, coherente con el ángulo de autoridad que ya usamos en L3/L4.
+
+**Cómo seguimos:** creá cuenta gratis en Seedance 2.0 y en CapCut (o avisame si ya las tenés) — te ayudo a operar ambas vía navegador con tu sesión logueada. Mientras tanto, probamos ya mismo el video overview de NotebookLM subiendo los documentos de la campaña, sin esperar a nada más.
 
 **Guion 1 — B2C (Clientes finales), ~50 segundos**
 
 | Escena | Guion (hablado) | Nota visual |
 |---|---|---|
-| 1 (0-8s) | "¿Alguna vez sentiste miedo de que la 'oferta increíble' que te ofrecen por WhatsApp sea en realidad una estafa?" | Avatar mirando a cámara, tono directo |
+| 1 (0-8s) | "¿Alguna vez sentiste miedo de que la 'oferta increíble' que te ofrecen por WhatsApp sea en realidad una estafa?" | Vos a cámara (celular) o texto animado, tono directo |
 | 2 (8-20s) | "No sos vos siendo paranoico. Las estafas por WhatsApp haciéndose pasar por bancos son reales. Por eso en Neggo cada cliente tiene un código de verificación anti-phishing único — si alguien te contacta y el código no coincide, ya sabés que es falso." | Texto en pantalla: "Código único por sesión" |
 | 3 (20-35s) | "Además, ves el score financiero de cada oferta antes de comprometerte, y todo tu historial de compras queda guardado en un solo lugar — tu Bóveda del Cliente." | Texto en pantalla: 3 íconos (verificación / score / bóveda) |
 | 4 (35-50s) | "Buscá lo que necesitás en Medellín sin el miedo de siempre. Registrate gratis, el link está abajo." | CTA en pantalla + logo Neggo |
@@ -293,14 +322,14 @@ No hay conector de generación de video con IA disponible en el registro de Anth
 
 | Escena | Guion (hablado) | Nota visual |
 |---|---|---|
-| 1 (0-8s) | "Si tu negocio paga por pauta digital y no sabés con certeza si convierte, este video es para vos." | Avatar mirando a cámara |
+| 1 (0-8s) | "Si tu negocio paga por pauta digital y no sabés con certeza si convierte, este video es para vos." | Vos a cámara (celular) o texto animado |
 | 2 (8-25s) | "En Neggo no pagás por publicidad genérica. Pagás por resultado real: un cliente ya verificado, con score financiero visible, que efectivamente quiere lo que vendés." | Texto en pantalla: "Pagás por resultado, no por impresión" |
 | 3 (25-40s) | "Ya está construido y corriendo: verificación de identidad, pipeline con estados reales por sector, facturación automática mensual. No es una promesa en PowerPoint." | Texto en pantalla: checklist de 3 puntos |
 | 4 (40-55s) | "Los primeros 50 comercios de Medellín obtienen el Sello de Confianza gratis. Escribime o registrate — el link está abajo." | CTA + logo Neggo |
 
 Ambos guiones reutilizan solo hechos ya validados en `marketing-neggo.md` y las piezas L1-L5 — ningún dato nuevo inventado. Si más adelante querés un video por cada vertical B2B (Bancos / Constructoras / Comercios por separado en vez de la versión general), lo armamos sobre la tabla de mensajes de la sección 2.
 
-## 13. Piezas gráficas — dirección creativa
+## 14. Piezas gráficas — dirección creativa
 
 Decisión: conectar Canva (ya sugerido para conectar) en vez de armar piezas simples en SVG — la meta es atracción diaria de clientes, y una pieza que se ve genérica no compite bien en el feed. Canva además ya tiene un flujo armado (brief → diseño terminado → caption) listo para usar una vez conectado.
 
@@ -313,9 +342,9 @@ Decisión: conectar Canva (ya sugerido para conectar) en vez de armar piezas sim
 **Piezas gráficas prioritarias para esta primera tanda:**
 1. Carrusel I2 ("Cómo funciona Neggo en 3 pasos") — el más urgente, es la pieza de comprensión general.
 2. Tarjeta única para I4 (primeros 50 comercios gratis) — diseño de urgencia, un solo mensaje grande.
-3. Set de 3-4 tarjetas de "quote" con las frases gancho de L1-L4 (reutilizables también como creatividad de pauta paga en Meta Ads, sección 11).
+3. Set de 3-4 tarjetas de "quote" con las frases gancho de L1-L4 (reutilizables también como creatividad de pauta paga en Meta Ads, sección 12).
 
-## 14. Próximos pasos
+## 15. Próximos pasos
 
 1. Confirmar el incentivo de referido pendiente (sección 8) antes de publicar L5.
 2. Publicar L1 e I1/I2 esta semana — son los de comprensión general, base de todo lo demás.
