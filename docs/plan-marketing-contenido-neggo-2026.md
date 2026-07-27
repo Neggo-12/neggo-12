@@ -251,6 +251,11 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | L5 — Por qué "referí a un amigo" funciona | LinkedIn | 3 | Pendiente — **bloqueado hasta que Jhey defina el incentivo de referido (sección 8)** |
 | I4 — Primeros 50 comercios, Sello gratis | Instagram/Facebook | 3 | Pendiente |
 | I5 — No todo lo que dice ser tu banco, es tu banco | Instagram/Facebook | 3 | Pendiente |
+| O1 — Bases quemadas | LinkedIn | Serie origen | Pendiente |
+| O2 — "¿Vos sí sos del banco?" | LinkedIn | Serie origen | Pendiente |
+| O3 — Por qué nació Neggo | LinkedIn | Serie origen | Pendiente |
+
+La serie O (origen) va después de L3-L5 en la cola por defecto — se agregó al final de la tabla a propósito para no desordenar lo que ya estaba en curso. Si Jhey quiere adelantarla, moverla arriba de L3 en esta tabla.
 
 Regla para la automatización: tomar siempre el primer post "Pendiente" de arriba hacia abajo (que no esté bloqueado), dejarlo armado en el compositor del canal correspondiente, actualizar su estado acá a "Armado el [fecha], pendiente de Publicar", y avisar a Jhey en el chat. Nunca saltar L5 hasta que su bloqueo se resuelva — pasar al siguiente pendiente en su lugar. Nunca tocar el botón de publicar/compartir — eso lo hace Jhey siempre.
 
@@ -350,3 +355,78 @@ Decisión: conectar Canva (ya sugerido para conectar) en vez de armar piezas sim
 2. Publicar L1 e I1/I2 esta semana — son los de comprensión general, base de todo lo demás.
 3. Revisar métricas al final de la semana 1 (sección 7) antes de ajustar la semana 2.
 4. Si el contenido genera respuesta fuerte de Constructoras o Bancos antes de tiempo, está bien sostener conversación informal — solo no adelantar pitch formal (regla ya establecida en `estrategia-adquisicion-clientes-neggo.md`).
+
+## 16. Estrategia de alta frecuencia (agregado 27 jul) — inspirada en cuentas activas como Andrés Bilbao
+
+Jhey pidió subir la cadencia a 2-3 veces al día en LinkedIn, tomando como referencia cómo publican fundadores/inversionistas de alta visibilidad como Andrés Bilbao (Rappi, 30X). Antes de aplicarlo literal, una aclaración honesta:
+
+**Por qué "2-3 posts originales por día" no es lo primero que recomiendo.** LinkedIn muestra en el feed de tus contactos el contenido más reciente de cada persona que siguen — si publicás varias veces en pocas horas, tus propios posts compiten entre sí por el mismo espacio y el más nuevo suele opacar al anterior antes de que termine de circular. Bilbao tiene 135K seguidores y probablemente un equipo (mencionó a "Jose", su estratega de contenido) operando eso como sistema — no es un solo fundador escribiendo cada post en el momento.
+
+**Lo que sí propongo — "3 toques al día" en vez de "3 posts al día":**
+1. **1 post original propio por día** (o cada 2 días al principio, para no quemar el pool de contenido) — el vehículo principal.
+2. **1-2 comentarios sustanciosos por día** en posts de gente relevante (inversionistas, fundadores fintech, cuentas de bancos/constructoras) — como el que ya publicamos hoy en el post de Andrés Bilbao. Esto suma visibilidad sin competir por el mismo espacio de feed y es más barato de sostener.
+3. Esto sí replica el volumen real de actividad pública diaria que buscás, sin arriesgar que LinkedIn le baje el alcance a tus propios posts.
+
+Si después de probar unas semanas los datos (sección 18) muestran que publicar más de un post propio por día no perjudica el alcance en tu caso, subimos la frecuencia — se decide con evidencia, no a priori.
+
+**Sistema de pilares de contenido (para no depender de la inspiración del día a día):**
+
+| Pilar | Qué es | Frecuencia sugerida |
+|---|---|---|
+| Gancho psicológico + Neggo | Formato ya validado en L1-L5 (sesgo real → advertencia → conexión con producto → pregunta) | 1-2x/semana |
+| Serie origen | Historia real de por qué existe Neggo (sección 17) | 1x cada 2-3 días hasta agotar la serie |
+| Build in public | Actualización real y concreta de algo que se construyó/lanzó esa semana (sin inventar métricas) | 1x/semana |
+| Reacción/opinión de industria | Comentario de fondo sobre una noticia real de fintech/crédito en Colombia — no solo compartir, dar una opinión propia | 1x/semana |
+| Comentarios en cuentas relevantes | Como el de hoy en el post de Bilbao — sustancia real, nunca "gran post" | 1-2x/día |
+
+**Producción en batch (así se sostiene sin depender del ánimo del día, mismo criterio que usa Bilbao con su sistema):** en vez de escribir cada post el día que sale, conviene juntar una sesión semanal (por ejemplo, domingo) donde armamos 4-5 posts de una sola vez con este mismo formato de trabajo, y quedan en cola en la sección 9 esperando que Jhey los revise y publique cuando toque. Elimina la fricción de "hoy no tengo tiempo/ganas de escribir" — el contenido ya está listo, solo falta el botón Publicar.
+
+## 17. Serie "Por qué existe Neggo" — historia de origen (documentada 27 jul, basada en experiencia real de Jhey)
+
+Contexto real (contado por Jhey, sin agregar ni inventar detalles): antes de Neggo, trabajó años en un call center atendiendo procesos bancarios (Bancolombia, vía Konecta). Ahí vivió de primera mano el problema que después se convirtió en la razón de ser de Neggo: bases de datos "quemadas" (gente ya llamada muchas veces con la misma oferta), clientes que colgaban o pedían foto del carnet para confirmar que el asesor era real, poca conversión pese a que el producto sí resolvía una necesidad real, y bases "rellamadas" que la gente ya estaba cansada de recibir.
+
+Como con L1-L5, estos quedan listos para que Jhey los revise antes de armarlos en LinkedIn — mismo proceso, mismo criterio de nunca tocar Publicar sin su aprobación.
+
+---
+
+**O1 — Bases quemadas** (Serie origen, parte 1 de 3)
+
+> Antes de Neggo, trabajé años en un call center atendiendo procesos de banca. Ahí aprendí algo que ningún curso de ventas enseña: te entregaban bases de datos ya "quemadas" — gente que ya había recibido la misma llamada, del mismo banco, ofreciendo lo mismo, tantas veces que ya ni contestaba, o colgaba apenas reconocía el guión.
+>
+> No era falta de necesidad del producto. Era hartazgo. Y ese hartazgo se lo cobraban a quien menos culpa tenía: el asesor que llamaba ese día, con una base reciclada que ya nadie más quería tocar.
+>
+> Ahí empecé a hacerme una pregunta que no me soltó nunca más: ¿y si el problema no es el producto ni el vendedor, sino cómo se llega a la persona?
+
+---
+
+**O2 — "¿Vos sí sos del banco?"** (Serie origen, parte 2 de 3)
+
+> Lo que más me marcó no fueron los que colgaban. Fueron los que se quedaban en la línea, pero no confiaban.
+>
+> Me pedían foto de mi carnet antes de seguir la conversación — no porque no necesitaran el producto, sino porque no tenían ninguna forma real de confirmar que yo era quien decía ser. Y tenían toda la razón para dudar: las estafas telefónicas haciéndose pasar por bancos ya eran comunes en ese momento.
+>
+> El producto no era el problema. El problema era que no existía ninguna forma rápida de generar confianza en los primeros segundos de esa llamada.
+
+---
+
+**O3 — Por qué nació Neggo** (Serie origen, parte 3 de 3 — conecta con el producto)
+
+> La gente necesitaba el producto. Eso nunca fue el problema.
+>
+> El problema era llegar con bases recicladas, a gente cansada, sin ninguna forma real de generar confianza antes de pedirle que confiara a ciegas.
+>
+> De ahí salió la pregunta que años después se convirtió en Neggo: ¿y si en vez de perseguir con la misma base quemada, conectás con alguien que ya está buscando — y le das una forma de verificar quién sos antes de que tenga que confiar a ciegas?
+>
+> Por eso Neggo no funciona con bases frías ni con pauta genérica. Funciona con verificación de identidad y Sello de Confianza desde el primer contacto — la parte que a mí, del otro lado del teléfono, más falta me hizo tener.
+
+---
+
+## 18. Sistema de tracking — qué funciona y qué no (agregado 27 jul)
+
+Tabla para registrar cada post/comentario publicado y revisar semanalmente qué formato/pilar realmente genera resultado — se llena a mano por Jhey después de publicar cada pieza (la automatización no tiene acceso a las métricas de LinkedIn).
+
+| Fecha | Pieza | Pilar | Impresiones (24h) | Comentarios | Visualizaciones de perfil (esa semana) | Solicitudes de conexión nuevas | Nota |
+|---|---|---|---|---|---|---|---|
+| | | | | | | | |
+
+Cadencia de revisión: semanal, mismo día que se revisan las métricas de la sección 7. Preguntas para esa revisión: ¿qué pilar generó más impresiones? ¿los comentarios en cuentas de terceros generaron más visualizaciones de perfil que los posts propios? ¿publicar más de una vez al día bajó o subió el alcance del segundo post? Con 2-3 semanas de datos reales se decide si se sube la frecuencia de posts propios (sección 16) o se mantiene el esquema de post + comentarios.
