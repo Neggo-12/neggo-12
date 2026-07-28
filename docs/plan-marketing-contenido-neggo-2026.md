@@ -242,10 +242,10 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | Post | Canal | Semana | Estado |
 |---|---|---|---|
 | L1 — El ancla del "hazlo tú mismo" | LinkedIn | 1 | Armado en el cuadro de LinkedIn el 25 jul, pendiente de que Jhey le dé Publicar |
-| I1 — ¿Buscás algo en Medellín? | Instagram/Facebook | 1 | Pendiente |
+| I1 — ¿Buscás algo en Medellín? | Instagram/Facebook | 1 | Texto preparado y enviado a Jhey el 28 jul, pendiente de que lo publique |
 | I2 — Cómo funciona Neggo en 3 pasos | Instagram/Facebook | 1 | Pendiente |
 | L2 — El miedo real detrás de cada búsqueda | LinkedIn | 2 | Armado en el cuadro de LinkedIn el 27 jul, pendiente de que Jhey le dé Publicar |
-| L3 — Evidencia, no promesas | LinkedIn | 2 | Pendiente |
+| L3 — Evidencia, no promesas | LinkedIn | 2 | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 | I3 — Qué es el Sello de Confianza | Instagram/Facebook | 2 | Pendiente |
 | L4 — Riesgo cero, en serio | LinkedIn | 3 | Pendiente |
 | L5 — Por qué "referí a un amigo" funciona | LinkedIn | 3 | Pendiente — **bloqueado hasta que Jhey defina el incentivo de referido (sección 8)** |
