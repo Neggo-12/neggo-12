@@ -45,6 +45,30 @@
     --sidebar-border: 220 14% 16%;
     --sidebar-ring: 160 84% 39%;
   }
+
+  /* Tema claro y amigable — solo para las 5 páginas públicas de marketing
+     (LandingHub + landings de las 4 verticales). Los dashboards autenticados
+     siguen usando el tema oscuro de :root sin cambios, ya que las variables
+     CSS solo se sobreescriben dentro de .theme-public y heredan en cascada. */
+  .theme-public {
+    --background: 40 33% 97%;
+    --foreground: 220 20% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 12%;
+
+    --secondary: 40 20% 93%;
+    --secondary-foreground: 220 20% 12%;
+
+    --muted: 40 20% 93%;
+    --muted-foreground: 220 10% 40%;
+
+    --border: 220 14% 88%;
+    --input: 220 14% 88%;
+  }
 }
 
 @layer base {

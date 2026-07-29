@@ -31,36 +31,44 @@ interface AudienceCardProps {
 function AudienceCard({ to, icon: Icon, title, subtitle, benefits, accent, tag }: AudienceCardProps) {
   const config = {
     emerald: {
-      border: "border-emerald-500/20 hover:border-emerald-500/40",
-      glow: "hover:shadow-emerald-500/10",
-      iconBg: "bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20",
+      border: "border-black/[0.06] hover:border-emerald-500/30",
+      glow: "hover:shadow-emerald-500/15",
+      iconBg: "bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white",
       accent: "bg-emerald-500",
-      tag: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-      line: "from-transparent via-emerald-500/50 to-transparent",
+      tag: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
+      check: "text-emerald-600",
+      cta: "hsl(160 84% 33%)",
+      line: "from-transparent via-emerald-500 to-transparent",
     },
     blue: {
-      border: "border-blue-500/20 hover:border-blue-500/40",
-      glow: "hover:shadow-blue-500/10",
-      iconBg: "bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20",
+      border: "border-black/[0.06] hover:border-blue-500/30",
+      glow: "hover:shadow-blue-500/15",
+      iconBg: "bg-blue-500/10 text-blue-600 group-hover:bg-blue-500 group-hover:text-white",
       accent: "bg-blue-500",
-      tag: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-      line: "from-transparent via-blue-500/50 to-transparent",
+      tag: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+      check: "text-blue-600",
+      cta: "hsl(217 91% 45%)",
+      line: "from-transparent via-blue-500 to-transparent",
     },
     amber: {
-      border: "border-amber-500/20 hover:border-amber-500/40",
-      glow: "hover:shadow-amber-500/10",
-      iconBg: "bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20",
+      border: "border-black/[0.06] hover:border-amber-500/30",
+      glow: "hover:shadow-amber-500/15",
+      iconBg: "bg-amber-500/10 text-amber-600 group-hover:bg-amber-500 group-hover:text-white",
       accent: "bg-amber-500",
-      tag: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-      line: "from-transparent via-amber-500/50 to-transparent",
+      tag: "bg-amber-500/10 text-amber-700 border-amber-500/20",
+      check: "text-amber-600",
+      cta: "hsl(32 95% 40%)",
+      line: "from-transparent via-amber-500 to-transparent",
     },
     purple: {
-      border: "border-purple-500/20 hover:border-purple-500/40",
-      glow: "hover:shadow-purple-500/10",
-      iconBg: "bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20",
+      border: "border-black/[0.06] hover:border-purple-500/30",
+      glow: "hover:shadow-purple-500/15",
+      iconBg: "bg-purple-500/10 text-purple-600 group-hover:bg-purple-500 group-hover:text-white",
       accent: "bg-purple-500",
-      tag: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-      line: "from-transparent via-purple-500/50 to-transparent",
+      tag: "bg-purple-500/10 text-purple-700 border-purple-500/20",
+      check: "text-purple-600",
+      cta: "hsl(271 81% 45%)",
+      line: "from-transparent via-purple-500 to-transparent",
     },
   }[accent];
 
@@ -68,38 +76,37 @@ function AudienceCard({ to, icon: Icon, title, subtitle, benefits, accent, tag }
     <Link
       to={to}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-2xl border bg-card/60 backdrop-blur-sm",
-        "transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl",
+        "group relative flex flex-col overflow-hidden rounded-3xl border bg-card shadow-sm",
+        "transition-all duration-500 hover:scale-[1.015] hover:shadow-2xl",
         config.border,
         config.glow
       )}
     >
-      <div className={cn("absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r opacity-0 transition-opacity group-hover:opacity-100", config.line)} />
-      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+      <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r opacity-0 transition-opacity group-hover:opacity-100", config.line)} />
 
-      <div className="relative flex flex-col p-6 sm:p-8">
-        <div className="flex items-start justify-between mb-5">
-          <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl transition-colors", config.iconBg)}>
+      <div className="relative flex flex-col p-7 sm:p-9">
+        <div className="flex items-start justify-between mb-6">
+          <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl transition-colors duration-300", config.iconBg)}>
             <Icon className="h-7 w-7" />
           </div>
-          <span className={cn("rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-wider", config.tag)}>
+          <span className={cn("rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider", config.tag)}>
             {tag}
           </span>
         </div>
 
-        <h3 className="text-xl font-bold text-foreground tracking-tight mb-2">{title}</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed mb-6">{subtitle}</p>
+        <h3 className="text-2xl font-black text-foreground tracking-tight mb-2.5">{title}</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed mb-7">{subtitle}</p>
 
-        <ul className="space-y-2.5 mb-6">
+        <ul className="space-y-3 mb-7">
           {benefits.map((b) => (
-            <li key={b} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-              <CheckCircle2 className={cn("h-4 w-4 shrink-0 mt-0.5", accent === "emerald" ? "text-emerald-400" : accent === "blue" ? "text-blue-400" : accent === "amber" ? "text-amber-400" : "text-purple-400")} />
+            <li key={b} className="flex items-start gap-2.5 text-sm text-foreground/80">
+              <CheckCircle2 className={cn("h-4 w-4 shrink-0 mt-0.5", config.check)} />
               <span>{b}</span>
             </li>
           ))}
         </ul>
 
-        <div className="mt-auto flex items-center gap-2 text-sm font-semibold transition-colors" style={{ color: accent === "emerald" ? "hsl(160 84% 39%)" : accent === "blue" ? "hsl(217 91% 60%)" : accent === "amber" ? "hsl(38 92% 50%)" : "hsl(271 91% 65%)" }}>
+        <div className="mt-auto flex items-center gap-2 text-sm font-bold transition-colors" style={{ color: config.cta }}>
           <span>Explorar plataforma</span>
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </div>
@@ -111,7 +118,7 @@ function AudienceCard({ to, icon: Icon, title, subtitle, benefits, accent, tag }
 // ── Landing Hub ───────────────────────────────────────────────
 export default function LandingHub() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen theme-public bg-background">
       {/* ═════════════════════════════════════════════════════════
           NAVBAR — Clean, public-facing
          ═════════════════════════════════════════════════════════ */}
@@ -120,11 +127,11 @@ export default function LandingHub() {
           {/* ── Logo ── */}
           <Link to="/" className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 glow-green">
-              <Sparkles className="h-5 w-5 text-emerald-400" />
+              <Sparkles className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
               <span className="text-lg font-extrabold tracking-tight text-foreground">Neggo</span>
-              <span className="hidden sm:inline text-[10px] uppercase tracking-[0.2em] text-emerald-400 font-semibold ml-2">Verificado</span>
+              <span className="hidden sm:inline text-[10px] uppercase tracking-[0.2em] text-emerald-600 font-semibold ml-2">Verificado</span>
             </div>
           </Link>
 
@@ -151,7 +158,7 @@ export default function LandingHub() {
             {/* Acceso Seguro button */}
             <Link
               to="/login-ecosistema"
-              className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all duration-200 shadow-sm"
+              className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-600 hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all duration-200 shadow-sm"
             >
               <Lock className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Acceso Seguro</span>
@@ -170,34 +177,34 @@ export default function LandingHub() {
         <div className="absolute -bottom-40 -left-40 h-[500px] w-[500px] rounded-full bg-blue-500/[0.03] blur-[120px]" />
         <div className="absolute top-1/2 left-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/[0.02] blur-[100px]" />
 
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-16 sm:pt-28 sm:pb-24 text-center">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-24 pb-20 sm:pt-32 sm:pb-28 text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-4 py-1.5 text-xs font-medium text-emerald-400 mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-4 py-1.5 text-xs font-semibold text-emerald-700 mb-8">
             <Activity className="h-3.5 w-3.5" />
             Verificado antes de que hables con nadie
           </div>
 
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-6xl lg:text-7xl max-w-4xl mx-auto leading-[1.1]">
+          <h1 className="text-5xl font-black tracking-tight text-foreground sm:text-7xl lg:text-8xl max-w-5xl mx-auto leading-[0.95]">
             Conseguí lo que buscás en Medellín{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-300 to-blue-400">
-              sin caer en una estafa en el camino
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-emerald-500 to-blue-600">
+              sin caer en una estafa
             </span>
           </h1>
 
-          <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-8 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Bancos, constructoras y comercios reales, protegidos con anti-fraude.
             Vos decís qué necesitás — nosotros confirmamos que sea legítimo antes de conectarte.
           </p>
 
           {/* Value props strip */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 sm:gap-x-12">
+          <div className="mt-14 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 sm:gap-x-12">
             {[
               "1. Decís qué buscás — crédito, comercio o vivienda",
               "2. Verificamos identidad y evitamos fraude",
               "3. Te conectamos directo, sin vueltas",
             ].map((claim) => (
-              <div key={claim} className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+              <div key={claim} className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                 <span>{claim}</span>
               </div>
             ))}
@@ -208,11 +215,11 @@ export default function LandingHub() {
       {/* ═════════════════════════════════════════════════════════
           PROOF — "no es una promesa, ya está construido"
          ═════════════════════════════════════════════════════════ */}
-      <section className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12 text-center">
-        <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground font-semibold mb-3">
+      <section className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground font-bold mb-3">
           No es una promesa
         </p>
-        <h2 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight mb-8">
+        <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight mb-10">
           Esto ya está construido y funcionando
         </h2>
         <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
@@ -222,8 +229,8 @@ export default function LandingHub() {
             "Tarifas negociables — no un precio fijo para todos",
             "Sistema de puntos que ya se canjea entre comercios aliados",
           ].map((item) => (
-            <div key={item} className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+            <div key={item} className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
               <span>{item}</span>
             </div>
           ))}
@@ -233,8 +240,8 @@ export default function LandingHub() {
       {/* ═════════════════════════════════════════════════════════
           TRUST BAR
          ═════════════════════════════════════════════════════════ */}
-      <section className="border-y border-border/30 bg-card/20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+      <section className="border-y border-black/[0.06] bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {[
               { icon: Lock, label: "Doble verificación", value: "MFA", desc: "Obligatoria en cuentas de negocio" },
@@ -242,13 +249,13 @@ export default function LandingHub() {
               { icon: Zap, label: "Notificaciones", value: "Instantáneo", desc: "Te enteras apenas responden tu solicitud" },
               { icon: ShieldCheck, label: "Datos protegidos", value: "Ley 1581", desc: "Como exige la ley colombiana" },
             ].map((item) => (
-              <div key={item.label} className="flex flex-col items-center text-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border/40">
-                  <item.icon className="h-5 w-5 text-emerald-400" />
+              <div key={item.label} className="flex flex-col items-center text-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10">
+                  <item.icon className="h-5 w-5 text-emerald-600" />
                 </div>
-                <div className="text-lg font-bold font-mono text-foreground">{item.value}</div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{item.label}</div>
-                <div className="text-[10px] text-muted-foreground/60">{item.desc}</div>
+                <div className="text-2xl font-black font-mono text-foreground">{item.value}</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{item.label}</div>
+                <div className="text-[11px] text-muted-foreground/70 max-w-[16ch]">{item.desc}</div>
               </div>
             ))}
           </div>
@@ -258,12 +265,12 @@ export default function LandingHub() {
       {/* ═════════════════════════════════════════════════════════
           AUDIENCE PATHS
          ═════════════════════════════════════════════════════════ */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-20">
-        <div className="text-center mb-10">
-          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground font-semibold mb-3">
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
+        <div className="text-center mb-14">
+          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground font-bold mb-3">
             Un motor, cuatro maneras de usarlo
           </p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
             ¿Qué buscás hoy?
           </h2>
         </div>
@@ -332,13 +339,13 @@ export default function LandingHub() {
       {/* ═════════════════════════════════════════════════════════
           FAQ — objeciones ya validadas (marketing-neggo.md, sección 8)
          ═════════════════════════════════════════════════════════ */}
-      <section className="border-y border-border/30 bg-card/20">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center mb-10">
-            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground font-semibold mb-3">
+      <section className="border-y border-black/[0.06] bg-white">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-24">
+          <div className="text-center mb-14">
+            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground font-bold mb-3">
               Antes de que preguntes
             </p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
               Las dudas que ya nos hicieron
             </h2>
           </div>
@@ -361,8 +368,8 @@ export default function LandingHub() {
                 a: "Doble verificación en cuentas de negocio, protección bajo la Ley 1581, y nunca compartimos tu información sin tu autorización explícita.",
               },
             ].map((item) => (
-              <div key={item.q} className="rounded-2xl border border-border/40 bg-card/60 p-5">
-                <p className="text-sm font-semibold text-foreground mb-1.5">{item.q}</p>
+              <div key={item.q} className="rounded-2xl border border-black/[0.06] bg-background p-6 shadow-sm hover:shadow-md transition-shadow">
+                <p className="text-sm font-bold text-foreground mb-2">{item.q}</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.a}</p>
               </div>
             ))}
@@ -373,25 +380,25 @@ export default function LandingHub() {
       {/* ═════════════════════════════════════════════════════════
           SAFE ACCESS CTA — replaces old Profile Switcher
          ═════════════════════════════════════════════════════════ */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-        <div className="max-w-lg mx-auto rounded-2xl border border-emerald-500/20 bg-card/40 backdrop-blur-sm p-8 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mx-auto mb-4">
-            <ShieldCheck className="h-7 w-7 text-emerald-400" />
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
+        <div className="max-w-lg mx-auto rounded-3xl border border-black/[0.06] bg-white shadow-xl p-10 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 mx-auto mb-5">
+            <ShieldCheck className="h-8 w-8 text-emerald-600" />
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[10px] font-semibold text-amber-400 mb-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[10px] font-bold text-amber-700 mb-5">
             Cupos limitados — primeros 50 comercios con Sello de Confianza gratis
           </div>
-          <h3 className="text-lg font-bold text-foreground mb-2">
+          <h3 className="text-2xl font-black text-foreground mb-2.5">
             Acceso al Ecosistema
           </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+          <p className="text-sm text-muted-foreground leading-relaxed mb-8">
             Verificamos todo antes de conectarte, sin letra chica y sin permanencia —
             si no te sirve, te vas sin líos. Bancos, constructoras, comercios y clientes,
             en un solo lugar seguro.
           </p>
           <Link
             to="/login-ecosistema"
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 text-sm font-semibold shadow-lg shadow-emerald-600/20 transition-all duration-200 hover:shadow-emerald-600/30 hover:scale-[1.02]"
+            className="inline-flex items-center gap-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 text-base font-bold shadow-lg shadow-emerald-600/25 transition-all duration-200 hover:shadow-emerald-600/40 hover:scale-[1.03]"
           >
             <Lock className="h-4 w-4" />
             Acceso Seguro al Ecosistema
@@ -406,7 +413,7 @@ export default function LandingHub() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-emerald-400" />
+              <Sparkles className="h-4 w-4 text-emerald-600" />
               <span className="text-sm font-bold text-foreground">Neggo</span>
               <span className="text-[10px] text-muted-foreground">— Conexiones verificadas en Medellín</span>
             </div>
@@ -415,7 +422,7 @@ export default function LandingHub() {
               <Link to="/landing/constructoras" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Constructoras</Link>
               <Link to="/corporativo/comercios" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Comercios</Link>
               <Link to="/landing/clientes" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Clientes</Link>
-              <Link to="/login-ecosistema" className="text-xs text-muted-foreground hover:text-emerald-400 transition-colors">Acceso Seguro</Link>
+              <Link to="/login-ecosistema" className="text-xs text-muted-foreground hover:text-emerald-600 transition-colors">Acceso Seguro</Link>
             </div>
           </div>
           <div className="mt-4 text-center">

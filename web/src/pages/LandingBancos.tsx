@@ -46,7 +46,7 @@ function FeatureItem({ icon: Icon, title, description }: { icon: React.ElementTy
   return (
     <div className="flex gap-4">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
-        <Icon className="h-5 w-5 text-emerald-400" />
+        <Icon className="h-5 w-5 text-emerald-600" />
       </div>
       <div>
         <h4 className="text-sm font-semibold text-foreground">{title}</h4>
@@ -59,7 +59,7 @@ function FeatureItem({ icon: Icon, title, description }: { icon: React.ElementTy
 // ── Landing Bancos ────────────────────────────────────────────
 export default function LandingBancos() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen theme-public bg-background">
       {/* ═════════════════════════════════════════════════════════
           NAVBAR
          ═════════════════════════════════════════════════════════ */}
@@ -67,7 +67,7 @@ export default function LandingBancos() {
         <div className="mx-auto max-w-7xl flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 glow-green">
-              <Sparkles className="h-5 w-5 text-emerald-400" />
+              <Sparkles className="h-5 w-5 text-emerald-600" />
             </div>
             <span className="text-lg font-extrabold tracking-tight text-foreground">Neggo</span>
           </Link>
@@ -75,7 +75,7 @@ export default function LandingBancos() {
             <a href="#features" className="hidden sm:inline text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
             <a href="#planes" className="hidden sm:inline text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Planes</a>
             <a href="#faq" className="hidden sm:inline text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">FAQ</a>
-            <Link to="/banca" className="rounded-lg bg-emerald-500 text-white px-4 py-2 text-xs font-semibold hover:bg-emerald-600 transition-colors">
+            <Link to="/banca" className="rounded-full bg-emerald-500 text-white px-5 py-2.5 text-xs font-bold hover:bg-emerald-600 transition-colors">
               Acceder al Dashboard
             </Link>
           </div>
@@ -89,18 +89,18 @@ export default function LandingBancos() {
         <div className="absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full bg-emerald-500/[0.04] blur-[120px]" />
         <div className="absolute -bottom-40 -left-40 h-[500px] w-[500px] rounded-full bg-emerald-500/[0.02] blur-[120px]" />
 
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-16 sm:pt-28 sm:pb-24">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-24 pb-20 sm:pt-32 sm:pb-28">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             {/* Left: Copy */}
             <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-4 py-1.5 text-xs font-medium text-emerald-400">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-4 py-1.5 text-xs font-medium text-emerald-600">
                 <LiveDot color="emerald" />
                 Para instituciones financieras
               </div>
 
-              <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl leading-[1.1]">
+              <h1 className="text-5xl font-black tracking-tight text-foreground sm:text-6xl lg:text-7xl leading-[0.98]">
                 Leads bancarios con{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-200">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-500">
                   score de precalificación ya calculado
                 </span>
               </h1>
@@ -113,14 +113,14 @@ export default function LandingBancos() {
               <div className="flex flex-wrap gap-3">
                 <Link
                   to="/banca"
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 text-white px-6 py-3 text-sm font-semibold hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20"
+                  className="inline-flex items-center gap-2 rounded-full bg-emerald-500 text-white px-8 py-4 text-base font-bold hover:bg-emerald-600 hover:scale-[1.03] transition-all shadow-lg shadow-emerald-500/25"
                 >
                   Ver plataforma en acción
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <a
                   href="#planes"
-                  className="inline-flex items-center gap-2 rounded-xl border border-border/40 bg-card/40 px-6 py-3 text-sm font-semibold text-foreground hover:bg-card/60 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-8 py-4 text-base font-bold text-foreground hover:bg-black/[0.03] transition-colors"
                 >
                   Ver planes
                 </a>
@@ -137,10 +137,10 @@ export default function LandingBancos() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm p-4"
+                  className="flex items-center gap-3 rounded-xl border border-black/[0.06] bg-white shadow-sm p-4"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
-                    <item.icon className="h-5 w-5 text-emerald-400" />
+                    <item.icon className="h-5 w-5 text-emerald-600" />
                   </div>
                   <div className="text-sm font-semibold text-foreground leading-snug">{item.label}</div>
                 </div>
@@ -154,12 +154,12 @@ export default function LandingBancos() {
           FEATURES
          ═════════════════════════════════════════════════════════ */}
       <section id="features" className="border-t border-border/30 bg-card/10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center mb-14">
-            <p className="text-xs uppercase tracking-[0.25em] text-emerald-400 font-semibold mb-3">
+            <p className="text-xs uppercase tracking-[0.25em] text-emerald-600 font-bold mb-3">
               ¿Por qué Neggo para Bancos?
             </p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
               Todo lo que tu equipo comercial necesita
             </h2>
           </div>
@@ -203,12 +203,12 @@ export default function LandingBancos() {
           HOW IT WORKS
          ═════════════════════════════════════════════════════════ */}
       <section className="border-t border-border/30">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center mb-14">
-            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground font-semibold mb-3">
+            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground font-bold mb-3">
               Flujo operativo
             </p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
               Del lead al desembolso en una plataforma
             </h2>
           </div>
@@ -222,14 +222,14 @@ export default function LandingBancos() {
             ].map((item) => (
               <div
                 key={item.step}
-                className="relative group rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm p-6 transition-all hover:border-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/5"
+                className="relative group rounded-2xl border border-black/[0.06] bg-white shadow-sm p-6 transition-all hover:shadow-xl hover:shadow-emerald-500/10"
               >
                 <div className="absolute top-0 right-0 p-4 text-5xl font-extrabold font-mono text-muted-foreground/10 select-none">
                   {item.step}
                 </div>
                 <div className="relative">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 mb-4">
-                    <item.icon className="h-5 w-5 text-emerald-400" />
+                    <item.icon className="h-5 w-5 text-emerald-600" />
                   </div>
                   <h4 className="text-sm font-bold text-foreground">{item.title}</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed mt-2">{item.desc}</p>
@@ -244,17 +244,17 @@ export default function LandingBancos() {
           MODELO DE PRECIO
          ═════════════════════════════════════════════════════════ */}
       <section id="planes" className="border-t border-border/30 bg-card/10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center mb-14">
-            <p className="text-xs uppercase tracking-[0.25em] text-emerald-400 font-semibold mb-3">
+            <p className="text-xs uppercase tracking-[0.25em] text-emerald-600 font-bold mb-3">
               Modelo de precio
             </p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
               Sin cuotas mensuales fijas
             </h2>
           </div>
 
-          <div className="max-w-2xl mx-auto rounded-2xl border border-emerald-500/20 bg-card/40 backdrop-blur-sm p-8 sm:p-10">
+          <div className="max-w-2xl mx-auto rounded-3xl border border-black/[0.06] bg-white shadow-xl p-10 sm:p-12">
             <p className="text-base text-muted-foreground leading-relaxed text-center mb-8">
               Pagas por lead calificado (CPL) o por cierre — tarifas visibles desde el primer día,
               sin planes de suscripción ni sorpresas al final de mes.
@@ -266,7 +266,7 @@ export default function LandingBancos() {
                 "Un solo corte de facturación mensual con el detalle completo",
               ].map((point) => (
                 <li key={point} className="flex items-start gap-3 text-sm text-foreground">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                   <span>{point}</span>
                 </li>
               ))}
@@ -279,11 +279,11 @@ export default function LandingBancos() {
           CTA FINAL
          ═════════════════════════════════════════════════════════ */}
       <section className="border-t border-border/30">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
-          <div className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-card/40 backdrop-blur-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24">
+          <div className="relative overflow-hidden rounded-3xl border border-black/[0.06] bg-white shadow-xl">
             <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-emerald-500/[0.06] blur-[80px]" />
             <div className="relative px-6 py-12 sm:px-12 sm:py-16 text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+              <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
                 ¿Listo para transformar tu operación comercial?
               </h2>
               <p className="mt-3 text-sm text-muted-foreground max-w-lg mx-auto">
@@ -292,14 +292,14 @@ export default function LandingBancos() {
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Link
                   to="/banca"
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 text-white px-6 py-3 text-sm font-semibold hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20"
+                  className="inline-flex items-center gap-2 rounded-full bg-emerald-500 text-white px-8 py-4 text-base font-bold hover:bg-emerald-600 hover:scale-[1.03] transition-all shadow-lg shadow-emerald-500/25"
                 >
                   Ingresar a la plataforma
                   <ArrowUpRight className="h-4 w-4" />
                 </Link>
                 <Link
                   to="/landing/clientes"
-                  className="inline-flex items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-6 py-3 text-sm font-semibold text-foreground hover:bg-card/80 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-8 py-4 text-base font-bold text-foreground hover:bg-black/[0.03] transition-colors"
                 >
                   Ver portal de clientes
                 </Link>
@@ -313,16 +313,16 @@ export default function LandingBancos() {
           AUTH — Acceso embebido para Bancos
          ═════════════════════════════════════════════════════════ */}
       <section id="acceso" className="border-t border-border/30">
-        <div className="mx-auto max-w-md px-4 sm:px-6 py-20">
+        <div className="mx-auto max-w-md px-4 sm:px-6 py-24">
           <div className="text-center mb-8">
-            <p className="text-xs uppercase tracking-[0.25em] text-emerald-400 font-semibold mb-3">
+            <p className="text-xs uppercase tracking-[0.25em] text-emerald-600 font-bold mb-3">
               Acceso Bancos
             </p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
               Ingresa o regístrate
             </h2>
           </div>
-          <div className="rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
+          <div className="rounded-2xl border border-black/[0.06] bg-white shadow-lg overflow-hidden">
             <div className="p-5 sm:p-6">
               <AuthPanel
                 mode="b2b"
@@ -345,14 +345,14 @@ export default function LandingBancos() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-emerald-400" />
+              <Sparkles className="h-4 w-4 text-emerald-600" />
               <span className="text-sm font-bold text-foreground">Neggo</span>
               <span className="text-[10px] text-muted-foreground">— Para Bancos</span>
             </div>
             <div className="flex items-center gap-6">
               <Link to="/landing/constructoras" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Constructoras</Link>
               <Link to="/landing/clientes" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Clientes</Link>
-              <Link to="/" className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">Inicio</Link>
+              <Link to="/" className="text-xs text-emerald-600 hover:text-emerald-300 transition-colors">Inicio</Link>
             </div>
           </div>
         </div>
