@@ -247,13 +247,14 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | L2 — El miedo real detrás de cada búsqueda | LinkedIn | 2 | Armado en el cuadro de LinkedIn el 27 jul, pendiente de que Jhey le dé Publicar |
 | L3 — Evidencia, no promesas | LinkedIn | 2 | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 | I3 — Qué es el Sello de Confianza | Instagram/Facebook | 2 | Pendiente |
-| L4 — Riesgo cero, en serio | LinkedIn | 3 | Pendiente |
+| L4 — Riesgo cero, en serio | LinkedIn | 3 | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 | L5 — Por qué "referí a un amigo" funciona | LinkedIn | 3 | Pendiente — **bloqueado hasta que Jhey defina el incentivo de referido (sección 8)** |
 | I4 — Primeros 50 comercios, Sello gratis | Instagram/Facebook | 3 | Pendiente |
 | I5 — No todo lo que dice ser tu banco, es tu banco | Instagram/Facebook | 3 | Pendiente |
 | O1 — Bases quemadas | LinkedIn | Serie origen | Pendiente |
 | O2 — "¿Vos sí sos del banco?" | LinkedIn | Serie origen | Pendiente |
 | O3 — Por qué nació Neggo | LinkedIn | Serie origen | Pendiente |
+| L-extra — ¿Buscás algo en Medellín? (adaptación de I1 a voz LinkedIn) | LinkedIn | Fuera de cadencia, a pedido de Jhey | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 
 La serie O (origen) va después de L3-L5 en la cola por defecto — se agregó al final de la tabla a propósito para no desordenar lo que ya estaba en curso. Si Jhey quiere adelantarla, moverla arriba de L3 en esta tabla.
 
