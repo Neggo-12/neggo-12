@@ -284,7 +284,7 @@ export default function LandingHub() {
             accent="emerald"
             tag="Sin fraude"
             benefits={[
-              "Scoring Datacrédito real, ya integrado",
+              "Score de precalificación automático (300–950) por ingresos declarados",
               "Tarifas por banco versionadas por periodo",
               "Pipeline con estados reales (solicitudes_banca)",
             ]}

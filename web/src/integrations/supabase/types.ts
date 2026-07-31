@@ -1477,6 +1477,72 @@ export type Database = {
           },
         ]
       }
+      verificaciones_identidad_cliente: {
+        Row: {
+          id: string
+          tipo_documento: string
+          numero_documento: string
+          nombres: string | null
+          apellidos: string | null
+          tipo_verificacion: string
+          fuente: string
+          resultado_crudo: Json | null
+          nivel_riesgo: string | null
+          decision: string
+          motivo_decision: string | null
+          revisado_por: string | null
+          user_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tipo_documento: string
+          numero_documento: string
+          nombres?: string | null
+          apellidos?: string | null
+          tipo_verificacion: string
+          fuente: string
+          resultado_crudo?: Json | null
+          nivel_riesgo?: string | null
+          decision: string
+          motivo_decision?: string | null
+          revisado_por?: string | null
+          user_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tipo_documento?: string
+          numero_documento?: string
+          nombres?: string | null
+          apellidos?: string | null
+          tipo_verificacion?: string
+          fuente?: string
+          resultado_crudo?: Json | null
+          nivel_riesgo?: string | null
+          decision?: string
+          motivo_decision?: string | null
+          revisado_por?: string | null
+          user_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verificaciones_identidad_cliente_revisado_por_fkey"
+            columns: ["revisado_por"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verificaciones_identidad_cliente_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       puntos_liquidaciones: {
         Row: {
           id: string
@@ -1631,6 +1697,21 @@ export type Database = {
           p_banco_productos?: Json
         }
         Returns: undefined
+      }
+      registrar_resultado_verificacion: {
+        Args: {
+          p_tipo_documento: string
+          p_numero_documento: string
+          p_nombres: string
+          p_apellidos: string
+          p_tipo_verificacion: string
+          p_fuente: string
+          p_resultado_crudo: Json
+          p_nivel_riesgo: string
+          p_decision: string
+          p_motivo_decision?: string
+        }
+        Returns: string
       }
       buscar_comercios_verificados: {
         Args: { p_termino: string }

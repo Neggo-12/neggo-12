@@ -15,6 +15,9 @@ Antes de decir "confirmado" sobre CUALQUIER deploy:
 Usar SIEMPRE: npx tsc --noEmit -p tsconfig.app.json
 NUNCA usar: npx tsc --noEmit -p . (el tsconfig raíz es "solution-style", no revisa nada sin --build)
 
+## Seguridad primero — regla de oro (no negociable)
+Ante cualquier decisión de arquitectura, proveedor externo o integración, siempre se prioriza la opción de mayor seguridad/protección — incluso si es más cara, más lenta de implementar, o cubre menos casos que una alternativa. Nunca elegir un atajo (proveedor no autorizado, bypass de protecciones ajenas, fuente de datos de origen dudoso) solo por precio o velocidad. Si una opción barata/rápida depende de saltarse protecciones de un tercero (CAPTCHA, anti-bot, ToS) para conseguir datos, se descarta de plano para cualquier flujo de producción, sin importar cuánto ahorre — el riesgo legal, de continuidad y reputacional para un fintech vale más que el ahorro.
+
 ## Patrones de seguridad establecidos
 - Cambios de estado sensibles (financieros, pipeline, facturación) SIEMPRE pasan por una función SECURITY DEFINER con guardas de transición explícitas — nunca un UPDATE directo desde el cliente.
 - Toda función SECURITY DEFINER debe incluir SET search_path = public.
