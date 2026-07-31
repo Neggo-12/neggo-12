@@ -252,7 +252,7 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | I4 — Primeros 50 comercios, Sello gratis | Instagram/Facebook | 3 | Pendiente |
 | I5 — No todo lo que dice ser tu banco, es tu banco | Instagram/Facebook | 3 | Pendiente |
 | O1 — Bases quemadas | LinkedIn | Serie origen | Publicado por Jhey el 30 jul |
-| O2 — "¿Vos sí sos del banco?" | LinkedIn | Serie origen | Pendiente |
+| O2 — "¿Vos sí sos del banco?" | LinkedIn | Serie origen | Publicado por Jhey el 31 jul |
 | O3 — Por qué nació Neggo | LinkedIn | Serie origen | Pendiente |
 | L-extra — ¿Buscás algo en Medellín? (adaptación de I1 a voz LinkedIn) | LinkedIn | Fuera de cadencia, a pedido de Jhey | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 
