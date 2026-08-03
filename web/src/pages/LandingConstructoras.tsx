@@ -94,7 +94,7 @@ export default function LandingConstructoras() {
               </div>
 
               <h1 className="text-5xl font-black tracking-tight text-foreground sm:text-6xl lg:text-7xl leading-[0.98]">
-                Conecta con compradores con{" "}
+                Conectá con compradores con{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-500">
                   capacidad de compra verificada
                 </span>
@@ -127,7 +127,7 @@ export default function LandingConstructoras() {
               {[
                 { label: "Matching por capacidad de compra real", icon: Target },
                 { label: "Distribución de leads con algoritmo de equidad", icon: BarChart3 },
-                { label: "Success Fee del 2.25% — solo pagas si cierras", icon: Wallet },
+                { label: "Success Fee del 2.25% — solo pagás si cerrás", icon: Wallet },
                 { label: "Pipeline con seguimiento completo del lead", icon: TrendingUp },
               ].map((item) => (
                 <div
@@ -173,7 +173,7 @@ export default function LandingConstructoras() {
             <FeatureItem
               icon={Wallet}
               title="Success Fee transparente del 2.25%"
-              description="Pagas el 2.25% solo sobre el valor del cierre. Sin cuotas fijas, sin riesgo si el lead no avanza."
+              description="Pagás el 2.25% solo sobre el valor del cierre. Sin cuotas fijas, sin riesgo si el lead no avanza."
             />
             <FeatureItem
               icon={TrendingUp}
@@ -210,10 +210,10 @@ export default function LandingConstructoras() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { step: "01", title: "Te registras", desc: "Verificamos tu constructora antes de darte acceso al ecosistema Neggo.", icon: Users },
-              { step: "02", title: "Publicas", desc: "Publicas tus proyectos activos con ciudad, unidades, rango de precios y tipo de vivienda.", icon: Building2 },
-              { step: "03", title: "Recibes leads", desc: "Cada lead llega con su capacidad de compra ya validada por el sistema bancario.", icon: Wallet },
-              { step: "04", title: "Cierras y pagas", desc: "Cierras la venta y pagas solo el Success Fee del 2.25% sobre ese cierre.", icon: TrendingUp },
+              { step: "01", title: "Te registrás", desc: "Verificamos tu constructora antes de darte acceso al ecosistema Neggo.", icon: Users },
+              { step: "02", title: "Publicás", desc: "Publicás tus proyectos activos con ciudad, unidades, rango de precios y tipo de vivienda.", icon: Building2 },
+              { step: "03", title: "Recibís leads", desc: "Cada lead llega con su capacidad de compra ya validada por el sistema bancario.", icon: Wallet },
+              { step: "04", title: "Cerrás y pagás", desc: "Cerrás la venta y pagás solo el Success Fee del 2.25% sobre ese cierre.", icon: TrendingUp },
             ].map((item) => (
               <div
                 key={item.step}
@@ -251,12 +251,12 @@ export default function LandingConstructoras() {
 
           <div className="max-w-2xl mx-auto rounded-3xl border border-black/[0.06] bg-white shadow-xl p-10 sm:p-12">
             <p className="text-base text-muted-foreground leading-relaxed text-center mb-8">
-              Success Fee del 2.25% sobre el valor del cierre — sin riesgo, pagas por resultado.
+              Success Fee del 2.25% sobre el valor del cierre — sin riesgo, pagás por resultado.
             </p>
             <ul className="space-y-4">
               {[
                 "Sin cuotas mensuales fijas ni costo de entrada",
-                "2.25% de Success Fee, solo cuando cierras la venta",
+                "2.25% de Success Fee, solo cuando cerrás la venta",
                 "Un solo corte de facturación mensual con el detalle completo",
               ].map((point) => (
                 <li key={point} className="flex items-start gap-3 text-sm text-foreground">
@@ -281,7 +281,7 @@ export default function LandingConstructoras() {
                 ¿Listo para llenar tus proyectos?
               </h2>
               <p className="mt-3 text-sm text-muted-foreground max-w-lg mx-auto">
-                Únete a las constructoras que ya usan Neggo para conectar sus proyectos con compradores financieramente calificados.
+                Unite a las constructoras que ya usan Neggo para conectar sus proyectos con compradores financieramente calificados.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Link
@@ -313,7 +313,7 @@ export default function LandingConstructoras() {
               Acceso Constructoras
             </p>
             <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
-              Ingresa o regístrate
+              Ingresá o registrate
             </h2>
           </div>
           <div className="rounded-2xl border border-black/[0.06] bg-white shadow-lg overflow-hidden">
@@ -323,8 +323,8 @@ export default function LandingConstructoras() {
                 sector="constructora"
                 themeColor="blue"
                 description={{
-                  login: "Inicia sesión con tu cuenta de constructora para acceder a tu panel de control.",
-                  register: "Registra tu constructora para unirte al ecosistema Neggo.",
+                  login: "Iniciá sesión con tu cuenta de constructora para acceder a tu panel de control.",
+                  register: "Registrá tu constructora para unirte al ecosistema Neggo.",
                 }}
               />
             </div>

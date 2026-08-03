@@ -103,8 +103,8 @@ export default function LandingClientes() {
               </h1>
 
               <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-                Todo en un solo lugar, sin llamadas no deseadas: tú decides a quién le
-                compartes tus datos y cuándo te contactan.
+                Todo en un solo lugar, sin llamadas no deseadas: vos decidís a quién le
+                compartís tus datos y cuándo te contactan.
               </p>
 
               <div className="flex flex-wrap gap-3">
@@ -155,15 +155,15 @@ export default function LandingClientes() {
               Simple y directo
             </p>
             <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
-              Encuentra la mejor oferta en 3 pasos
+              Encontrá la mejor oferta en 3 pasos
             </h2>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 max-w-3xl mx-auto">
             {[
-              { step: "01", title: "Te registras", desc: "Creas tu cuenta gratis en segundos, sin trámites ni papeleo.", icon: UserCircle },
-              { step: "02", title: "Cuentas qué buscas", desc: "Crédito, vivienda o el producto que necesitas — tú defines qué te interesa.", icon: Search },
-              { step: "03", title: "Comparas y decides", desc: "Recibes ofertas reales de aliados verificados y comparas antes de elegir.", icon: BarChart3 },
+              { step: "01", title: "Te registrás", desc: "Creás tu cuenta gratis en segundos, sin trámites ni papeleo.", icon: UserCircle },
+              { step: "02", title: "Contás qué buscás", desc: "Crédito, vivienda o el producto que necesitás — vos definís qué te interesa.", icon: Search },
+              { step: "03", title: "Comparás y decidís", desc: "Recibís ofertas reales de aliados verificados y comparás antes de elegir.", icon: BarChart3 },
             ].map((item) => (
               <div
                 key={item.step}
@@ -218,7 +218,7 @@ export default function LandingClientes() {
             <FeatureItem
               icon={Building2}
               title="Banca privada"
-              description="Selector real de bancos aprobados dentro del ecosistema. Eliges tú con quién avanzar."
+              description="Selector real de bancos aprobados dentro del ecosistema. Elegís vos con quién avanzar."
             />
             <FeatureItem
               icon={Shield}
@@ -228,7 +228,7 @@ export default function LandingClientes() {
             <FeatureItem
               icon={CheckCircle2}
               title="Sin spam"
-              description="Tú decides a quién le compartes tus datos. Sin llamadas ni mensajes no solicitados."
+              description="Vos decidís a quién le compartís tus datos. Sin llamadas ni mensajes no solicitados."
             />
           </div>
         </div>
@@ -244,7 +244,7 @@ export default function LandingClientes() {
               Categorías disponibles
             </p>
             <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
-              Regístrate para ver las ofertas reales
+              Registrate para ver las ofertas reales
             </h2>
           </div>
 
@@ -325,7 +325,7 @@ export default function LandingClientes() {
               Acceso Clientes
             </p>
             <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
-              Ingresa o regístrate
+              Ingresá o registrate
             </h2>
           </div>
           <div className="rounded-2xl border border-black/[0.06] bg-white shadow-lg overflow-hidden">
@@ -334,8 +334,8 @@ export default function LandingClientes() {
                 mode="b2c"
                 themeColor="cyan"
                 description={{
-                  login: "Inicia sesión para acceder a tus metas de ahorro, ofertas personalizadas y el control de tu vida financiera.",
-                  register: "Crea tu cuenta personal para acceder a ofertas financieras, proyectos inmobiliarios y metas de ahorro.",
+                  login: "Iniciá sesión para acceder a tus metas de ahorro, ofertas personalizadas y el control de tu vida financiera.",
+                  register: "Creá tu cuenta personal para acceder a ofertas financieras, proyectos inmobiliarios y metas de ahorro.",
                 }}
               />
             </div>

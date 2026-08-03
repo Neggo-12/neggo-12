@@ -82,7 +82,7 @@ export default function CorporativoComercios() {
               </div>
 
               <h1 className="text-5xl font-black tracking-tight text-foreground sm:text-6xl lg:text-7xl leading-[0.98]">
-                Gana visibilidad con el{" "}
+                Ganá visibilidad con el{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-purple-500">
                   Sello de Confianza Neggo
                 </span>
@@ -90,7 +90,7 @@ export default function CorporativoComercios() {
 
               <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
                 Clientes verificados del ecosistema y notificación al instante cada vez
-                que respondes una oferta. Sin intermediarios, sin fricción.
+                que respondés una oferta. Sin intermediarios, sin fricción.
               </p>
 
               <div className="flex flex-wrap gap-3">
@@ -156,17 +156,17 @@ export default function CorporativoComercios() {
             <FeatureItem
               icon={Tag}
               title="Comisión clara por plan de negociación"
-              description="Estructura de comisiones transparente y configurable según tu plan. Sabes exactamente qué se cobra y por qué."
+              description="Estructura de comisiones transparente y configurable según tu plan. Sabés exactamente qué se cobra y por qué."
             />
             <FeatureItem
               icon={Zap}
               title="Notificaciones Realtime al responder una oferta"
-              description="Te enteras al instante cuando un cliente responde tu oferta, sin refrescar ni esperar reportes."
+              description="Te enterás al instante cuando un cliente responde tu oferta, sin refrescar ni esperar reportes."
             />
             <FeatureItem
               icon={Users}
               title="Conexión directa con clientes del ecosistema"
-              description="Accede a clientes verificados que ya confían en Neggo, sin depender de tráfico frío ni publicidad externa."
+              description="Accedé a clientes verificados que ya confían en Neggo, sin depender de tráfico frío ni publicidad externa."
             />
             <FeatureItem
               icon={Shield}
@@ -198,10 +198,10 @@ export default function CorporativoComercios() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { step: "01", title: "Te registras", desc: "Verificamos tu negocio antes de darte acceso al ecosistema Neggo.", icon: Store },
-              { step: "02", title: "Recibes el Sello", desc: "Neggo emite tu Sello de Confianza una vez verificado tu comercio.", icon: ShieldCheck },
-              { step: "03", title: "Publicas ofertas", desc: "Publicas tus ofertas y respondes las solicitudes de clientes del ecosistema.", icon: Package },
-              { step: "04", title: "Facturas por comisión", desc: "Facturas por comisión según tu plan, sin cuotas fijas ni costos ocultos.", icon: TrendingUp },
+              { step: "01", title: "Te registrás", desc: "Verificamos tu negocio antes de darte acceso al ecosistema Neggo.", icon: Store },
+              { step: "02", title: "Recibís el Sello", desc: "Neggo emite tu Sello de Confianza una vez verificado tu comercio.", icon: ShieldCheck },
+              { step: "03", title: "Publicás ofertas", desc: "Publicás tus ofertas y respondés las solicitudes de clientes del ecosistema.", icon: Package },
+              { step: "04", title: "Facturás por comisión", desc: "Facturás por comisión según tu plan, sin cuotas fijas ni costos ocultos.", icon: TrendingUp },
             ].map((item) => (
               <div
                 key={item.step}
@@ -235,7 +235,7 @@ export default function CorporativoComercios() {
                 ¿Listo para ganar visibilidad con el Sello de Confianza?
               </h2>
               <p className="mt-3 text-sm text-muted-foreground max-w-lg mx-auto">
-                Únete a los comercios que ya usan Neggo para conectar con clientes verificados del ecosistema.
+                Unite a los comercios que ya usan Neggo para conectar con clientes verificados del ecosistema.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Link
@@ -267,7 +267,7 @@ export default function CorporativoComercios() {
               Acceso Comercios
             </p>
             <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
-              Ingresa o regístrate
+              Ingresá o registrate
             </h2>
           </div>
           <div className="rounded-2xl border border-black/[0.06] bg-white shadow-lg overflow-hidden">
@@ -277,8 +277,8 @@ export default function CorporativoComercios() {
                 sector="comercio"
                 themeColor="amber"
                 description={{
-                  login: "Inicia sesión con tu cuenta de comercio para acceder a tu panel de control.",
-                  register: "Registra tu comercio para unirte al ecosistema Neggo.",
+                  login: "Iniciá sesión con tu cuenta de comercio para acceder a tu panel de control.",
+                  register: "Registrá tu comercio para unirte al ecosistema Neggo.",
                 }}
               />
             </div>

@@ -215,10 +215,10 @@ export default function LandingBancos() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { step: "01", title: "Te registras", desc: "Verificamos tu organización antes de darte acceso al ecosistema Neggo.", icon: Users },
-              { step: "02", title: "Configuras", desc: "Defines tus productos y tarifas por periodo, versionadas y auditables.", icon: CreditCard },
-              { step: "03", title: "Recibes leads", desc: "Cada lead llega con su score de precalificación ya calculado, listo para priorizar.", icon: Star },
-              { step: "04", title: "Gestionas y facturas", desc: "Trabajas el pipeline por estados reales y facturas por resultado, no por cuota fija.", icon: TrendingUp },
+              { step: "01", title: "Te registrás", desc: "Verificamos tu organización antes de darte acceso al ecosistema Neggo.", icon: Users },
+              { step: "02", title: "Configurás", desc: "Definís tus productos y tarifas por periodo, versionadas y auditables.", icon: CreditCard },
+              { step: "03", title: "Recibís leads", desc: "Cada lead llega con su score de precalificación ya calculado, listo para priorizar.", icon: Star },
+              { step: "04", title: "Gestionás y facturás", desc: "Trabajás el pipeline por estados reales y facturás por resultado, no por cuota fija.", icon: TrendingUp },
             ].map((item) => (
               <div
                 key={item.step}
@@ -256,12 +256,12 @@ export default function LandingBancos() {
 
           <div className="max-w-2xl mx-auto rounded-3xl border border-black/[0.06] bg-white shadow-xl p-10 sm:p-12">
             <p className="text-base text-muted-foreground leading-relaxed text-center mb-8">
-              Pagas por lead calificado (CPL) o por cierre — tarifas visibles desde el primer día,
+              Pagás por lead calificado (CPL) o por cierre — tarifas visibles desde el primer día,
               sin planes de suscripción ni sorpresas al final de mes.
             </p>
             <ul className="space-y-4">
               {[
-                "Tarifa por lead calificado o por cierre, tú eliges el modelo",
+                "Tarifa por lead calificado o por cierre, vos elegís el modelo",
                 "Tarifas configuradas y versionadas por tu banco, siempre visibles",
                 "Un solo corte de facturación mensual con el detalle completo",
               ].map((point) => (
@@ -287,7 +287,7 @@ export default function LandingBancos() {
                 ¿Listo para transformar tu operación comercial?
               </h2>
               <p className="mt-3 text-sm text-muted-foreground max-w-lg mx-auto">
-                Únete a los bancos que ya usan Neggo para captar, calificar y convertir leads financieros con inteligencia operativa.
+                Unite a los bancos que ya usan Neggo para captar, calificar y convertir leads financieros con inteligencia operativa.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Link
@@ -319,7 +319,7 @@ export default function LandingBancos() {
               Acceso Bancos
             </p>
             <h2 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
-              Ingresa o regístrate
+              Ingresá o registrate
             </h2>
           </div>
           <div className="rounded-2xl border border-black/[0.06] bg-white shadow-lg overflow-hidden">
@@ -329,8 +329,8 @@ export default function LandingBancos() {
                 sector="banca"
                 themeColor="emerald"
                 description={{
-                  login: "Inicia sesión con tu cuenta de banco para acceder a tu panel de control.",
-                  register: "Registra tu banco para unirte al ecosistema Neggo.",
+                  login: "Iniciá sesión con tu cuenta de banco para acceder a tu panel de control.",
+                  register: "Registrá tu banco para unirte al ecosistema Neggo.",
                 }}
               />
             </div>

@@ -1563,11 +1563,11 @@ function B2CRegister() {
         <div className="flex items-center gap-2">
           <Landmark className="h-4 w-4 text-emerald-400" />
           <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Bancos y productos que ya tienes
+            Bancos y productos que ya tenés
           </Label>
         </div>
         <p className="text-[10px] text-muted-foreground">
-          Selecciona tus bancos y, para cada uno, qué productos tienes activos.
+          Selecciona tus bancos y, para cada uno, qué productos tenés activos.
         </p>
         {isLoadingBancos ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
@@ -1803,7 +1803,7 @@ export default function LoginEcosistema({
             Acceso al Ecosistema
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-            ¿Sos un negocio o buscás algo para vos? Elige abajo — te toma menos de 2 minutos.
+            ¿Sos un negocio o buscás algo para vos? Elegí abajo — te toma menos de 2 minutos.
           </p>
         </div>
 
