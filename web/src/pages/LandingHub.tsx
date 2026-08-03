@@ -174,8 +174,7 @@ export default function LandingHub() {
       <section className="relative overflow-hidden">
         {/* Background orbs */}
         <div className="absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full bg-emerald-500/[0.03] blur-[120px]" />
-        <div className="absolute -bottom-40 -left-40 h-[500px] w-[500px] rounded-full bg-blue-500/[0.03] blur-[120px]" />
-        <div className="absolute top-1/2 left-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/[0.02] blur-[100px]" />
+        <div className="absolute -bottom-40 -left-40 h-[500px] w-[500px] rounded-full bg-emerald-500/[0.02] blur-[120px]" />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-24 pb-20 sm:pt-32 sm:pb-28 text-center">
           {/* Badge */}
@@ -186,7 +185,7 @@ export default function LandingHub() {
 
           <h1 className="text-5xl font-black tracking-tight text-foreground sm:text-7xl lg:text-8xl max-w-5xl mx-auto leading-[0.95]">
             Conseguí lo que buscás en Medellín{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-emerald-500 to-blue-600">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-400">
               sin caer en una estafa
             </span>
           </h1>
@@ -295,7 +294,7 @@ export default function LandingHub() {
             icon={HomeIcon}
             title="Soy una Constructora"
             subtitle="Tu equipo de captación digital — leads reales con score financiero, sin pautar."
-            accent="blue"
+            accent="emerald"
             tag="Pagás solo si cierras"
             benefits={[
               "Success Fee 2.25% sobre cierre, en producción",
@@ -309,7 +308,7 @@ export default function LandingHub() {
             icon={Store}
             title="Soy un Comercio"
             subtitle="Tu canal de crecimiento — clientes ya calificados, listos para comprar."
-            accent="purple"
+            accent="emerald"
             tag="Primeros 50 gratis"
             benefits={[
               "Sello de Confianza Neggo verificado por Admin",
@@ -324,7 +323,7 @@ export default function LandingHub() {
             icon={UserCircle}
             title="Soy Cliente"
             subtitle="Tu aliado financiero — te protegemos de estafas y te conseguimos las mejores condiciones."
-            accent="amber"
+            accent="emerald"
             tag="Protegido siempre"
             benefits={[
               "Bóveda del Cliente con historial de compras",
