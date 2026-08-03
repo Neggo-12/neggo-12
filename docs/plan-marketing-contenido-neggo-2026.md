@@ -253,7 +253,7 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | I5 — No todo lo que dice ser tu banco, es tu banco | Instagram/Facebook | 3 | Pendiente |
 | O1 — Bases quemadas | LinkedIn | Serie origen | Publicado por Jhey el 30 jul |
 | O2 — "¿Vos sí sos del banco?" | LinkedIn | Serie origen | Publicado por Jhey el 31 jul |
-| O3 — Por qué nació Neggo | LinkedIn | Serie origen | Pendiente |
+| O3 — Por qué nació Neggo | LinkedIn | Serie origen | Armado en el cuadro de LinkedIn el 3 ago, pendiente de que Jhey le dé Publicar |
 | L-extra — ¿Buscás algo en Medellín? (adaptación de I1 a voz LinkedIn) | LinkedIn | Fuera de cadencia, a pedido de Jhey | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 
 La serie O (origen) va después de L3-L5 en la cola por defecto — se agregó al final de la tabla a propósito para no desordenar lo que ya estaba en curso. Si Jhey quiere adelantarla, moverla arriba de L3 en esta tabla.
