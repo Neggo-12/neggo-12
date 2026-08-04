@@ -72,6 +72,46 @@ Reutiliza las respuestas ya escritas en `marketing-neggo.md` sección 8:
 - *"¿Cómo sé que los leads son reales?"* → score financiero visible por cliente + sistema de alertas de conversión que protege a ambos lados.
 - *"¿Qué pasa si no me gusta?"* → sin permanencia, pago por resultado, se deja de usar sin contrato de salida.
 
+## 6.1 Segmento: comercios grandes/consolidados — se pitchea distinto (agregado 4 ago, a pedido de Jhey)
+
+Detectado en la corrida de prospección del 3 ago: varios comercios encontrados (Ser+Fit
+Fitness Center ~2.9k seguidores, Grupo Gámez ~12.8k seguidores y cuenta verificada, MELS
+Micropigmentación ~22.1k seguidores y cuenta verificada) ya tienen marca fuerte, contenido
+profesional y visibilidad orgánica real. Jhey los retuvo sin enviar con la nota "siento que
+no damos valor por ahora" — señal correcta: el guion genérico de la sección 4 (casual, con
+emoji, "5 minutos sin compromiso") no muestra suficiente valor a alguien que ya sabe hacer
+marketing y tiene un equipo o trayectoria detrás.
+
+**Cómo identificar este segmento al prospectar:** cuenta verificada, o más de ~5.000
+seguidores reales con actividad consistente, o negocio con trayectoria/marca ya reconocible
+(años de operación, +40 entregas, equipo propio, web propia, etc.) — no el criterio de
+"cuenta activa" genérico que ya se usa para todos.
+
+**Cómo pitchear distinto a este segmento:**
+- Tono más profesional, menos casual: sin emoji de saludo, frases completas, registro de
+  "founder hablando con otro founder/gerente", no de vendedor genérico.
+- Reconocer explícitamente su nivel ("ya tienen marca fuerte/visibilidad", "veo que ya
+  invierten en esto en serio") antes de ofrecer nada — no tratarlos como un comercio chico
+  que recién empieza.
+- El pitch de leads por CPL sigue siendo válido, pero se presenta como **complemento a lo
+  que ya hacen bien** (ellos ya generan demanda propia; Neggo les agrega demanda adicional
+  ya calificada, sin competir con su marca), nunca como si les faltara visibilidad.
+- Mencionar, cuando sea honesto y venga al caso, que Neggo está construyendo **Neggo Ads**:
+  una herramienta propia para que sus comercios aliados gestionen pauta en Meta y Google
+  (con IA para armar campañas y creativos) — hoy en desarrollo activo, no lanzada todavía.
+  Nunca decir que ya está disponible ni prometer fecha. Frase segura: *"estamos construyendo
+  Neggo Ads para que los comercios aliados también puedan pautar en Meta/Google desde la
+  misma plataforma — si te interesa quedar entre los primeros en probarlo, te aviso apenas
+  esté listo"*. Es un gancho de valor futuro real (evidencia: `ads-ai-platform/ROADMAP.md`,
+  Fase 0 ya completada), no una promesa vacía — pero se ofrece como adelanto/lista de espera,
+  nunca como beneficio ya activo.
+
+**Objeción nueva de este segmento — "¿Por qué necesito esto si ya tengo seguidores/marca?"**
+→ *"Justo por eso puede servir: tu marca ya genera interés, pero no todo ese interés llega
+calificado ni con score financiero. Neggo no reemplaza lo que ya haces, filtra y te entrega
+la parte que ya está lista para comprar — y a futuro, gestionás la pauta misma desde la
+misma plataforma con Neggo Ads."*
+
 ## 7. Onboarding post-cierre (primera semana con el negocio)
 
 1. Confirmar registro + Sello de Confianza activo.
