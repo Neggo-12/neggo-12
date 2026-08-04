@@ -392,6 +392,20 @@ Pediste específicamente herramientas de video gratuitas y eficientes (no la opc
 
 Ambos guiones reutilizan solo hechos ya validados en `marketing-neggo.md` y las piezas L1-L5 — ningún dato nuevo inventado. Si más adelante querés un video por cada vertical B2B (Bancos / Constructoras / Comercios por separado en vez de la versión general), lo armamos sobre la tabla de mensajes de la sección 2.
 
+**Guion 3 — Demo del portafolio B2B (para comercios que piden "portafolio"/"propuesta formal"), ~90 segundos (agregado 4 ago, a pedido de Jhey — complementa `docs/marca-assets/portafolio-neggo-b2b.pdf`, no lo reemplaza)**
+
+Contexto de uso: se envía junto al PDF cuando un comercio responde pidiendo material formal para revisar internamente (caso real: Clínica Láser de Piel) — a diferencia del Guion 2 (awareness general en redes), este explica función y beneficio con más detalle, como si fuera la reunión de 10-15 minutos en video.
+
+| Escena | Guion (hablado) | Nota visual |
+|---|---|---|
+| 1 (0-12s) | "Muchas personas posponen una compra o un procedimiento por desconfianza de un negocio que no conocen bien — no es falta de interés, es miedo a una estafa. Y del otro lado, muchos negocios pagan pauta sin saber si el clic se convierte." | Texto en pantalla: el dolor, no el logo todavía |
+| 2 (12-35s) | "Neggo verifica cada negocio antes de listarlo — Sello de Confianza y código anti-phishing, así el cliente sabe que quien lo contacta es real. Eso resuelve el freno de conversión del lado del cliente." | Captura real del Sello de Confianza en el producto |
+| 3 (35-55s) | "Del lado del negocio: CRM con pipeline por sector, facturación automática con conciliación, y pagás solo por resultado — CPL por lead real, sin pauta fija ni permanencia." | Captura real del dashboard/CRM |
+| 4 (55-75s) | "No es una promesa en PowerPoint — está construido y corriendo hoy. Los primeros 50 comercios de Medellín tienen el Sello de Confianza gratis." | Texto en pantalla: checklist de capacidades reales |
+| 5 (75-90s) | "Si querés ver cómo aplica a tu negocio puntual, agendamos 10-15 minutos esta semana." | CTA + logo Neggo + neggo.co |
+
+Stack de producción: mismo de la tabla arriba (NotebookLM para una primera versión rápida a partir de `docs/marca-assets/portafolio-neggo-b2b.pdf` + este guion como fuente; Seedance 2.0 para B-roll conceptual del dashboard/Sello de Confianza si no hay capturas reales disponibles; CapCut para armar el corte final). Pendiente de decisión de Jhey: grabar él la voz (más humano, recomendado para B2B) o usar voz de IA en CapCut.
+
 ## 14. Piezas gráficas — dirección creativa
 
 Decisión: conectar Canva (ya sugerido para conectar) en vez de armar piezas simples en SVG — la meta es atracción diaria de clientes, y una pieza que se ve genérica no compite bien en el feed. Canva además ya tiene un flujo armado (brief → diseño terminado → caption) listo para usar una vez conectado.
