@@ -231,6 +231,36 @@ Base orgánica (sin costo, tiempo del founder) + capa de pauta paga agregada el 
 
 ---
 
+### LinkedIn — adaptaciones de piezas de Instagram/Facebook (voz de Jhey, agregadas 4 ago a pedido de Jhey)
+
+Mismo criterio ya usado en el "L-extra" de I1 (fuera de la cadencia base de la sección 4, pensadas para sumar volumen sin romper el pool principal de L1-L5). Estilo "beneficio directo" en vez del gancho de sesgo psicológico de L1-L5 — explícitamente pedido por Jhey el 4 ago.
+
+---
+
+**L-extra 2 — Verificá antes de confiar** (adaptación de I3 a voz LinkedIn)
+
+> Cada vez que un cliente le compra a un negocio que no conoce, hay un segundo de duda: ¿esto es real?
+>
+> Por eso en Neggo cada negocio con Sello de Confianza ya fue verificado antes de aparecer en cualquier búsqueda, y cada cliente tiene un código de verificación anti-phishing único por sesión — si alguien te contacta diciendo ser de ese negocio (o de un banco) y el código no coincide, ya sabés que es falso.
+>
+> No es una promesa de marketing. Es una verificación que ya está corriendo, en producción, hoy.
+>
+> ¿Cómo verificás vos hoy que quien te contacta es quien dice ser? Contame en los comentarios.
+
+---
+
+**L-extra 3 — Tu meta más cerca de lo que pensás** (adaptación de I6 a voz LinkedIn)
+
+> Muchas personas miran una meta grande —comprar carro, remodelar, un viaje— y sienten que falta muchísimo, no por falta de esfuerzo sino porque la ven como un número gigante en vez de un camino con ayuda real en el medio.
+>
+> En Neggo conectamos esa meta con comercios verificados de la categoría que corresponde — la persona avanza, el comercio ayuda a llegar antes de lo que pensaba.
+>
+> Ojo: esto no es una promesa de "hacete rico rápido" — es acortar el camino real hasta el comercio correcto, no magia.
+>
+> ¿Tenés alguna meta este año que sientas lejana? Contame cuál.
+
+---
+
 ## 6. Integración con adquisición de leads
 
 Cada pieza de contenido tiene un destino ya construido, no una promesa:
@@ -270,16 +300,18 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | I2 — Cómo funciona Neggo en 3 pasos | Instagram/Facebook | 1 | Texto preparado y enviado a Jhey el 31 jul, pendiente de que lo publique |
 | L2 — El miedo real detrás de cada búsqueda | LinkedIn | 2 | Armado en el cuadro de LinkedIn el 27 jul, pendiente de que Jhey le dé Publicar |
 | L3 — Evidencia, no promesas | LinkedIn | 2 | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
-| I3 — Qué es el Sello de Confianza | Instagram/Facebook | 2 | Texto y pieza gráfica preparados y enviados a Jhey el 3 ago, pendiente de que lo publique |
+| I3 — Qué es el Sello de Confianza | Instagram/Facebook | 2 | Texto y pieza gráfica real (`docs/marca-assets/posts/i3-sello-instagram-1080x1350.png`, `...-facebook-1200x630.png`) preparados y enviados a Jhey el 4 ago — la pieza gráfica mencionada el 3 ago nunca llegó a generarse como archivo; esta la reemplaza |
 | L4 — Riesgo cero, en serio | LinkedIn | 3 | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 | L5 — Por qué "referí a un amigo" funciona | LinkedIn | 3 | Pendiente — **bloqueado hasta que Jhey defina el incentivo de referido (sección 8)** |
 | I4 — Primeros 50 comercios, Sello gratis | Instagram/Facebook | 3 | Texto y pieza gráfica (`docs/marca-assets/posts/post-i4-primeros-50-instagram.png` 1080×1350, `...-facebook.png` 1200×630) preparados y enviados a Jhey el 4 ago, pendiente de que lo publique |
 | I5 — No todo lo que dice ser tu banco, es tu banco | Instagram/Facebook | 3 | Texto ya escrito (sección 5), pendiente de que la automatización lo arme en el compositor |
-| I6 — Tu meta no está tan lejos como creés | Instagram/Facebook | 3 (nueva) | Texto ya escrito (sección 5), agregada 4 ago — usa la funcionalidad real de Metas/GoalCategory ya construida en el producto |
+| I6 — Tu meta no está tan lejos como creés | Instagram/Facebook | 3 (nueva) | Texto y pieza gráfica real (`docs/marca-assets/posts/i6-meta-instagram-1080x1350.png`, `...-facebook-1200x630.png`) preparados y enviados a Jhey el 4 ago |
 | O1 — Bases quemadas | LinkedIn | Serie origen | Publicado por Jhey el 30 jul |
 | O2 — "¿Vos sí sos del banco?" | LinkedIn | Serie origen | Publicado por Jhey el 31 jul |
 | O3 — Por qué nació Neggo | LinkedIn | Serie origen | Armado en el cuadro de LinkedIn el 3 ago, pendiente de que Jhey le dé Publicar |
 | L-extra — ¿Buscás algo en Medellín? (adaptación de I1 a voz LinkedIn) | LinkedIn | Fuera de cadencia, a pedido de Jhey | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
+| L-extra 2 — Verificá antes de confiar (adaptación de I3 a voz LinkedIn) | LinkedIn | Fuera de cadencia, agregada 4 ago | Texto (sección 5) y pieza gráfica (`docs/marca-assets/posts/i3-sello-linkedin-1200x627.png`) preparados y enviados a Jhey el 4 ago, pendiente de que lo arme en el compositor |
+| L-extra 3 — Tu meta más cerca de lo que pensás (adaptación de I6 a voz LinkedIn) | LinkedIn | Fuera de cadencia, agregada 4 ago | Texto (sección 5) y pieza gráfica (`docs/marca-assets/posts/i6-meta-linkedin-1200x627.png`) preparados y enviados a Jhey el 4 ago, pendiente de que lo arme en el compositor |
 
 La serie O (origen) va después de L3-L5 en la cola por defecto — se agregó al final de la tabla a propósito para no desordenar lo que ya estaba en curso. Si Jhey quiere adelantarla, moverla arriba de L3 en esta tabla.
 

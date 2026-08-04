@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="627" viewBox="0 0 1200 627">
+  <defs>
+    <radialGradient id="gTR" cx="100%" cy="0%" r="70%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.14" />
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="gBL" cx="0%" cy="100%" r="65%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.09" />
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0" />
+    </radialGradient>
+    <filter id="iconGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="18" />
+    </filter>
+  </defs>
+
+  <rect width="1200" height="627" fill="#080A0C" />
+  <rect width="1200" height="627" fill="url(#gTR)" />
+  <rect width="1200" height="627" fill="url(#gBL)" />
+
+  
+    <g>
+      <filter id="glowLogo705046" x="-100%" y="-100%" width="300%" height="300%">
+        <feGaussianBlur stdDeviation="12" />
+      </filter>
+      <rect x="70" y="50" width="46" height="46" rx="14.72"
+            fill="#10B981" opacity="0.22" filter="url(#glowLogo705046)" />
+      <rect x="70" y="50" width="46" height="46" rx="14.72"
+            fill="#10B981" fill-opacity="0.10" stroke="#10B981" stroke-opacity="0.25" />
+      <g transform="translate(76.44, 56.44) scale(1.38)">
+        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" fill="none" stroke="#059669" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <text x="132" y="81.16"
+            font-family="Inter ExtraBold" font-size="24" letter-spacing="-0.8"
+            fill="#F8FAFC">Neggo</text>
+    </g>
+
+  <circle cx="1090" cy="110" r="54" fill="#10B981" opacity="0.12" filter="url(#iconGlow)" />
+  <circle cx="1090" cy="110" r="44" fill="#10B981" fill-opacity="0.08" stroke="#10B981" stroke-opacity="0.3" />
+  
+        <g transform="translate(1068.0,88.0) scale(1.8333333333333333)">
+          <path d="M3.5 17.5 L9.5 11.5 L13 14 L19 6.5" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M14.5 6.5 L19 6.5 L19 11" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+
+  <text x="70" y="185.0" font-family="Inter ExtraBold" font-weight="800" font-size="38" letter-spacing="-1" text-anchor="start"><tspan fill="#F8FAFC">¿Sentís </tspan><tspan fill="#F8FAFC">que </tspan><tspan fill="#F8FAFC">tu </tspan><tspan fill="#10B981">meta </tspan><tspan fill="#F8FAFC">está </tspan></text>
+<text x="70" y="228.32" font-family="Inter ExtraBold" font-weight="800" font-size="38" letter-spacing="-1" text-anchor="start"><tspan fill="#F8FAFC">muy </tspan><tspan fill="#10B981">lejos </tspan><tspan fill="#F8FAFC">todavía? </tspan></text>
+
+
+  <text x="70" y="290.32" font-family="Inter" font-size="22" fill="#7588A3">Ya hay comercios en Medellín listos para ayudarte a llegar.</text>
+
+  
+        <circle cx="75" cy="330.32" r="4" fill="#10B981" />
+        <text x="92" y="336.32" font-family="Inter" font-weight="600" font-size="18" fill="#F8FAFC">Comercios verificados de tu categoría, conectados con tu meta.</text>
+        
+        <circle cx="75" cy="362.32" r="4" fill="#10B981" />
+        <text x="92" y="368.32" font-family="Inter" font-weight="600" font-size="18" fill="#F8FAFC">Avanzás en tiempo récord, no en años.</text>
+        
+
+  <rect x="70" y="531" width="1060" height="1" fill="#23272F" />
+  <text x="70" y="565" font-family="Inter ExtraBold" font-size="24" fill="#F8FAFC">Contanos tu meta</text>
+  <text x="70" y="593" font-family="Inter" font-weight="600" font-size="18" fill="#10B981">neggo.co</text>
+  <path d="M 168.0 581 L 180.0 587 L 168.0 593 Z" fill="#10B981" />
+</svg>
