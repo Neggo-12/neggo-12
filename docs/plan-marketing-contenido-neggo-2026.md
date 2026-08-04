@@ -215,6 +215,22 @@ Base orgánica (sin costo, tiempo del founder) + capa de pauta paga agregada el 
 
 ---
 
+**I6 — Tu meta no está tan lejos como creés** (agregada 4 ago, a pedido de Jhey — formato: post educativo, fórmula miedo/problema real + solución concreta, sección 9 de `marketing-neggo.md`)
+
+> ¿Tenés una meta —un viaje, un carro, remodelar tu casa— y sentís que falta muchísimo para lograrla? 😮‍💨
+>
+> Es normal sentir que una meta grande está lejos cuando la ves como un solo número gigante en vez de un camino con ayuda real en el medio.
+>
+> Ojo: esto no es una promesa de "hacete rico rápido" — es mostrarte que ya hay comercios reales en Medellín listos para ayudarte a llegar antes de lo que pensás.
+>
+> En Neggo conectamos tu meta con comercios verificados de esa categoría — vos avanzás, ellos te ayudan a llegar en tiempo récord, no en años.
+>
+> Contanos tu meta. Es gratis. Link en bio.
+>
+> #MetasFinancieras #NeggoMedellin #Medellin #TusMetas
+
+---
+
 ## 6. Integración con adquisición de leads
 
 Cada pieza de contenido tiene un destino ya construido, no una promesa:
@@ -258,7 +274,8 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | L4 — Riesgo cero, en serio | LinkedIn | 3 | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 | L5 — Por qué "referí a un amigo" funciona | LinkedIn | 3 | Pendiente — **bloqueado hasta que Jhey defina el incentivo de referido (sección 8)** |
 | I4 — Primeros 50 comercios, Sello gratis | Instagram/Facebook | 3 | Texto y pieza gráfica (`docs/marca-assets/posts/post-i4-primeros-50-instagram.png` 1080×1350, `...-facebook.png` 1200×630) preparados y enviados a Jhey el 4 ago, pendiente de que lo publique |
-| I5 — No todo lo que dice ser tu banco, es tu banco | Instagram/Facebook | 3 | Pendiente |
+| I5 — No todo lo que dice ser tu banco, es tu banco | Instagram/Facebook | 3 | Texto ya escrito (sección 5), pendiente de que la automatización lo arme en el compositor |
+| I6 — Tu meta no está tan lejos como creés | Instagram/Facebook | 3 (nueva) | Texto ya escrito (sección 5), agregada 4 ago — usa la funcionalidad real de Metas/GoalCategory ya construida en el producto |
 | O1 — Bases quemadas | LinkedIn | Serie origen | Publicado por Jhey el 30 jul |
 | O2 — "¿Vos sí sos del banco?" | LinkedIn | Serie origen | Publicado por Jhey el 31 jul |
 | O3 — Por qué nació Neggo | LinkedIn | Serie origen | Armado en el cuadro de LinkedIn el 3 ago, pendiente de que Jhey le dé Publicar |

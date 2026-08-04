@@ -60,3 +60,42 @@ Se mantiene por ahora — el intento anterior tuvo exposición pública mínima,
 
 **"¿Qué pasa si no nos gusta después de probar?"**
 - Sin permanencia obligatoria — el modelo de pago por resultado (CPL + éxito) significa que si no genera valor, simplemente se deja de usar, sin contrato de salida costoso.
+
+## 9. Fórmula de copy — miedo real primero, solución concreta después (agregado 4 ago, a pedido de Jhey)
+
+Regla no negociable para TODA pieza de contenido y TODA respuesta de ventas/prospección
+(Growth, Ventas, Contenido): nunca empezar por "conseguimos leads" o "pagas por CPL" como
+mensaje principal — eso es el mecanismo, no el motivo por el que a alguien le importa.
+Empezar siempre nombrando un miedo o problema real de la audiencia, y recién después
+conectar con lo que Neggo construyó en concreto para resolver eso.
+
+**Estructura:**
+1. Nombrar el miedo/problema real (con evidencia razonable, nunca una cifra inventada —
+   "hemos visto que...", "es común que...", no "el 73% de...").
+2. Conectar con la capacidad real de Neggo que resuelve justo eso (verificación previa,
+   Sello de Confianza, código anti-phishing, Metas con comercios aliados) — nunca quedarse
+   en "te traemos clientes".
+3. Cierre de baja fricción (pregunta corta, nunca presión).
+
+**Ejemplos de piezas para clientes finales (B2C):**
+
+*Miedo a estafas / desconfianza de negocios online:*
+"¿Te da desconfianza comprarle a un negocio que no conocés? En Neggo vemos seguido que la
+gente deja pasar una compra por miedo a caer en una estafa. Por eso verificamos cada
+negocio, banco o constructora ANTES de conectarte con ellos — y te garantizamos que quien
+te contacta es real, con Sello de Confianza y código anti-phishing para que sepas que no es
+un fraude. Consultá primero en Neggo, después decidí con seguridad."
+
+*Meta financiera que se siente lejana (usa la funcionalidad real de Metas/GoalCategory ya
+construida — viaje, vivienda, carro, remodelación, etc.):*
+"¿Tenés una meta —un viaje, un carro, remodelar tu casa— y sentís que falta mucho para
+lograrla? En Neggo conectamos tu meta con comercios reales que te pueden ayudar a
+alcanzarla en mucho menos tiempo del que pensás. No esperes años para algo que podés
+lograr en meses. Contanos tu meta y te mostramos quién te puede ayudar hoy."
+
+**Para comercios (B2B, prospección y respuestas de ventas):** el mismo miedo aplica del
+otro lado — muchos clientes finales abandonan una compra por desconfianza del negocio, no
+por el negocio en sí. El pitch a un comercio se fortalece mostrando que Neggo les resuelve
+ESE freno de conversión (el cliente llega ya verificado y con más disposición a comprar),
+no solo "te mandamos tráfico". Combinar esto con el tratamiento de "cuenta grande" (sección
+6.1 de `estrategia-adquisicion-clientes-neggo.md`) cuando aplique.
