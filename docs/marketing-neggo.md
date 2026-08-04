@@ -36,7 +36,31 @@ No es "conseguimos leads" — es el código de verificación de identidad del as
 
 ## 5. Capacidades reales de la plataforma como argumento de venta
 
-Ya no son promesas — son funcionalidades reales, probadas: CRM con pipeline por sector, facturación automática mensual con conciliación, Metas con IFC conectadas a comercios reales, sistema de tarifas negociables por banco. Esto es evidencia concreta para mostrarle a un banco grande, no una idea en papel.
+Ya no son promesas — son funcionalidades reales, probadas: CRM con pipeline por sector, facturación automática mensual con conciliación, Metas con IFC conectadas a comercios reales. Esto es evidencia concreta para mostrarle a un banco grande, no una idea en papel.
+
+**Corrección 4 ago:** "tarifas negociables por banco" describía solo el mecanismo de Bancos — los Comercios tienen su propio sistema de tarifas, distinto y ya construido (verificado en la base de datos real, tabla `planes_comercio`, 4 ago). No mezclar ambos en contenido dirigido a comercios.
+
+### 5.1 Precios reales — Comercios (verificado en BD, no inventar cifras distintas)
+
+Tres planes (`planes_comercio`), todos negociables caso por caso vía `tarifas_comercio_negociadas`:
+
+| Plan | CPL (por lead) | Comisión al cerrar |
+|---|---|---|
+| Solo Pauta | $3.000 COP | 1% |
+| Balanceado (default) | $5.000 COP | 5% |
+| Solo Resultados | $0 | 3% |
+
+Aparte de esto, **Sello de Confianza** es una suscripción mensual recurrente aparte del plan (tabla `tarifas_sello_negociadas` + franjas automáticas por ingreso mensual declarado): <$300.000 → $5.000/mes; hasta $10.000.000 → $20.000/mes; hasta $20.000.000 → $28.000/mes; más de $20.000.000 → $40.000/mes. Los primeros 50 comercios lo tienen gratis (sección 4).
+
+### 5.2 Cómo le llega la demanda a un comercio (para no describirlo mal)
+
+Dos mecanismos separados, nunca mezclarlos en el copy:
+- **Me Interesa** (activo): el cliente pide contacto ya en una categoría — llega directo a la pestaña "Solicitudes" del negocio con nombre/teléfono visibles de inmediato.
+- **Metas/IFC** (pasivo): el cliente define una meta en su categoría (ej. un procedimiento, un viaje, un mueble — nunca hardcodear un solo ejemplo en piezas que van a varias categorías) → aparece como oportunidad anónima en el feed del negocio → el negocio envía una propuesta/oferta con sus condiciones → el cliente la ve en un carrusel (máx. 3 activas) y decide "Me interesa" → recién ahí se libera el contacto real.
+
+### 5.3 Reputación por Calidad (distinta del Sello de Confianza)
+
+Score dinámico que sube/baja con feedback real de clientes (felicitación +5, sugerencia 0, problema −3, mala atención −8, nunca baja de 0) — se sostiene con evidencia real, no es lo mismo que el Sello de Confianza (que es verificación legal estática, sí/no). Usar esta, no "score financiero", cuando el contenido es para comercios — el score financiero es un dato relevante para Bancos/Constructoras sobre el cliente final, no algo que un comercio de estética/gimnasio/etc. necesite ver en un portafolio dirigido a él.
 
 ## 6. Sobre el nombre "Neggo"
 
