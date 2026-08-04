@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <radialGradient id="glowTR" cx="100%" cy="0%" r="65%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.16" />
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glowBL" cx="0%" cy="100%" r="60%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.10" />
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="numGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="bigGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="26" />
+    </filter>
+    <filter id="lineGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" />
+    </filter>
+  </defs>
+
+  <rect width="1080" height="1350" fill="#080A0C" />
+  <rect width="1080" height="1350" fill="url(#glowTR)" />
+  <rect width="1080" height="1350" fill="url(#glowBL)" />
+
+  
+    <g>
+      <filter id="glowOuter9084" x="-100%" y="-100%" width="300%" height="300%">
+        <feGaussianBlur stdDeviation="14" />
+      </filter>
+      <rect x="90" y="84" width="64" height="64" rx="20.48"
+            fill="#10B981" opacity="0.22" filter="url(#glowOuter9084)" />
+      <rect x="90" y="84" width="64" height="64" rx="20.48"
+            fill="#10B981" fill-opacity="0.10" stroke="#10B981" stroke-opacity="0.25" />
+      <g transform="translate(98.96000000000001, 92.96000000000001) scale(1.92)">
+        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" fill="none" stroke="#059669" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <text x="172" y="128.24"
+            font-family="Inter ExtraBold" font-size="36" letter-spacing="-0.8"
+            fill="#F8FAFC">Neggo</text>
+    
+      <text x="172" y="170" font-family="Inter" font-weight="700"
+            font-size="12" letter-spacing="3" fill="#10B981">VERIFICADO</text>
+        </g>
+
+  
+    <g>
+      <rect x="90" y="258" width="343.5" height="46" rx="23.0"
+            fill="#F59E0B" fill-opacity="0.14" stroke="#F59E0B" stroke-opacity="0.55" stroke-width="1.5" />
+      <circle cx="116" cy="281.0" r="4" fill="#F59E0B" />
+      <text x="132" y="286.0" font-family="Inter" font-weight="700"
+            font-size="15" letter-spacing="2" fill="#F59E0B">CUPOS LIMITADOS · SOLO 50</text>
+    </g>
+    
+
+  <!-- Hero number, protagonist of the piece -->
+  <text x="540.0" y="705" text-anchor="middle" font-family="JetBrains Mono" font-weight="700"
+        font-size="440" fill="url(#numGlow)" opacity="0.14" filter="url(#bigGlow)">50</text>
+  <text x="540.0" y="705" text-anchor="middle" font-family="JetBrains Mono" font-weight="700"
+        font-size="440" fill="url(#numGlow)">50</text>
+
+  <text x="540.0" y="760" text-anchor="middle" font-family="Inter" font-weight="700"
+        font-size="22" letter-spacing="5" fill="#7588A3">PRIMEROS COMERCIOS DE MEDELLÍN</text>
+
+  <line x1="480.0" y1="808" x2="600.0" y2="808" stroke="#10B981" stroke-opacity="0.5" stroke-width="2" />
+
+  <!-- Headline -->
+  <text x="540.0" y="900" text-anchor="middle" font-family="Inter ExtraBold" font-size="64"
+        letter-spacing="-1.2" fill="#F8FAFC">Sello de Confianza</text>
+  <text x="540.0" y="972" text-anchor="middle" font-family="Inter ExtraBold" font-size="64"
+        letter-spacing="-1.2" fill="#10B981">completamente gratis</text>
+
+  <!-- Subtext -->
+  <text x="540.0" y="1040" text-anchor="middle" font-family="Inter" font-size="28" fill="#7588A3">Ya activo desde el registro.</text>
+  <text x="540.0" y="1078" text-anchor="middle" font-family="Inter" font-size="28" fill="#7588A3">Sin trámite extra, sin letra pequeña.</text>
+
+  <!-- Divider -->
+  <rect x="90" y="1145" width="900" height="1" fill="#23272F" />
+
+  <!-- CTA row -->
+  <text x="90" y="1218" font-family="Inter ExtraBold" font-size="34" fill="#F8FAFC">Registrá tu negocio hoy</text>
+  <text x="90" y="1256" font-family="Inter" font-weight="600" font-size="24" fill="#10B981">Link en bio</text>
+  <path d="M 250 1240 L 262 1246 L 250 1252 Z" fill="#10B981" />
+
+  <g transform="translate(840,1198)">
+    <circle cx="10" cy="10" r="5" fill="#10B981" />
+    <text x="26" y="16" font-family="Inter" font-weight="600" font-size="22" fill="#7588A3">Medellín</text>
+  </g>
+</svg>

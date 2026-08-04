@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="glowTRf" cx="100%" cy="0%" r="70%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.16" />
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glowBLf" cx="0%" cy="100%" r="65%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.10" />
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="numGlowF" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="bigGlowF" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="20" />
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="#080A0C" />
+  <rect width="1200" height="630" fill="url(#glowTRf)" />
+  <rect width="1200" height="630" fill="url(#glowBLf)" />
+
+  
+    <g>
+      <filter id="glowOuter7056" x="-100%" y="-100%" width="300%" height="300%">
+        <feGaussianBlur stdDeviation="14" />
+      </filter>
+      <rect x="70" y="56" width="52" height="52" rx="16.64"
+            fill="#10B981" opacity="0.22" filter="url(#glowOuter7056)" />
+      <rect x="70" y="56" width="52" height="52" rx="16.64"
+            fill="#10B981" fill-opacity="0.10" stroke="#10B981" stroke-opacity="0.25" />
+      <g transform="translate(77.28, 63.28) scale(1.5599999999999998)">
+        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" fill="none" stroke="#059669" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <text x="140" y="91.52"
+            font-family="Inter ExtraBold" font-size="28" letter-spacing="-0.8"
+            fill="#F8FAFC">Neggo</text>
+    </g>
+
+  
+    <g>
+      <rect x="70" y="150" width="343.5" height="46" rx="23.0"
+            fill="#F59E0B" fill-opacity="0.14" stroke="#F59E0B" stroke-opacity="0.55" stroke-width="1.5" />
+      <circle cx="96" cy="173.0" r="4" fill="#F59E0B" />
+      <text x="112" y="178.0" font-family="Inter" font-weight="700"
+            font-size="15" letter-spacing="2" fill="#F59E0B">CUPOS LIMITADOS · SOLO 50</text>
+    </g>
+    
+
+  <!-- Left column: headline -->
+  <text x="70" y="330" font-family="Inter ExtraBold" font-size="50" letter-spacing="-1" fill="#F8FAFC">Sello de Confianza</text>
+  <text x="70" y="392" font-family="Inter ExtraBold" font-size="50" letter-spacing="-1" fill="#10B981">completamente gratis</text>
+
+  <text x="70" y="440" font-family="Inter" font-size="24" fill="#7588A3">Ya activo desde el registro. Sin trámite extra,</text>
+  <text x="70" y="472" font-family="Inter" font-size="24" fill="#7588A3">sin letra pequeña.</text>
+
+  <rect x="70" y="512" width="460" height="1" fill="#23272F" />
+  <text x="70" y="562" font-family="Inter ExtraBold" font-size="26" fill="#F8FAFC">Registrá tu negocio hoy</text>
+  <text x="70" y="592" font-family="Inter" font-weight="600" font-size="19" fill="#10B981">Link en bio</text>
+  <path d="M 178 580 L 190 586 L 178 592 Z" fill="#10B981" />
+  <circle cx="212" cy="586" r="2.5" fill="#7588A3" />
+  <text x="224" y="592" font-family="Inter" font-weight="600" font-size="19" fill="#7588A3">Medellín</text>
+
+  <!-- Right column: hero number -->
+  <text x="900" y="420" text-anchor="middle" font-family="JetBrains Mono" font-weight="700"
+        font-size="300" fill="url(#numGlowF)" opacity="0.16" filter="url(#bigGlowF)">50</text>
+  <text x="900" y="420" text-anchor="middle" font-family="JetBrains Mono" font-weight="700"
+        font-size="300" fill="url(#numGlowF)">50</text>
+  <text x="900" y="470" text-anchor="middle" font-family="Inter" font-weight="700" font-size="17"
+        letter-spacing="3" fill="#7588A3">PRIMEROS COMERCIOS</text>
+</svg>

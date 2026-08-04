@@ -257,7 +257,7 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | I3 — Qué es el Sello de Confianza | Instagram/Facebook | 2 | Texto y pieza gráfica preparados y enviados a Jhey el 3 ago, pendiente de que lo publique |
 | L4 — Riesgo cero, en serio | LinkedIn | 3 | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 | L5 — Por qué "referí a un amigo" funciona | LinkedIn | 3 | Pendiente — **bloqueado hasta que Jhey defina el incentivo de referido (sección 8)** |
-| I4 — Primeros 50 comercios, Sello gratis | Instagram/Facebook | 3 | Texto preparado y enviado a Jhey el 4 ago, pendiente de que lo publique |
+| I4 — Primeros 50 comercios, Sello gratis | Instagram/Facebook | 3 | Texto y pieza gráfica (`docs/marca-assets/posts/post-i4-primeros-50-instagram.png` 1080×1350, `...-facebook.png` 1200×630) preparados y enviados a Jhey el 4 ago, pendiente de que lo publique |
 | I5 — No todo lo que dice ser tu banco, es tu banco | Instagram/Facebook | 3 | Pendiente |
 | O1 — Bases quemadas | LinkedIn | Serie origen | Publicado por Jhey el 30 jul |
 | O2 — "¿Vos sí sos del banco?" | LinkedIn | Serie origen | Publicado por Jhey el 31 jul |
