@@ -173,13 +173,21 @@ Base orgánica (sin costo, tiempo del founder) + capa de pauta paga agregada el 
 
 **I3 — Qué es el Sello de Confianza** (Semana 2, formato: post educativo + imagen del sello)
 
-> El Sello de Confianza de Neggo no es un ícono decorativo. Significa que ese negocio fue verificado antes de aparecer en tu búsqueda.
+> ¿Alguna vez entraste a un negocio nuevo y buscaste alguna señal — una reseña, algo — antes de animarte a comprar? 👀
 >
-> Nada de negocios fantasma ni perfiles falsos. Si tiene el Sello, es real.
+> Es normal: el cerebro busca un atajo de confianza antes de arriesgar la plata. Por eso en Neggo no dejamos esa señal al azar.
+>
+> Ojo: esto no reemplaza tu propio criterio — es una verificación más, no una garantía mágica.
+>
+> El Sello de Confianza significa que ese negocio fue verificado antes de aparecer en tu búsqueda. Nada de negocios fantasma ni perfiles falsos. Si tiene el Sello, es real.
 >
 > Buscá siempre el Sello antes de contactar a cualquier negocio en Neggo. 🛡️
 >
-> #SelloDeConfianza #NeggoMedellin #ComerciosVerificados
+> ¿Te ha pasado que un negocio se veía bien pero algo te generó dudas? Contanos en los comentarios.
+>
+> 📍 Medellín · Registro gratis, link en bio.
+>
+> #SelloDeConfianza #NeggoMedellin #ComerciosVerificados #Medellin
 
 ---
 
@@ -246,10 +254,10 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | I2 — Cómo funciona Neggo en 3 pasos | Instagram/Facebook | 1 | Texto preparado y enviado a Jhey el 31 jul, pendiente de que lo publique |
 | L2 — El miedo real detrás de cada búsqueda | LinkedIn | 2 | Armado en el cuadro de LinkedIn el 27 jul, pendiente de que Jhey le dé Publicar |
 | L3 — Evidencia, no promesas | LinkedIn | 2 | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
-| I3 — Qué es el Sello de Confianza | Instagram/Facebook | 2 | Pendiente |
+| I3 — Qué es el Sello de Confianza | Instagram/Facebook | 2 | Texto y pieza gráfica preparados y enviados a Jhey el 3 ago, pendiente de que lo publique |
 | L4 — Riesgo cero, en serio | LinkedIn | 3 | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 | L5 — Por qué "referí a un amigo" funciona | LinkedIn | 3 | Pendiente — **bloqueado hasta que Jhey defina el incentivo de referido (sección 8)** |
-| I4 — Primeros 50 comercios, Sello gratis | Instagram/Facebook | 3 | Pendiente |
+| I4 — Primeros 50 comercios, Sello gratis | Instagram/Facebook | 3 | Texto preparado y enviado a Jhey el 4 ago, pendiente de que lo publique |
 | I5 — No todo lo que dice ser tu banco, es tu banco | Instagram/Facebook | 3 | Pendiente |
 | O1 — Bases quemadas | LinkedIn | Serie origen | Publicado por Jhey el 30 jul |
 | O2 — "¿Vos sí sos del banco?" | LinkedIn | Serie origen | Publicado por Jhey el 31 jul |
