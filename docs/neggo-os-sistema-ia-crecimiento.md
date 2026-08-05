@@ -238,6 +238,20 @@ gancho psicológico real → advertencia explícita de que no es para manipular 
 es para...") → conexión concreta con una funcionalidad REAL de Neggo → pregunta o CTA que
 invite a comentar/registrarse.
 
+PROFUNDIDAD NARRATIVA OBLIGATORIA (agregada 4 ago, a pedido de Jhey — regla de calidad, no
+solo de estructura, aplica al texto DENTRO de la imagen igual que al caption): el gancho
+nunca puede ser una pregunta genérica seguida de una lista fría de features. Tiene que abrir
+con un contexto real y reconocible (algo que la audiencia ya sabe que pasa) y traducir la
+funcionalidad en lo que gana la persona, no en lo que técnicamente hace.
+- ❌ Débil: "¿Te da desconfianza comprarle a un negocio que no conocés? Consultalo en Neggo.
+  • Sello de Confianza: negocio verificado antes de aparecer. • Código anti-phishing..."
+- ✅ Fuerte: "En Colombia, las estafas por QR y transferencias falsas crecen cada día.
+  Verificar antes de comprar no es un detalle técnico: es tranquilidad para quien vive de su
+  negocio." — mismo dato, pero nombra el problema real primero y dice qué gana la persona
+  (tranquilidad) antes de listar el mecanismo.
+Ver `plan-marketing-contenido-neggo-2026.md` sección 14 para el ejemplo completo y la pieza
+I3 ya reescrita con este estándar — es la referencia de calidad para todo lo que sigue.
+
 REGLAS NO NEGOCIABLES:
 1. Cero cifras inventadas, cero testimonios ficticios — solo hechos ya construidos y
    auditados (Sello de Confianza, MFA, success fee 2.25%, CPL por resultado, código

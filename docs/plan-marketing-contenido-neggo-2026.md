@@ -189,6 +189,20 @@ Base orgánica (sin costo, tiempo del founder) + capa de pauta paga agregada el 
 >
 > #SelloDeConfianza #NeggoMedellin #ComerciosVerificados #Medellin
 
+**Texto de la imagen — reescrito 4 ago (versión anterior era una lista de features fría, ver sección 14 "Profundidad narrativa obligatoria"):**
+
+> En Colombia, las **estafas por QR y transferencias falsas** crecen cada día.
+>
+> Verificar antes de comprar no es un detalle técnico: es tranquilidad para quien vive de su negocio.
+>
+> ● Sello de Confianza: el negocio ya fue verificado antes de aparecer.
+> ● Código anti-phishing único por sesión, propio tuyo.
+>
+> **Verificá antes de comprar**
+> neggo.co ▶
+
+Pieza armada en `docs/marca-assets/posts/i3-sello-confianza-instagram-v2.png` (formato 1080x1350, paleta real del producto). Reemplaza la versión anterior de I3 — no publicar la vieja.
+
 ---
 
 **I4 — Primeros 50 comercios, Sello de Confianza gratis** (Semana 3, formato: post con urgencia real)
@@ -415,6 +429,15 @@ Decisión: conectar Canva (ya sugerido para conectar) en vez de armar piezas sim
 - Tipografía: Inter para texto, JetBrains Mono para cualquier cifra o dato (mismo criterio que el producto).
 - Cero clip-art ni ilustraciones stock genéricas de personas sonriendo — preferir composiciones tipográficas fuertes (como el ejemplo del precio ancla: la idea es el protagonista, no una foto decorativa) o capturas reales del producto (dashboard, Sello de Confianza) cuando aplique.
 - Cada pieza gráfica debe poder explicarse en menos de 3 segundos de scroll — un concepto por pieza, nunca varios mensajes compitiendo.
+
+**Profundidad narrativa obligatoria en el copy (agregada 4 ago, a pedido de Jhey — regla de calidad, no solo de diseño):** el texto de una pieza (tanto el que va DENTRO de la imagen como el caption) nunca puede ser una lista de features fría. Tiene que abrir con un contexto real y reconocible, y traducir la funcionalidad en lo que de verdad significa para quien lo lee — no en lo que técnicamente hace.
+
+- ❌ Débil (lista de features, sin contexto — así estaba I3 hasta el 4 ago): "¿Te da desconfianza comprarle a un negocio que no conocés? Consultalo en Neggo antes de comprometerte. • Sello de Confianza: negocio verificado antes de aparecer. • Código anti-phishing único por sesión, propio tuyo."
+- ✅ Fuerte (contexto real → traducción emocional → mecanismo concreto — estándar a partir de ahora): "En Colombia, las estafas por QR y transferencias falsas crecen cada día. Verificar antes de comprar no es un detalle técnico: es tranquilidad para quien vive de su negocio. Sello de Confianza: el negocio ya fue verificado antes de aparecer. Código anti-phishing único por sesión, propio tuyo."
+
+La diferencia no es la información (es la misma) — es que la versión fuerte nombra un problema real y actual antes de mencionar la funcionalidad, y dice explícitamente qué gana la persona (tranquilidad, no solo un checkmark). Aplicar este mismo criterio al framework de la sección 1 (gancho → principio real → conexión con Neggo → CTA): el "gancho" tiene que ser este tipo de apertura contextual, nunca una pregunta genérica seguida de una lista de bullets.
+
+I3 se reescribió con este estándar el 4 ago — ver pieza actualizada en la sección 5 y `docs/marca-assets/posts/i3-sello-confianza-instagram-v2.png`.
 
 **Piezas gráficas prioritarias para esta primera tanda:**
 1. Carrusel I2 ("Cómo funciona Neggo en 3 pasos") — el más urgente, es la pieza de comprensión general.
