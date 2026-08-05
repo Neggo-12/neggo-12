@@ -40,17 +40,19 @@ Ya no son promesas — son funcionalidades reales, probadas: CRM con pipeline po
 
 **Corrección 4 ago:** "tarifas negociables por banco" describía solo el mecanismo de Bancos — los Comercios tienen su propio sistema de tarifas, distinto y ya construido (verificado en la base de datos real, tabla `planes_comercio`, 4 ago). No mezclar ambos en contenido dirigido a comercios.
 
-### 5.1 Precios reales — Comercios (verificado en BD, no inventar cifras distintas)
+### 5.1 Cómo pagan los Comercios — lógica de los 3 planes (corregido 4 ago, a pedido de Jhey)
 
-Tres planes (`planes_comercio`), todos negociables caso por caso vía `tarifas_comercio_negociadas`:
+Tres planes (`planes_comercio`), todos negociables caso por caso vía `tarifas_comercio_negociadas`. **La lógica correcta del negocio** (no usar las cifras que había en la tabla `planes_comercio` de la base de datos hasta el 4 ago — Jhey las revisó y no reflejaban el modelo real; están pendientes de que Ingeniería las corrija en la BD, ver nota abajo):
 
-| Plan | CPL (por lead) | Comisión al cerrar |
-|---|---|---|
-| Solo Pauta | $3.000 COP | 1% |
-| Balanceado (default) | $5.000 COP | 5% |
-| Solo Resultados | $0 | 3% |
+| Plan | Cómo paga el comercio |
+|---|---|
+| Solo Pauta | Paga por cada lead que Neggo le envía (tarifa negociable, abierta — nunca fijar un número sin confirmarlo con Jhey). El cierre de la venta lo hace el comercio con su propio proceso comercial. |
+| Balanceado | Paga un valor de lead más bajo que Solo Pauta, más una comisión — pero la comisión solo aplica si ese cliente efectivamente toma el servicio/compra. |
+| Solo Resultados | No paga nada por adelantado. Paga solo si un cliente compra o toma su servicio a través de Neggo. |
 
-Aparte de esto, **Sello de Confianza** es una suscripción mensual recurrente aparte del plan (tabla `tarifas_sello_negociadas` + franjas automáticas por ingreso mensual declarado): <$300.000 → $5.000/mes; hasta $10.000.000 → $20.000/mes; hasta $20.000.000 → $28.000/mes; más de $20.000.000 → $40.000/mes. Los primeros 50 comercios lo tienen gratis (sección 4).
+**Pendiente real (flag para Ingeniería/Arquitectura, no lo resuelve Marketing):** al verificar `planes_comercio` en la base de datos el 4 ago, los valores cargados (`solo_pauta`: cpl 3.000/1%, `balanceado`: cpl 5.000/5%, `solo_resultados`: cpl 0/3%) no siguen la lógica de arriba — ej. Balanceado tenía el cpl más alto de los tres, cuando debería ser más bajo que Solo Pauta. No usar esas cifras en ningún contenido hasta que se reconcilien con `neggo-architect`/`neggo-engineer`. Mientras tanto, todo contenido dirigido a comercios describe la LÓGICA de cada plan (tabla de arriba), nunca un número fijo de COP o %.
+
+Aparte de esto, **Sello de Confianza** es una suscripción mensual recurrente aparte del plan (tabla `tarifas_sello_negociadas` + franjas automáticas por ingreso mensual declarado): <$300.000 → $5.000/mes; hasta $10.000.000 → $20.000/mes; hasta $20.000.000 → $28.000/mes; más de $20.000.000 → $40.000/mes. Los primeros 50 comercios lo tienen gratis (sección 4). Esta cifra sí está verificada y no tiene la inconsistencia de los planes.
 
 ### 5.2 Cómo le llega la demanda a un comercio (para no describirlo mal)
 
