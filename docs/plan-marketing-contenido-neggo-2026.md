@@ -324,7 +324,7 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | O2 — "¿Vos sí sos del banco?" | LinkedIn | Serie origen | Publicado por Jhey el 31 jul |
 | O3 — Por qué nació Neggo | LinkedIn | Serie origen | Armado en el cuadro de LinkedIn el 3 ago, pendiente de que Jhey le dé Publicar |
 | L-extra — ¿Buscás algo en Medellín? (adaptación de I1 a voz LinkedIn) | LinkedIn | Fuera de cadencia, a pedido de Jhey | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
-| L-extra 2 — Verificá antes de confiar (adaptación de I3 a voz LinkedIn) | LinkedIn | Fuera de cadencia, agregada 4 ago | Texto (sección 5) y pieza gráfica (`docs/marca-assets/posts/i3-sello-linkedin-1200x627.png`) preparados y enviados a Jhey el 4 ago, pendiente de que lo arme en el compositor |
+| L-extra 2 — Verificá antes de confiar (adaptación de I3 a voz LinkedIn) | LinkedIn | Fuera de cadencia, agregada 4 ago | Armado en el cuadro de LinkedIn el 6 ago, pendiente de que Jhey le dé Publicar |
 | L-extra 3 — Tu meta más cerca de lo que pensás (adaptación de I6 a voz LinkedIn) | LinkedIn | Fuera de cadencia, agregada 4 ago | Texto (sección 5) y pieza gráfica (`docs/marca-assets/posts/i6-meta-linkedin-1200x627.png`) preparados y enviados a Jhey el 4 ago, pendiente de que lo arme en el compositor |
 
 La serie O (origen) va después de L3-L5 en la cola por defecto — se agregó al final de la tabla a propósito para no desordenar lo que ya estaba en curso. Si Jhey quiere adelantarla, moverla arriba de L3 en esta tabla.
