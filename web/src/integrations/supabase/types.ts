@@ -945,6 +945,66 @@ export type Database = {
           },
         ]
       }
+      movimientos_ocr: {
+        Row: {
+          categoria_id: string | null
+          categoria_sugerida: string | null
+          cliente_id: string
+          comercio_extraido: string | null
+          confianza_ocr: number | null
+          created_at: string
+          estado: string
+          fecha_extraida: string | null
+          id: string
+          imagen_path: string
+          revisado_at: string | null
+          valor_extraido: number | null
+        }
+        Insert: {
+          categoria_id?: string | null
+          categoria_sugerida?: string | null
+          cliente_id: string
+          comercio_extraido?: string | null
+          confianza_ocr?: number | null
+          created_at?: string
+          estado?: string
+          fecha_extraida?: string | null
+          id: string
+          imagen_path: string
+          revisado_at?: string | null
+          valor_extraido?: number | null
+        }
+        Update: {
+          categoria_id?: string | null
+          categoria_sugerida?: string | null
+          cliente_id?: string
+          comercio_extraido?: string | null
+          confianza_ocr?: number | null
+          created_at?: string
+          estado?: string
+          fecha_extraida?: string | null
+          id?: string
+          imagen_path?: string
+          revisado_at?: string | null
+          valor_extraido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_ocr_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "presupuesto_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_ocr_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metricas_rechazo: {
         Row: {
           entity_name: string

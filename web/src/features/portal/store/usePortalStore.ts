@@ -21,7 +21,13 @@ import {
   insertPresupuestoCategoria,
   updatePresupuestoCategoriaGasto,
   deletePresupuestoCategoria,
+  uploadRecibo,
+  procesarRecibo,
+  fetchMovimientosOcrPendientes,
+  confirmarMovimientoOcr,
+  descartarMovimientoOcr,
   type MeInteresaDestinatarioDisplay,
+  type MovimientoOcr,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -187,6 +193,14 @@ interface PortalState {
   isPresupuestoLoading: boolean;
   /** true después del primer intento de hidratación del presupuesto */
   isPresupuestoHydrated: boolean;
+  /** Recibos/facturas subidos y ya procesados por OCR, pendientes de revisión del cliente */
+  movimientosOcrPendientes: MovimientoOcr[];
+  /** true mientras se cargan los movimientos OCR pendientes */
+  isMovimientosOcrLoading: boolean;
+  /** true después del primer intento de hidratación de movimientos OCR */
+  isMovimientosOcrHydrated: boolean;
+  /** true mientras se sube/procesa una foto de recibo (subida + OCR) */
+  isProcesandoRecibo: boolean;
   /** Último error de sincronización con la base de datos */
   dbError: string | null;
 
@@ -220,6 +234,18 @@ interface PortalState {
   registrarGastoCategoria: (categoriaId: string, monto: number) => Promise<void>;
   /** Elimina una categoría de presupuesto (hard delete — no es un registro financiero sensible) */
   eliminarPresupuestoCategoria: (categoriaId: string) => Promise<void>;
+  /** Hidrata los movimientos OCR pendientes de revisión desde la base de datos real */
+  hydrateMovimientosOcr: () => Promise<void>;
+  /** Sube la foto del recibo y dispara el OCR server-side; agrega el resultado a la cola de revisión */
+  subirYProcesarRecibo: (file: File) => Promise<boolean>;
+  /**
+   * El cliente confirma un movimiento OCR con la categoría elegida: actualiza
+   * el estado a 'confirmado' y SOLO entonces suma el gasto real a
+   * presupuesto_categorias, vía registrarGastoCategoria.
+   */
+  confirmarMovimientoOcrEnCategoria: (movimientoId: string, categoriaId: string, monto: number) => Promise<void>;
+  /** Descarta un movimiento OCR (ej. lectura incorrecta o recibo duplicado) sin afectar el presupuesto */
+  descartarMovimientoOcrPendiente: (movimientoId: string) => Promise<void>;
 }
 
 /**
@@ -245,6 +271,10 @@ export const usePortalStore = create<PortalState>((set, get) => ({
   presupuestoCategorias: [],
   isPresupuestoLoading: false,
   isPresupuestoHydrated: false,
+  movimientosOcrPendientes: [],
+  isMovimientosOcrLoading: false,
+  isMovimientosOcrHydrated: false,
+  isProcesandoRecibo: false,
   dbError: null,
 
   setActiveTab: (tab) => {
@@ -793,5 +823,102 @@ export const usePortalStore = create<PortalState>((set, get) => ({
       return;
     }
     toast.success('Categoría eliminada');
+  },
+
+  hydrateMovimientosOcr: async () => {
+    if (get().isMovimientosOcrHydrated || get().isMovimientosOcrLoading) return;
+    const clienteId = getClienteId();
+    if (!isDbConfigured || !clienteId) {
+      set({ isMovimientosOcrLoading: false, isMovimientosOcrHydrated: true, movimientosOcrPendientes: [] });
+      return;
+    }
+    set({ isMovimientosOcrLoading: true });
+    const { data, error } = await fetchMovimientosOcrPendientes(clienteId);
+    if (error) {
+      set({ isMovimientosOcrLoading: false, isMovimientosOcrHydrated: true, dbError: error });
+      return;
+    }
+    set({
+      movimientosOcrPendientes: data ?? [],
+      isMovimientosOcrLoading: false,
+      isMovimientosOcrHydrated: true,
+      dbError: null,
+    });
+  },
+
+  subirYProcesarRecibo: async (file) => {
+    const clienteId = getClienteId();
+    if (!clienteId) {
+      toast.error('No se pudo identificar tu sesión', { description: 'Vuelve a iniciar sesión e intenta de nuevo.' });
+      return false;
+    }
+    set({ isProcesandoRecibo: true });
+
+    const { path, error: uploadError } = await uploadRecibo(clienteId, file);
+    if (uploadError || !path) {
+      set({ isProcesandoRecibo: false, dbError: uploadError });
+      logFalloApp('uploadRecibo', uploadError ?? 'sin path');
+      toast.error('No se pudo subir la foto del recibo', { description: uploadError ?? undefined });
+      return false;
+    }
+
+    const { data: movimiento, error: procesarError } = await procesarRecibo(path);
+    if (procesarError || !movimiento) {
+      set({ isProcesandoRecibo: false, dbError: procesarError });
+      toast.error('No se pudo leer el recibo automáticamente', {
+        description: procesarError ?? 'Podés intentar de nuevo o cargarlo manualmente.',
+      });
+      return false;
+    }
+
+    set((state) => ({
+      movimientosOcrPendientes: [movimiento, ...state.movimientosOcrPendientes],
+      isProcesandoRecibo: false,
+    }));
+    toast.success('Recibo procesado', {
+      description: movimiento.comercioExtraido
+        ? `Detectamos "${movimiento.comercioExtraido}" — revisalo antes de confirmar.`
+        : 'No detectamos todos los datos — completalos antes de confirmar.',
+    });
+    return true;
+  },
+
+  confirmarMovimientoOcrEnCategoria: async (movimientoId, categoriaId, monto) => {
+    const current = get().movimientosOcrPendientes.find((m) => m.id === movimientoId);
+    if (!current) return;
+    // Optimista: sale de la cola de pendientes de inmediato
+    set((state) => ({
+      movimientosOcrPendientes: state.movimientosOcrPendientes.filter((m) => m.id !== movimientoId),
+    }));
+    const { error } = await confirmarMovimientoOcr(movimientoId, categoriaId);
+    if (error) {
+      // Revertir: vuelve a la cola de pendientes
+      set((state) => ({
+        movimientosOcrPendientes: [current, ...state.movimientosOcrPendientes],
+        dbError: error,
+      }));
+      toast.error('No se pudo confirmar el recibo', { description: error });
+      return;
+    }
+    // Solo ahora impacta el presupuesto real — misma acción que "Registrar gasto" manual.
+    await get().registrarGastoCategoria(categoriaId, monto);
+  },
+
+  descartarMovimientoOcrPendiente: async (movimientoId) => {
+    const current = get().movimientosOcrPendientes.find((m) => m.id === movimientoId);
+    if (!current) return;
+    set((state) => ({
+      movimientosOcrPendientes: state.movimientosOcrPendientes.filter((m) => m.id !== movimientoId),
+    }));
+    const { error } = await descartarMovimientoOcr(movimientoId);
+    if (error) {
+      set((state) => ({
+        movimientosOcrPendientes: [current, ...state.movimientosOcrPendientes],
+        dbError: error,
+      }));
+      toast.error('No se pudo descartar el recibo', { description: error });
+      return;
+    }
+    toast.success('Recibo descartado');
   },
 }));

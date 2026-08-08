@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef, type ChangeEvent } from 'react';
 import {
   Wallet,
   PieChart,
@@ -15,6 +15,9 @@ import {
   Loader2,
   Trash2,
   CircleDollarSign,
+  Camera,
+  Receipt,
+  X,
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +37,7 @@ import { cn } from '@/lib/utils';
 import { MOCK_FINANCIAL_TIPS } from '@/features/portal/data/mock';
 import type { BudgetCategory } from '@/features/portal/data/mock';
 import { usePortalStore } from '@/features/portal/store/usePortalStore';
+import type { MovimientoOcr } from '@/core/db/repositories';
 
 // ───── Helpers ─────
 
@@ -204,6 +208,181 @@ function TipCard({ text, actionLabel }: { text: string; actionLabel?: string }) 
   );
 }
 
+// ───── Recibo pendiente (resultado de OCR, requiere confirmación) ─────
+
+function ReciboPendienteCard({
+  movimiento,
+  categorias,
+}: {
+  movimiento: MovimientoOcr;
+  categorias: BudgetCategory[];
+}) {
+  const confirmarMovimientoOcrEnCategoria = usePortalStore((s) => s.confirmarMovimientoOcrEnCategoria);
+  const descartarMovimientoOcrPendiente = usePortalStore((s) => s.descartarMovimientoOcrPendiente);
+
+  const categoriaSugeridaId = categorias.find((c) => c.name === movimiento.categoriaSugerida)?.id ?? '';
+  const [categoriaId, setCategoriaId] = useState(categoriaSugeridaId || categorias[0]?.id || '');
+  const [monto, setMonto] = useState(movimiento.valorExtraido ? String(movimiento.valorExtraido) : '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDiscarding, setIsDiscarding] = useState(false);
+
+  const canConfirm = !!categoriaId && Number(monto) > 0 && !isSubmitting;
+
+  const handleConfirmar = useCallback(async () => {
+    if (!canConfirm) return;
+    setIsSubmitting(true);
+    await confirmarMovimientoOcrEnCategoria(movimiento.id, categoriaId, Number(monto));
+    setIsSubmitting(false);
+  }, [canConfirm, confirmarMovimientoOcrEnCategoria, movimiento.id, categoriaId, monto]);
+
+  const handleDescartar = useCallback(async () => {
+    setIsDiscarding(true);
+    await descartarMovimientoOcrPendiente(movimiento.id);
+    setIsDiscarding(false);
+  }, [descartarMovimientoOcrPendiente, movimiento.id]);
+
+  const confianzaBaja = movimiento.confianzaOcr !== null && movimiento.confianzaOcr < 0.6;
+
+  return (
+    <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-400">
+            <Receipt className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              {movimiento.comercioExtraido ?? 'Comercio no detectado'}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {movimiento.fechaExtraida ?? 'Sin fecha detectada'}
+              {confianzaBaja && ' · revisá los datos, la lectura no fue muy clara'}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => void handleDescartar()}
+          disabled={isDiscarding}
+          className="text-muted-foreground hover:text-red-400 transition-colors shrink-0"
+          aria-label="Descartar recibo"
+        >
+          {isDiscarding ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="space-y-1">
+          <Label className="text-[11px] font-medium text-muted-foreground">Monto (COP)</Label>
+          <Input
+            type="number"
+            value={monto}
+            onChange={(e) => setMonto(e.target.value)}
+            className="h-8 text-xs font-mono"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[11px] font-medium text-muted-foreground">Categoría</Label>
+          <select
+            value={categoriaId}
+            onChange={(e) => setCategoriaId(e.target.value)}
+            className="h-8 w-full rounded-lg border border-border/60 bg-secondary/40 px-2 text-xs text-foreground"
+          >
+            {categorias.length === 0 && <option value="">Creá una categoría primero</option>}
+            {categorias.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <Button
+        size="sm"
+        disabled={!canConfirm}
+        onClick={handleConfirmar}
+        className="w-full mt-3 h-8 text-xs bg-emerald-600 hover:bg-emerald-500 text-white"
+      >
+        {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Confirmar y sumar al presupuesto'}
+      </Button>
+    </div>
+  );
+}
+
+// ───── Escanear Recibo ─────
+
+function EscanearReciboCard({ categorias }: { categorias: BudgetCategory[] }) {
+  const subirYProcesarRecibo = usePortalStore((s) => s.subirYProcesarRecibo);
+  const isProcesandoRecibo = usePortalStore((s) => s.isProcesandoRecibo);
+  const movimientosOcrPendientes = usePortalStore((s) => s.movimientosOcrPendientes);
+  const isMovimientosOcrLoading = usePortalStore((s) => s.isMovimientosOcrLoading);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = useCallback(
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      await subirYProcesarRecibo(file);
+      if (inputRef.current) inputRef.current.value = '';
+    },
+    [subirYProcesarRecibo],
+  );
+
+  return (
+    <div className="rounded-xl border bg-card/60 p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+          <Camera className="h-3.5 w-3.5 text-emerald-400" />
+        </div>
+        <h3 className="text-sm font-semibold text-foreground">Escanear Recibo</h3>
+      </div>
+
+      <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+        Subí una foto de tu recibo o factura y leemos los datos automáticamente — vos solo confirmás antes de que se sume a tu presupuesto.
+      </p>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => void handleFileChange(e)}
+      />
+      <Button
+        onClick={() => inputRef.current?.click()}
+        disabled={isProcesandoRecibo}
+        className="w-full gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20"
+      >
+        {isProcesandoRecibo ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Leyendo recibo...
+          </>
+        ) : (
+          <>
+            <Camera className="h-4 w-4" />
+            Tomar o subir foto
+          </>
+        )}
+      </Button>
+
+      {isMovimientosOcrLoading ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground py-6 justify-center">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Cargando recibos pendientes...
+        </div>
+      ) : movimientosOcrPendientes.length > 0 ? (
+        <div className="space-y-2.5 mt-4">
+          {movimientosOcrPendientes.map((m) => (
+            <ReciboPendienteCard key={m.id} movimiento={m} categorias={categorias} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 // ───── Nueva Categoría Dialog ─────
 
 function NuevaCategoriaDialog({
@@ -307,11 +486,12 @@ function NuevaCategoriaDialog({
 
 export default function ControlFinancieroView() {
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-  const { presupuestoCategorias, isPresupuestoLoading, hydratePresupuesto } = usePortalStore();
+  const { presupuestoCategorias, isPresupuestoLoading, hydratePresupuesto, hydrateMovimientosOcr } = usePortalStore();
 
   useEffect(() => {
     void hydratePresupuesto();
-  }, [hydratePresupuesto]);
+    void hydrateMovimientosOcr();
+  }, [hydratePresupuesto, hydrateMovimientosOcr]);
 
   const totalSpent = useMemo(
     () => presupuestoCategorias.reduce((sum, c) => sum + c.spent, 0),
@@ -492,6 +672,9 @@ export default function ControlFinancieroView() {
           </Button>
         </div>
       </div>
+
+      {/* ── Escanear Recibo (OCR) ── */}
+      <EscanearReciboCard categorias={presupuestoCategorias} />
 
       <NuevaCategoriaDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
     </div>

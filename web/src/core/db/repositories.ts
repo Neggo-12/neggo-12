@@ -32,6 +32,7 @@ export type OfertaComercioRow = Database['public']['Tables']['ofertas_comercios'
 export type FacturaLedgerRow = Database['public']['Tables']['facturas_ledger']['Row'];
 export type MetaRow = Database['public']['Tables']['metas']['Row'];
 export type PresupuestoCategoriaRow = Database['public']['Tables']['presupuesto_categorias']['Row'];
+export type MovimientoOcrRow = Database['public']['Tables']['movimientos_ocr']['Row'];
 export type MetricaRechazoRow = Database['public']['Tables']['metricas_rechazo']['Row'];
 export type MeInteresaSolicitudRow = Database['public']['Tables']['me_interesa_solicitudes']['Row'];
 export type MeInteresaDestinatarioRow = Database['public']['Tables']['me_interesa_destinatarios']['Row'];
@@ -258,6 +259,131 @@ export async function deletePresupuestoCategoria(
   if (!supabase) return { error: NOT_CONFIGURED };
   const { error } = await supabase.from('presupuesto_categorias').delete().eq('id', categoriaId);
   return { error: error ? errMessage(error) : null };
+}
+
+// ───── OCR de recibos/facturas (Fase 1, pieza 2) ─────
+//
+// El cliente sube/toma foto → uploadRecibo (Storage) → procesarRecibo (Edge
+// Function, hace el OCR con Google Document AI y crea la fila en staging) →
+// el cliente revisa/edita lo extraído → confirmarMovimientoOcr, que SOLO
+// entonces impacta presupuesto_categorias.gastado (vía registrarGastoCategoria,
+// ya existente en usePortalStore). descartarMovimientoOcr si no es válido.
+
+const RECIBOS_BUCKET = 'recibos-clientes';
+
+export interface MovimientoOcr {
+  id: string;
+  imagenPath: string;
+  comercioExtraido: string | null;
+  valorExtraido: number | null;
+  fechaExtraida: string | null;
+  categoriaSugerida: string | null;
+  confianzaOcr: number | null;
+  categoriaId: string | null;
+  estado: 'pendiente_revision' | 'confirmado' | 'descartado';
+  createdAt: string;
+}
+
+function rowToMovimientoOcr(row: MovimientoOcrRow): MovimientoOcr {
+  return {
+    id: row.id,
+    imagenPath: row.imagen_path,
+    comercioExtraido: row.comercio_extraido,
+    valorExtraido: row.valor_extraido !== null ? Number(row.valor_extraido) : null,
+    fechaExtraida: row.fecha_extraida,
+    categoriaSugerida: row.categoria_sugerida,
+    confianzaOcr: row.confianza_ocr !== null ? Number(row.confianza_ocr) : null,
+    categoriaId: row.categoria_id,
+    estado: row.estado as MovimientoOcr['estado'],
+    createdAt: row.created_at,
+  };
+}
+
+/** Sube la foto del recibo al bucket privado, en la carpeta del propio cliente (requisito de la RLS de storage). */
+export async function uploadRecibo(
+  clienteId: string,
+  file: File,
+): Promise<{ path: string | null; error: string | null }> {
+  if (!supabase) return { path: null, error: NOT_CONFIGURED };
+  const path = `${clienteId}/${Date.now()}-${sanitizeFileName(file.name)}`;
+  const { error } = await supabase.storage.from(RECIBOS_BUCKET).upload(path, file);
+  if (error) return { path: null, error: errMessage(error) };
+  return { path, error: null };
+}
+
+/**
+ * Invoca la Edge Function procesar-recibo, que hace el OCR server-side y crea
+ * la fila en movimientos_ocr (estado 'pendiente_revision'). Usa el JWT de la
+ * sesión actual — RLS sigue siendo el límite real incluso dentro de la función.
+ */
+export async function procesarRecibo(
+  imagenPath: string,
+): Promise<{ data: MovimientoOcr | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.functions.invoke('procesar-recibo', {
+    body: { imagen_path: imagenPath },
+  });
+  if (error) {
+    const message = errMessage(error);
+    logFalloApp('procesar-recibo', message, error);
+    return { data: null, error: message };
+  }
+  return { data: rowToMovimientoOcr(data as MovimientoOcrRow), error: null };
+}
+
+/** Movimientos OCR pendientes de revisión del cliente, más recientes primero. */
+export async function fetchMovimientosOcrPendientes(
+  clienteId: string,
+): Promise<{ data: MovimientoOcr[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('movimientos_ocr')
+    .select('*')
+    .eq('cliente_id', clienteId)
+    .eq('estado', 'pendiente_revision')
+    .order('created_at', { ascending: false });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: (data ?? []).map(rowToMovimientoOcr), error: null };
+}
+
+/**
+ * Marca un movimiento OCR como confirmado, con la categoría final elegida por
+ * el cliente (puede diferir de categoria_sugerida). NO toca
+ * presupuesto_categorias.gastado — eso lo hace el caller vía
+ * registrarGastoCategoria, para mantener una sola fuente de verdad sobre esa
+ * escritura (mismo patrón ya usado en Mi Presupuesto).
+ */
+export async function confirmarMovimientoOcr(
+  movimientoId: string,
+  categoriaId: string,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('movimientos_ocr')
+    .update({ estado: 'confirmado', categoria_id: categoriaId, revisado_at: new Date().toISOString() })
+    .eq('id', movimientoId)
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: noRowsError('No se pudo confirmar: el movimiento no existe o no tienes permiso (RLS).') };
+  }
+  return { error: null };
+}
+
+export async function descartarMovimientoOcr(
+  movimientoId: string,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('movimientos_ocr')
+    .update({ estado: 'descartado', revisado_at: new Date().toISOString() })
+    .eq('id', movimientoId)
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: noRowsError('No se pudo descartar: el movimiento no existe o no tienes permiso (RLS).') };
+  }
+  return { error: null };
 }
 
 // ───── Solicitudes de banca ─────
