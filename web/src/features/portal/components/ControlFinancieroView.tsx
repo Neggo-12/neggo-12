@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Wallet,
   PieChart,
@@ -12,6 +12,9 @@ import {
   Zap,
   Gamepad2,
   MoreHorizontal,
+  Loader2,
+  Trash2,
+  CircleDollarSign,
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -28,12 +31,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import KPICard from '@/components/KPICard';
 import { cn } from '@/lib/utils';
-import {
-  MOCK_BUDGET_CATEGORIES,
-  MOCK_BUDGET_SUMMARY,
-  MOCK_FINANCIAL_TIPS,
-} from '@/features/portal/data/mock';
+import { MOCK_FINANCIAL_TIPS } from '@/features/portal/data/mock';
 import type { BudgetCategory } from '@/features/portal/data/mock';
+import { usePortalStore } from '@/features/portal/store/usePortalStore';
 
 // ───── Helpers ─────
 
@@ -74,8 +74,24 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 // ───── Category Row ─────
 
 function CategoryRow({ item }: { item: BudgetCategory }) {
-  const pct = Math.min(Math.round((item.spent / item.budget) * 100), 100);
+  const registrarGastoCategoria = usePortalStore((s) => s.registrarGastoCategoria);
+  const eliminarPresupuestoCategoria = usePortalStore((s) => s.eliminarPresupuestoCategoria);
+  const [isAddingGasto, setIsAddingGasto] = useState(false);
+  const [montoGasto, setMontoGasto] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const pct = item.budget > 0 ? Math.min(Math.round((item.spent / item.budget) * 100), 100) : 0;
   const isOverBudget = item.spent > item.budget;
+
+  const handleRegistrarGasto = useCallback(async () => {
+    const monto = Number(montoGasto);
+    if (!monto || monto <= 0) return;
+    setIsSubmitting(true);
+    await registrarGastoCategoria(item.id, monto);
+    setIsSubmitting(false);
+    setMontoGasto('');
+    setIsAddingGasto(false);
+  }, [montoGasto, item.id, registrarGastoCategoria]);
 
   return (
     <div className="group rounded-xl border bg-card/40 p-4 hover:bg-card/70 transition-all duration-200">
@@ -115,6 +131,54 @@ function CategoryRow({ item }: { item: BudgetCategory }) {
           <div className={cn('h-full rounded-full transition-all duration-500', getProgressColor(pct), getProgressGlow(pct))} />
         </div>
       </div>
+
+      {/* Row actions */}
+      {isAddingGasto ? (
+        <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <Input
+            type="number"
+            autoFocus
+            placeholder="Monto gastado (COP)"
+            value={montoGasto}
+            onChange={(e) => setMontoGasto(e.target.value)}
+            className="h-8 text-xs font-mono flex-1"
+          />
+          <Button
+            size="sm"
+            disabled={!montoGasto || Number(montoGasto) <= 0 || isSubmitting}
+            onClick={handleRegistrarGasto}
+            className="h-8 shrink-0 text-xs bg-blue-600 hover:bg-blue-500 text-white"
+          >
+            {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Guardar'}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => { setIsAddingGasto(false); setMontoGasto(''); }}
+            className="h-8 shrink-0 text-xs text-muted-foreground"
+          >
+            Cancelar
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => setIsAddingGasto(true)}
+            className="flex items-center gap-1.5 text-[11px] font-medium text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            <CircleDollarSign className="h-3 w-3" />
+            Registrar gasto
+          </button>
+          <span className="text-border/40">·</span>
+          <button
+            onClick={() => void eliminarPresupuestoCategoria(item.id)}
+            className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-red-400 transition-colors"
+          >
+            <Trash2 className="h-3 w-3" />
+            Eliminar
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -140,20 +204,129 @@ function TipCard({ text, actionLabel }: { text: string; actionLabel?: string }) 
   );
 }
 
+// ───── Nueva Categoría Dialog ─────
+
+function NuevaCategoriaDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const addPresupuestoCategoria = usePortalStore((s) => s.addPresupuestoCategoria);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryBudget, setNewCategoryBudget] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const canSubmit = !!newCategoryName.trim() && Number(newCategoryBudget) > 0 && !isSubmitting;
+
+  const handleSubmit = useCallback(async () => {
+    if (!canSubmit) return;
+    setIsSubmitting(true);
+    const categoria: BudgetCategory = {
+      id: `PRES-${Date.now()}`,
+      name: newCategoryName.trim(),
+      budget: Number(newCategoryBudget),
+      spent: 0,
+      color: 'blue',
+      icon: 'MoreHorizontal',
+    };
+    const ok = await addPresupuestoCategoria(categoria);
+    setIsSubmitting(false);
+    if (ok) {
+      setNewCategoryName('');
+      setNewCategoryBudget('');
+      onOpenChange(false);
+    }
+  }, [canSubmit, newCategoryName, newCategoryBudget, addPresupuestoCategoria, onOpenChange]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md border-border/60 bg-card/95 backdrop-blur-xl">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold tracking-tight">
+            Nueva Categoría de Gasto
+          </DialogTitle>
+          <DialogDescription className="text-sm">
+            Define un presupuesto para una nueva categoría. Después podés registrar gastos puntuales desde la tarjeta.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="cat-name" className="text-xs font-medium text-muted-foreground">
+              Nombre de la categoría
+            </Label>
+            <Input
+              id="cat-name"
+              placeholder="Ej: Educación, Salud, Mascotas..."
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              className="h-10 rounded-lg border-border/60 bg-secondary/40 text-sm placeholder:text-muted-foreground/50"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cat-budget" className="text-xs font-medium text-muted-foreground">
+              Presupuesto mensual (COP)
+            </Label>
+            <Input
+              id="cat-budget"
+              type="number"
+              placeholder="500,000"
+              value={newCategoryBudget}
+              onChange={(e) => setNewCategoryBudget(e.target.value)}
+              className="h-10 rounded-lg border-border/60 bg-secondary/40 text-sm font-mono placeholder:text-muted-foreground/50"
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="rounded-lg border-border/60 text-sm"
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm gap-1.5"
+          >
+            {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Guardar Categoría
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ───── Main Control Financiero View ─────
 
 export default function ControlFinancieroView() {
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-  const [newCategoryName, setNewCategoryName] = useState<string>('');
-  const [newCategoryBudget, setNewCategoryBudget] = useState<string>('');
+  const { presupuestoCategorias, isPresupuestoLoading, hydratePresupuesto } = usePortalStore();
+
+  useEffect(() => {
+    void hydratePresupuesto();
+  }, [hydratePresupuesto]);
 
   const totalSpent = useMemo(
-    () => MOCK_BUDGET_CATEGORIES.reduce((sum, c) => sum + c.spent, 0),
-    [],
+    () => presupuestoCategorias.reduce((sum, c) => sum + c.spent, 0),
+    [presupuestoCategorias],
   );
+  const totalBudget = useMemo(
+    () => presupuestoCategorias.reduce((sum, c) => sum + c.budget, 0),
+    [presupuestoCategorias],
+  );
+  const categoriesActive = presupuestoCategorias.length;
+  const dayOfMonth = new Date().getDate();
+  const averageDailySpend = dayOfMonth > 0 ? Math.round(totalSpent / dayOfMonth) : 0;
 
-  const remainingBudget = MOCK_BUDGET_SUMMARY.monthlyBudget - totalSpent;
-  const budgetPct = Math.min(Math.round((totalSpent / MOCK_BUDGET_SUMMARY.monthlyBudget) * 100), 100);
+  const remainingBudget = totalBudget - totalSpent;
+  const budgetPct = totalBudget > 0 ? Math.min(Math.round((totalSpent / totalBudget) * 100), 100) : 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -161,20 +334,20 @@ export default function ControlFinancieroView() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <KPICard
           title="Presupuesto Mensual Total"
-          value={formatCurrency(MOCK_BUDGET_SUMMARY.monthlyBudget)}
+          value={formatCurrency(totalBudget)}
           icon={Wallet}
           gradient="blue"
           suffix="COP"
         />
         <KPICard
           title="Categorías Activas"
-          value={MOCK_BUDGET_SUMMARY.categoriesActive}
+          value={categoriesActive}
           icon={PieChart}
           gradient="purple"
         />
         <KPICard
           title="Gasto Promedio Diario"
-          value={formatCurrency(MOCK_BUDGET_SUMMARY.averageDailySpend)}
+          value={formatCurrency(averageDailySpend)}
           icon={TrendingUp}
           gradient="emerald"
           suffix="COP"
@@ -198,9 +371,9 @@ export default function ControlFinancieroView() {
 
           <div className="space-y-3">
             {[
-              { label: 'Necesidades (50%)', pct: 50, color: 'bg-blue-500', amount: MOCK_BUDGET_SUMMARY.monthlyBudget * 0.5, desc: 'Vivienda, alimentos, transporte, servicios' },
-              { label: 'Deseos (30%)', pct: 30, color: 'bg-purple-500', amount: MOCK_BUDGET_SUMMARY.monthlyBudget * 0.3, desc: 'Entretenimiento, viajes, compras personales' },
-              { label: 'Ahorro (20%)', pct: 20, color: 'bg-emerald-500', amount: MOCK_BUDGET_SUMMARY.monthlyBudget * 0.2, desc: 'Fondo de emergencia, inversiones, retiro' },
+              { label: 'Necesidades (50%)', pct: 50, color: 'bg-blue-500', amount: totalBudget * 0.5, desc: 'Vivienda, alimentos, transporte, servicios' },
+              { label: 'Deseos (30%)', pct: 30, color: 'bg-purple-500', amount: totalBudget * 0.3, desc: 'Entretenimiento, viajes, compras personales' },
+              { label: 'Ahorro (20%)', pct: 20, color: 'bg-emerald-500', amount: totalBudget * 0.2, desc: 'Fondo de emergencia, inversiones, retiro' },
             ].map((item) => (
               <div key={item.label} className="space-y-1.5">
                 <div className="flex items-center justify-between">
@@ -225,7 +398,7 @@ export default function ControlFinancieroView() {
             <div>
               <h3 className="text-sm font-semibold text-foreground">Desglose por Categoría</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {formatCurrency(totalSpent)} gastado de {formatCurrency(MOCK_BUDGET_SUMMARY.monthlyBudget)}
+                {formatCurrency(totalSpent)} gastado de {formatCurrency(totalBudget)}
               </p>
             </div>
             <Badge
@@ -259,11 +432,25 @@ export default function ControlFinancieroView() {
           </div>
 
           {/* Individual categories */}
-          <div className="space-y-2.5">
-            {MOCK_BUDGET_CATEGORIES.map((item) => (
-              <CategoryRow key={item.id} item={item} />
-            ))}
-          </div>
+          {isPresupuestoLoading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-6 justify-center">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Cargando tu presupuesto...
+            </div>
+          ) : presupuestoCategorias.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center rounded-xl border border-dashed border-border/40">
+              <Wallet className="h-6 w-6 text-muted-foreground/60 mb-2" />
+              <p className="text-xs text-muted-foreground max-w-xs">
+                Todavía no tenés categorías. Creá la primera con el botón "Agregar Categoría" para empezar a llevar tu presupuesto.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {presupuestoCategorias.map((item) => (
+                <CategoryRow key={item.id} item={item} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -301,75 +488,12 @@ export default function ControlFinancieroView() {
             className="w-full gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 transition-all hover:shadow-blue-600/30"
           >
             <Plus className="h-4 w-4" />
-            Agregar Categoría / Gasto
+            Agregar Categoría
           </Button>
         </div>
       </div>
 
-      {/* ── Add Category Dialog ── */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md border-border/60 bg-card/95 backdrop-blur-xl">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-semibold tracking-tight">
-              Nueva Categoría de Gasto
-            </DialogTitle>
-            <DialogDescription className="text-sm">
-              Define un presupuesto para una nueva categoría y haz seguimiento de tus gastos.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="cat-name" className="text-xs font-medium text-muted-foreground">
-                Nombre de la categoría
-              </Label>
-              <Input
-                id="cat-name"
-                placeholder="Ej: Educación, Salud, Mascotas..."
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                className="h-10 rounded-lg border-border/60 bg-secondary/40 text-sm placeholder:text-muted-foreground/50"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cat-budget" className="text-xs font-medium text-muted-foreground">
-                Presupuesto mensual (COP)
-              </Label>
-              <Input
-                id="cat-budget"
-                type="number"
-                placeholder="500,000"
-                value={newCategoryBudget}
-                onChange={(e) => setNewCategoryBudget(e.target.value)}
-                className="h-10 rounded-lg border-border/60 bg-secondary/40 text-sm font-mono placeholder:text-muted-foreground/50"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDialogOpen(false)}
-              className="rounded-lg border-border/60 text-sm"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={() => {
-                // Placeholder — would dispatch to store in real app
-                setIsDialogOpen(false);
-                setNewCategoryName('');
-                setNewCategoryBudget('');
-              }}
-              disabled={!newCategoryName || !newCategoryBudget}
-              className="rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm"
-            >
-              Guardar Categoría
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <NuevaCategoriaDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
     </div>
   );
 }

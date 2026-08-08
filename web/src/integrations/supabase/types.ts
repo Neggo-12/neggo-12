@@ -901,6 +901,50 @@ export type Database = {
           },
         ]
       }
+      presupuesto_categorias: {
+        Row: {
+          cliente_id: string
+          color: string
+          created_at: string
+          gastado: number
+          icono: string
+          id: string
+          mes: string
+          nombre: string
+          presupuesto: number
+        }
+        Insert: {
+          cliente_id: string
+          color?: string
+          created_at?: string
+          gastado?: number
+          icono?: string
+          id: string
+          mes: string
+          nombre: string
+          presupuesto?: number
+        }
+        Update: {
+          cliente_id?: string
+          color?: string
+          created_at?: string
+          gastado?: number
+          icono?: string
+          id?: string
+          mes?: string
+          nombre?: string
+          presupuesto?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presupuesto_categorias_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metricas_rechazo: {
         Row: {
           entity_name: string

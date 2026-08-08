@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
 import type { GoalMeta } from '@/types';
-import { MOCK_GOALS } from '@/features/portal/data/mock';
+import { MOCK_GOALS, type BudgetCategory } from '@/features/portal/data/mock';
 import {
   fetchMetas,
   insertMeta,
@@ -17,6 +17,10 @@ import {
   fetchSenalesInteresByCliente,
   fetchClienteContactInfo,
   registrarEventoUsoCliente,
+  fetchPresupuestoCategorias,
+  insertPresupuestoCategoria,
+  updatePresupuestoCategoriaGasto,
+  deletePresupuestoCategoria,
   type MeInteresaDestinatarioDisplay,
 } from '@/core/db/repositories';
 import { isDbConfigured } from '@/core/db/dbClient';
@@ -177,6 +181,12 @@ interface PortalState {
   isMetasLoading: boolean;
   /** true después del primer intento de hidratación */
   isMetasHydrated: boolean;
+  /** Categorías de Mi Presupuesto del mes actual (hidratadas desde la base de datos real) */
+  presupuestoCategorias: BudgetCategory[];
+  /** true mientras se cargan las categorías de presupuesto */
+  isPresupuestoLoading: boolean;
+  /** true después del primer intento de hidratación del presupuesto */
+  isPresupuestoHydrated: boolean;
   /** Último error de sincronización con la base de datos */
   dbError: string | null;
 
@@ -202,6 +212,14 @@ interface PortalState {
   deleteMeta: (metaId: string) => Promise<void>;
   /** Marca una meta como completada con animación */
   completeMeta: (metaId: string) => Promise<void>;
+  /** Hidrata las categorías de Mi Presupuesto del mes actual desde la base de datos real */
+  hydratePresupuesto: () => Promise<void>;
+  /** Crea una categoría de presupuesto (optimista) y la persiste en la base de datos real */
+  addPresupuestoCategoria: (categoria: BudgetCategory) => Promise<boolean>;
+  /** Suma un gasto a una categoría existente (optimista) */
+  registrarGastoCategoria: (categoriaId: string, monto: number) => Promise<void>;
+  /** Elimina una categoría de presupuesto (hard delete — no es un registro financiero sensible) */
+  eliminarPresupuestoCategoria: (categoriaId: string) => Promise<void>;
 }
 
 /**
@@ -224,6 +242,9 @@ export const usePortalStore = create<PortalState>((set, get) => ({
   metas: [],
   isMetasLoading: false,
   isMetasHydrated: false,
+  presupuestoCategorias: [],
+  isPresupuestoLoading: false,
+  isPresupuestoHydrated: false,
   dbError: null,
 
   setActiveTab: (tab) => {
@@ -688,5 +709,89 @@ export const usePortalStore = create<PortalState>((set, get) => ({
     toast.success('¡Meta Lograda! 🎉', {
       description: 'Felicidades, tu meta ha sido marcada como cumplida.',
     });
+  },
+
+  hydratePresupuesto: async () => {
+    if (get().isPresupuestoHydrated || get().isPresupuestoLoading) return;
+    const clienteId = getClienteId();
+    if (!isDbConfigured || !clienteId) {
+      set({ isPresupuestoLoading: false, isPresupuestoHydrated: true, presupuestoCategorias: [] });
+      return;
+    }
+    set({ isPresupuestoLoading: true });
+    const { data, error } = await fetchPresupuestoCategorias(clienteId);
+    if (error) {
+      set({ isPresupuestoLoading: false, isPresupuestoHydrated: true, dbError: error });
+      return;
+    }
+    set({
+      presupuestoCategorias: data ?? [],
+      isPresupuestoLoading: false,
+      isPresupuestoHydrated: true,
+      dbError: null,
+    });
+  },
+
+  addPresupuestoCategoria: async (categoria) => {
+    const clienteId = getClienteId();
+    if (!clienteId) {
+      toast.error('No se pudo identificar tu sesión', { description: 'Vuelve a iniciar sesión e intenta de nuevo.' });
+      return false;
+    }
+    // Optimista: aparece de inmediato en la UI
+    set((state) => ({ presupuestoCategorias: [...state.presupuestoCategorias, categoria] }));
+    const { error } = await insertPresupuestoCategoria(categoria, clienteId);
+    if (error) {
+      set((state) => ({
+        presupuestoCategorias: state.presupuestoCategorias.filter((c) => c.id !== categoria.id),
+        dbError: error,
+      }));
+      logFalloApp('insertPresupuestoCategoria', error);
+      toast.error('No se pudo crear la categoría', { description: error });
+      return false;
+    }
+    return true;
+  },
+
+  registrarGastoCategoria: async (categoriaId, monto) => {
+    const current = get().presupuestoCategorias.find((c) => c.id === categoriaId);
+    if (!current) return;
+    const nuevoGastado = current.spent + monto;
+    // Optimista
+    set((state) => ({
+      presupuestoCategorias: state.presupuestoCategorias.map((c) =>
+        c.id === categoriaId ? { ...c, spent: nuevoGastado } : c,
+      ),
+    }));
+    const { error } = await updatePresupuestoCategoriaGasto(categoriaId, nuevoGastado);
+    if (error) {
+      // Revertir si la base de datos rechazó el cambio
+      set((state) => ({
+        presupuestoCategorias: state.presupuestoCategorias.map((c) =>
+          c.id === categoriaId ? { ...c, spent: current.spent } : c,
+        ),
+        dbError: error,
+      }));
+      toast.error('No se pudo registrar el gasto', { description: error });
+      return;
+    }
+    toast.success('Gasto registrado', { description: `Se sumó a "${current.name}".` });
+  },
+
+  eliminarPresupuestoCategoria: async (categoriaId) => {
+    const current = get().presupuestoCategorias.find((c) => c.id === categoriaId);
+    if (!current) return;
+    // Optimista
+    set((state) => ({
+      presupuestoCategorias: state.presupuestoCategorias.filter((c) => c.id !== categoriaId),
+    }));
+    const { error } = await deletePresupuestoCategoria(categoriaId);
+    if (error) {
+      // Revertir si la base de datos rechazó el cambio
+      set((state) => ({ presupuestoCategorias: [...state.presupuestoCategorias, current] }));
+      toast.error('No se pudo eliminar la categoría', { description: error });
+      return;
+    }
+    toast.success('Categoría eliminada');
   },
 }));

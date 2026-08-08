@@ -21,6 +21,7 @@ import type {
   RejectionMetric,
   RejectionAggregate,
 } from '@/types';
+import type { BudgetCategory } from '@/features/portal/data/mock';
 
 // ───── Row type aliases (single source of truth: generated Supabase types) ─────
 
@@ -30,6 +31,7 @@ export type SolicitudBancaRow = Database['public']['Tables']['solicitudes_banca'
 export type OfertaComercioRow = Database['public']['Tables']['ofertas_comercios']['Row'];
 export type FacturaLedgerRow = Database['public']['Tables']['facturas_ledger']['Row'];
 export type MetaRow = Database['public']['Tables']['metas']['Row'];
+export type PresupuestoCategoriaRow = Database['public']['Tables']['presupuesto_categorias']['Row'];
 export type MetricaRechazoRow = Database['public']['Tables']['metricas_rechazo']['Row'];
 export type MeInteresaSolicitudRow = Database['public']['Tables']['me_interesa_solicitudes']['Row'];
 export type MeInteresaDestinatarioRow = Database['public']['Tables']['me_interesa_destinatarios']['Row'];
@@ -173,6 +175,89 @@ export async function updateMetaStatus(
     return { error: noRowsError('No se pudo actualizar: la meta no existe o no tienes permiso (RLS).') };
   }
   return { error: null };
+}
+
+// ───── Presupuesto (Mi Presupuesto — categorías de presupuesto mensual del cliente) ─────
+//
+// Fase 1 de Finanzas Personales — ver docs/spec-finanzas-personales-fase1-2026-08-08.md.
+// Alcance de esta primera versión: solo categorías (nombre, presupuesto, gastado)
+// agrupadas por mes. Deudas, ingresos y carga automática por OCR/WhatsApp quedan
+// para fases siguientes — no se asume que existen acá.
+
+/** Mes actual en formato 'YYYY-MM', usado como valor por defecto para leer/crear categorías. */
+export function currentMonthKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function rowToBudgetCategory(row: PresupuestoCategoriaRow): BudgetCategory {
+  return {
+    id: row.id,
+    name: row.nombre,
+    budget: Number(row.presupuesto),
+    spent: Number(row.gastado),
+    color: row.color,
+    icon: row.icono,
+  };
+}
+
+export async function fetchPresupuestoCategorias(
+  clienteId: string,
+  mes: string = currentMonthKey(),
+): Promise<{ data: BudgetCategory[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('presupuesto_categorias')
+    .select('*')
+    .eq('cliente_id', clienteId)
+    .eq('mes', mes)
+    .order('created_at', { ascending: true });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: (data ?? []).map(rowToBudgetCategory), error: null };
+}
+
+export async function insertPresupuestoCategoria(
+  categoria: BudgetCategory,
+  clienteId: string,
+  mes: string = currentMonthKey(),
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.from('presupuesto_categorias').insert({
+    id: categoria.id,
+    cliente_id: clienteId,
+    mes,
+    nombre: categoria.name,
+    presupuesto: categoria.budget,
+    gastado: categoria.spent,
+    color: categoria.color,
+    icono: categoria.icon,
+  });
+  return { error: error ? errMessage(error) : null };
+}
+
+export async function updatePresupuestoCategoriaGasto(
+  categoriaId: string,
+  nuevoGastado: number,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { data, error } = await supabase
+    .from('presupuesto_categorias')
+    .update({ gastado: nuevoGastado })
+    .eq('id', categoriaId)
+    .select('id');
+  if (error) return { error: errMessage(error) };
+  if (!data || data.length === 0) {
+    return { error: noRowsError('No se pudo actualizar: la categoría no existe o no tienes permiso (RLS).') };
+  }
+  return { error: null };
+}
+
+export async function deletePresupuestoCategoria(
+  categoriaId: string,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.from('presupuesto_categorias').delete().eq('id', categoriaId);
+  return { error: error ? errMessage(error) : null };
 }
 
 // ───── Solicitudes de banca ─────
