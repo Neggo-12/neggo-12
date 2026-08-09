@@ -17,11 +17,24 @@ import { enviarCodigoOtp, enmascararEmail } from '../_shared/email.ts';
 // código OTP mandado al correo YA registrado (mismo criterio que Tabot de
 // Bancolombia para cualquier consulta personal). Sin eso, el bot solo puede
 // pedir la identificación — no lee ni escribe ningún dato del cliente.
+//
+// Este es también el único punto de entrada público de WhatsApp para todo
+// Neggo (08-ago-2026): mensajes sobre publicidad/campañas se enrutan por la
+// tool consultar_neggo_ads hacia el backend de ads-ai-platform (repo hermano),
+// que actúa como "experto interno" vía POST /internal/whatsapp/handle — nunca
+// un segundo webhook público. Ver ADS_PLATFORM_BASE_URL/WHATSAPP_INTERNAL_SECRET.
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const WHATSAPP_VERIFY_TOKEN = Deno.env.get('WHATSAPP_VERIFY_TOKEN')!;
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
+// Integración con Neggo Ads (repo separado ads-ai-platform) como "experto interno"
+// — nunca un segundo webhook público. Opcionales a propósito (con ?? '' en vez de
+// !): mientras no estén configurados, consultar_neggo_ads falla con un error
+// controlado en vez de tumbar toda la función. Ver POST /internal/whatsapp/handle
+// en backend/src/integrations/whatsapp/internal-routes.ts de ese repo.
+const ADS_PLATFORM_BASE_URL = Deno.env.get('ADS_PLATFORM_BASE_URL') ?? '';
+const WHATSAPP_INTERNAL_SECRET = Deno.env.get('WHATSAPP_INTERNAL_SECRET') ?? '';
 const RECIBOS_BUCKET = 'recibos-clientes';
 const SESION_VALIDA_MINUTOS = 60;
 const OTP_VALIDO_MINUTOS = 5;
@@ -273,6 +286,45 @@ function resolverCategoriaMeta(nombreLibre: string): string | null {
   return match ?? null;
 }
 
+// ───── Neggo Ads: experto interno (repo separado ads-ai-platform) ─────
+// El punto de entrada público de WhatsApp es este (neggo-12, porque acá existe
+// identidad real de usuarios). Neggo Ads ya NO tiene su propio webhook público
+// para esto — es un backend al que le preguntamos por HTTP servidor-a-servidor,
+// server-a-server, protegido por un secreto compartido (mismo patrón que ya
+// usamos para verificar firmas de Meta: comparación en tiempo constante del
+// lado de ellos). Nunca se llama sin que la identidad ya esté verificada acá.
+
+interface NeggoAdsRespuesta {
+  handled: boolean;
+  reply?: string;
+  businessId?: string;
+  reason?: string;
+  note?: string;
+}
+
+async function consultarNeggoAds(
+  email: string,
+  mensaje: string,
+  history: { direction: 'INBOUND' | 'OUTBOUND'; body: string }[],
+): Promise<NeggoAdsRespuesta | { error: string }> {
+  if (!ADS_PLATFORM_BASE_URL || !WHATSAPP_INTERNAL_SECRET) {
+    return { error: 'integracion_neggo_ads_no_configurada' };
+  }
+  try {
+    const res = await fetch(`${ADS_PLATFORM_BASE_URL}/internal/whatsapp/handle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-internal-secret': WHATSAPP_INTERNAL_SECRET },
+      body: JSON.stringify({ email, message: mensaje, history }),
+    });
+    if (!res.ok) {
+      return { error: `neggo_ads_http_${res.status}` };
+    }
+    return (await res.json()) as NeggoAdsRespuesta;
+  } catch {
+    return { error: 'neggo_ads_no_disponible' };
+  }
+}
+
 // ───── Tools disponibles para Claude ─────
 
 const TOOLS = [
@@ -390,6 +442,18 @@ const TOOLS = [
         motivo: { type: 'string', description: 'Opcional, solo si rechaza y da una razón' },
       },
       required: ['accion'],
+    },
+  },
+  {
+    name: 'consultar_neggo_ads',
+    description:
+      'Consulta al experto de Neggo Ads (producto separado de publicidad/campañas de Meta y Google Ads, construido por otro equipo) cuando el cliente pregunta o quiere hacer algo sobre publicidad, campañas, anuncios, o su negocio anunciante. Le manda el mensaje del cliente y devuelve la respuesta real de ese experto — nunca inventes vos una respuesta sobre temas de Neggo Ads.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        mensaje: { type: 'string', description: 'El mensaje del cliente sobre publicidad/campañas/Neggo Ads, tal cual o resumido con el contexto necesario' },
+      },
+      required: ['mensaje'],
     },
   },
 ];
@@ -648,6 +712,28 @@ async function ejecutarTool(clienteId: string, toolName: string, input: Record<s
       return { ok: true, comercio: oferta.comercio_nombre, beneficio: oferta.beneficio, accion, requiereCodigoConfirmacion: true };
     }
 
+    case 'consultar_neggo_ads': {
+      const mensaje = String(input.mensaje ?? '').trim();
+      if (!mensaje) return { error: 'mensaje es requerido' };
+
+      const { data: userRow } = await supabase.from('users').select('email').eq('id', clienteId).maybeSingle();
+      if (!userRow?.email) return { error: 'no_se_pudo_resolver_email' };
+
+      const { data: historialRaw } = await supabase
+        .from('whatsapp_mensajes')
+        .select('direccion, texto')
+        .eq('cliente_id', clienteId)
+        .eq('tipo', 'text')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      const history = (historialRaw ?? [])
+        .reverse()
+        .filter((m) => m.texto)
+        .map((m) => ({ direction: (m.direccion === 'entrante' ? 'INBOUND' : 'OUTBOUND') as 'INBOUND' | 'OUTBOUND', body: m.texto as string }));
+
+      return await consultarNeggoAds(userRow.email, mensaje, history);
+    }
+
     default:
       return { error: `tool desconocida: ${toolName}` };
   }
@@ -674,7 +760,8 @@ Reglas estrictas:
 - Si pregunta cuántos puntos tiene o por su historial de puntos, usá consultar_puntos.
 - Si quiere canjear puntos en un comercio, usá preparar_canje_puntos — esto NO ejecuta el canje todavía, solo lo prepara y manda un código de confirmación al correo. Avisale claramente que le va a llegar un código nuevo (distinto al de login) y que tiene que responderlo para que el canje se concrete.
 - Si quiere aceptar o rechazar una oferta, usá preparar_respuesta_oferta — mismo criterio: no se ejecuta hasta que confirme con el código que le llega al correo.
-- Nunca digas que un canje o una respuesta a una oferta ya se concretó a menos que el resultado de la tool lo confirme explícitamente — esas dos acciones siempre pasan primero por el código de confirmación.`;
+- Nunca digas que un canje o una respuesta a una oferta ya se concretó a menos que el resultado de la tool lo confirme explícitamente — esas dos acciones siempre pasan primero por el código de confirmación.
+- Si el cliente pregunta o quiere hacer algo sobre publicidad, campañas, anuncios en redes, o menciona "Neggo Ads", usá consultar_neggo_ads con su mensaje. Eso NO es parte de Neggo Finanzas — es otro producto, así que nunca inventes vos la respuesta. Si el resultado trae "handled": true, relayá el campo "reply" tal cual (es la respuesta real del experto, no la reformules ni le agregues cosas). Si trae "handled": false con reason "no_ads_account", contale que todavía no tiene cuenta de Neggo Ads y preguntale si le interesa crear una. Si trae "error", avisale con naturalidad que ese servicio no está disponible ahora mismo y que lo intente más tarde — nunca inventes una respuesta sobre publicidad vos mismo.`;
 
 interface AnthropicMessage {
   role: 'user' | 'assistant';
