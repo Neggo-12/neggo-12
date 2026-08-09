@@ -221,6 +221,17 @@ const TOOLS = [
     description: 'Descarta el recibo/factura más reciente pendiente de revisión (ej: lectura incorrecta, recibo duplicado, no era un gasto real).',
     input_schema: { type: 'object', properties: {} },
   },
+  {
+    name: 'buscar_comercios_verificados',
+    description: 'Busca comercios con Sello de Confianza de Neggo por nombre o parte del nombre. Usalo cuando el cliente pregunte si un negocio está verificado, o quiera buscar comercios de confianza.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        termino: { type: 'string', description: 'Nombre o parte del nombre del comercio a buscar' },
+      },
+      required: ['termino'],
+    },
+  },
 ];
 
 async function ejecutarTool(clienteId: string, toolName: string, input: Record<string, unknown>): Promise<unknown> {
@@ -349,6 +360,21 @@ async function ejecutarTool(clienteId: string, toolName: string, input: Record<s
       return { ok: true };
     }
 
+    case 'buscar_comercios_verificados': {
+      const termino = String(input.termino ?? '').trim();
+      if (!termino) return { error: 'termino es requerido' };
+      const { data, error } = await supabase.rpc('buscar_comercios_verificados', { p_termino: termino });
+      if (error) return { error: error.message };
+      return {
+        resultados: (data ?? []).map((c) => ({
+          nombre: c.name,
+          ciudad: c.ciudad,
+          categoria: c.categoria,
+          codigoNeggo: c.codigo_neggo,
+        })),
+      };
+    }
+
     default:
       return { error: `tool desconocida: ${toolName}` };
   }
@@ -367,7 +393,8 @@ Reglas estrictas:
 - Si pregunta por sus metas o ahorros, usá listar_metas.
 - Si quiere crear una meta nueva ("quiero ahorrar para un celular", "necesito juntar plata para un viaje"), preguntale el monto objetivo y cuánto puede ahorrar por mes si no te lo dio, y usá crear_meta. Contale que el Sello IFC quedó activado automáticamente.
 - Si pide un resumen general de sus finanzas, usá resumen_financiero.
-- Si el contexto indica que tiene un recibo pendiente de revisión y el cliente te confirma la categoría o dice algo como "sí, confirmalo" o "en mercado", usá confirmar_recibo_pendiente. Si dice que no es válido o que lo borres, usá descartar_recibo_pendiente.`;
+- Si el contexto indica que tiene un recibo pendiente de revisión y el cliente te confirma la categoría o dice algo como "sí, confirmalo" o "en mercado", usá confirmar_recibo_pendiente. Si dice que no es válido o que lo borres, usá descartar_recibo_pendiente.
+- Si pregunta si un negocio tiene Sello de Confianza, o quiere buscar comercios verificados, usá buscar_comercios_verificados. Si no hay resultados, aclará que no significa que el negocio sea malo — solo que no tiene el Sello todavía.`;
 
 interface AnthropicMessage {
   role: 'user' | 'assistant';
