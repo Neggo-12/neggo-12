@@ -232,6 +232,26 @@ const TOOLS = [
       required: ['termino'],
     },
   },
+  {
+    name: 'listar_solicitudes',
+    description: 'Devuelve el historial de solicitudes del cliente a bancos, constructoras o comercios (compra de cartera, crédito hipotecario, etc.), con su estado actual. Usalo cuando pregunte por el estado de un trámite o solicitud.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'listar_ofertas',
+    description: 'Devuelve las ofertas pendientes que comercios le mandaron al cliente sobre sus metas de ahorro (beneficios, descuentos). Usalo cuando pregunte si tiene ofertas o beneficios disponibles.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'listar_facturas',
+    description: 'Devuelve el historial de compras/facturas reales que el cliente registró en Neggo (sobre ofertas aceptadas). Usalo cuando pregunte por sus compras o facturas.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'consultar_puntos',
+    description: 'Devuelve el saldo de puntos Neggo del cliente y sus últimos movimientos (ganados, canjeados, vencidos). Usalo cuando pregunte cuántos puntos tiene o por su historial de puntos.',
+    input_schema: { type: 'object', properties: {} },
+  },
 ];
 
 async function ejecutarTool(clienteId: string, toolName: string, input: Record<string, unknown>): Promise<unknown> {
@@ -375,6 +395,71 @@ async function ejecutarTool(clienteId: string, toolName: string, input: Record<s
       };
     }
 
+    case 'listar_solicitudes': {
+      const { data } = await supabase
+        .from('me_interesa_solicitudes')
+        .select('origen, estado, producto_bancario, tipo_vivienda, categoria, subcategoria, created_at')
+        .eq('cliente_id', clienteId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      return {
+        solicitudes: (data ?? []).map((s) => ({
+          origen: s.origen,
+          estado: s.estado,
+          detalle: s.producto_bancario ?? s.tipo_vivienda ?? s.categoria ?? s.subcategoria ?? null,
+          fecha: s.created_at,
+        })),
+      };
+    }
+
+    case 'listar_ofertas': {
+      const { data: metasCliente } = await supabase.from('metas').select('id').eq('cliente_id', clienteId);
+      const metaIds = (metasCliente ?? []).map((m) => m.id);
+      if (metaIds.length === 0) return { ofertas: [] };
+      const { data } = await supabase
+        .from('ofertas_comercios')
+        .select('comercio_nombre, beneficio, descripcion, estado, created_at')
+        .in('meta_id', metaIds)
+        .eq('estado', 'pendiente')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      return { ofertas: data ?? [] };
+    }
+
+    case 'listar_facturas': {
+      const { data: metasCliente } = await supabase.from('metas').select('id').eq('cliente_id', clienteId);
+      const metaIds = (metasCliente ?? []).map((m) => m.id);
+      if (metaIds.length === 0) return { facturas: [] };
+      const { data: ofertas } = await supabase.from('ofertas_comercios').select('id, comercio_nombre').in('meta_id', metaIds);
+      const ofertaIds = (ofertas ?? []).map((o) => o.id);
+      const nombreOfertaId = new Map((ofertas ?? []).map((o) => [o.id, o.comercio_nombre]));
+      if (ofertaIds.length === 0) return { facturas: [] };
+      const { data: facturas } = await supabase
+        .from('facturas_cliente')
+        .select('oferta_id, monto, fecha_compra')
+        .in('oferta_id', ofertaIds)
+        .order('fecha_compra', { ascending: false })
+        .limit(10);
+      return {
+        facturas: (facturas ?? []).map((f) => ({
+          comercio: nombreOfertaId.get(f.oferta_id) ?? null,
+          monto: f.monto,
+          fecha: f.fecha_compra,
+        })),
+      };
+    }
+
+    case 'consultar_puntos': {
+      const { data: saldo } = await supabase.rpc('saldo_puntos_cliente', { p_cliente_id: clienteId });
+      const { data: movimientos } = await supabase
+        .from('puntos_movimientos')
+        .select('tipo, puntos, fecha_vencimiento, created_at')
+        .eq('cliente_id', clienteId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      return { saldo: Number(saldo ?? 0), ultimosMovimientos: movimientos ?? [] };
+    }
+
     default:
       return { error: `tool desconocida: ${toolName}` };
   }
@@ -394,7 +479,11 @@ Reglas estrictas:
 - Si quiere crear una meta nueva ("quiero ahorrar para un celular", "necesito juntar plata para un viaje"), preguntale el monto objetivo y cuánto puede ahorrar por mes si no te lo dio, y usá crear_meta. Contale que el Sello IFC quedó activado automáticamente.
 - Si pide un resumen general de sus finanzas, usá resumen_financiero.
 - Si el contexto indica que tiene un recibo pendiente de revisión y el cliente te confirma la categoría o dice algo como "sí, confirmalo" o "en mercado", usá confirmar_recibo_pendiente. Si dice que no es válido o que lo borres, usá descartar_recibo_pendiente.
-- Si pregunta si un negocio tiene Sello de Confianza, o quiere buscar comercios verificados, usá buscar_comercios_verificados. Si no hay resultados, aclará que no significa que el negocio sea malo — solo que no tiene el Sello todavía.`;
+- Si pregunta si un negocio tiene Sello de Confianza, o quiere buscar comercios verificados, usá buscar_comercios_verificados. Si no hay resultados, aclará que no significa que el negocio sea malo — solo que no tiene el Sello todavía.
+- Si pregunta por el estado de una solicitud o trámite, usá listar_solicitudes.
+- Si pregunta si tiene ofertas o beneficios de comercios, usá listar_ofertas.
+- Si pregunta por sus compras o facturas registradas, usá listar_facturas.
+- Si pregunta cuántos puntos tiene o por su historial de puntos, usá consultar_puntos.`;
 
 interface AnthropicMessage {
   role: 'user' | 'assistant';
