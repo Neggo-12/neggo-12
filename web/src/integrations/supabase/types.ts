@@ -951,6 +951,9 @@ export type Database = {
           created_at: string
           id: string
           numero_normalizado: string
+          otp_code: string | null
+          otp_expires_at: string | null
+          otp_verificado_at: string | null
           verificado_at: string
         }
         Insert: {
@@ -958,6 +961,9 @@ export type Database = {
           created_at?: string
           id: string
           numero_normalizado: string
+          otp_code?: string | null
+          otp_expires_at?: string | null
+          otp_verificado_at?: string | null
           verificado_at?: string
         }
         Update: {
@@ -965,6 +971,9 @@ export type Database = {
           created_at?: string
           id?: string
           numero_normalizado?: string
+          otp_code?: string | null
+          otp_expires_at?: string | null
+          otp_verificado_at?: string | null
           verificado_at?: string
         }
         Relationships: [

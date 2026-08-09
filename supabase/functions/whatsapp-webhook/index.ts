@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { procesarImagenConDocumentAi } from '../_shared/documentAi.ts';
 import { normalizarNumero, verificarFirmaMeta, enviarMensajeWhatsapp, descargarMediaWhatsapp } from '../_shared/whatsapp.ts';
+import { enviarCodigoOtp, enmascararEmail } from '../_shared/email.ts';
 
 // Edge Function: whatsapp-webhook
 // --------------------------------
@@ -11,15 +12,19 @@ import { normalizarNumero, verificarFirmaMeta, enviarMensajeWhatsapp, descargarM
 // función SÍ usa el service role, mismo criterio que send-notification (la
 // única función previa que legítimamente lo necesita). El límite de seguridad
 // real pasa a ser código explícito: cada operación filtra siempre por el
-// cliente_id ya resuelto y verificado contra whatsapp_identidades (o contra
-// email/documento en el primer contacto) — nunca se confía en nada más del
-// mensaje entrante para decidir de quién son los datos.
+// cliente_id ya resuelto y verificado — y desde esta ronda, "verificado" ya
+// no significa solo "dijo un correo que existe": significa que pasó un
+// código OTP mandado al correo YA registrado (mismo criterio que Tabot de
+// Bancolombia para cualquier consulta personal). Sin eso, el bot solo puede
+// pedir la identificación — no lee ni escribe ningún dato del cliente.
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const WHATSAPP_VERIFY_TOKEN = Deno.env.get('WHATSAPP_VERIFY_TOKEN')!;
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
 const RECIBOS_BUCKET = 'recibos-clientes';
+const SESION_VALIDA_MINUTOS = 60;
+const OTP_VALIDO_MINUTOS = 5;
 
 const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -28,27 +33,76 @@ function currentMonthKey(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-// ───── Identidad: resolver/crear el vínculo número de WhatsApp ↔ cliente_id ─────
+const CATEGORIAS_META_VALIDAS = [
+  'Celular', 'Viaje', 'Vivienda', 'Carro', 'Moto', 'Computador', 'Remodelación',
+  'Salud y Estética', 'Educación', 'Moda y Accesorios', 'Deporte y Gimnasio',
+  'Mascotas', 'Eventos', 'Muebles y Decoración', 'Belleza y Spa',
+];
 
-async function resolverClientePorNumero(numeroNormalizado: string): Promise<string | null> {
+// ───── Identidad: resolver el vínculo número de WhatsApp ↔ cliente_id ─────
+
+interface IdentidadRow {
+  cliente_id: string;
+  otp_verificado_at: string | null;
+  otp_code: string | null;
+  otp_expires_at: string | null;
+}
+
+async function resolverIdentidad(numeroNormalizado: string): Promise<IdentidadRow | null> {
   const { data } = await supabase
     .from('whatsapp_identidades')
-    .select('cliente_id')
+    .select('cliente_id, otp_verificado_at, otp_code, otp_expires_at')
     .eq('numero_normalizado', numeroNormalizado)
     .maybeSingle();
-  return data?.cliente_id ?? null;
+  return data ?? null;
+}
+
+function sesionVigente(identidad: IdentidadRow): boolean {
+  if (!identidad.otp_verificado_at) return false;
+  const minutosDesdeVerificacion = (Date.now() - new Date(identidad.otp_verificado_at).getTime()) / 60000;
+  return minutosDesdeVerificacion < SESION_VALIDA_MINUTOS;
+}
+
+function generarCodigoOtp(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+/** Genera y manda un código nuevo, invalidando cualquier sesión previa. */
+async function enviarOtp(numeroNormalizado: string, email: string): Promise<boolean> {
+  const codigo = generarCodigoOtp();
+  const expira = new Date(Date.now() + OTP_VALIDO_MINUTOS * 60000).toISOString();
+  await supabase
+    .from('whatsapp_identidades')
+    .update({ otp_code: codigo, otp_expires_at: expira, otp_verificado_at: null })
+    .eq('numero_normalizado', numeroNormalizado);
+  return enviarCodigoOtp(email, codigo);
+}
+
+/** true si el texto entrante es el código correcto y todavía vigente. */
+async function intentarVerificarOtp(numeroNormalizado: string, identidad: IdentidadRow, texto: string): Promise<boolean> {
+  const codigoIngresado = texto.trim();
+  if (!/^\d{6}$/.test(codigoIngresado)) return false;
+  if (!identidad.otp_code || !identidad.otp_expires_at) return false;
+  if (new Date(identidad.otp_expires_at).getTime() < Date.now()) return false;
+  if (codigoIngresado !== identidad.otp_code) return false;
+
+  await supabase
+    .from('whatsapp_identidades')
+    .update({ otp_verificado_at: new Date().toISOString(), otp_code: null, otp_expires_at: null })
+    .eq('numero_normalizado', numeroNormalizado);
+  return true;
 }
 
 /** Primer contacto: el texto entrante debe ser un correo o un número de documento ya registrado. */
 async function intentarIdentificar(
   textoEntrante: string,
   numeroNormalizado: string,
-): Promise<{ clienteId: string; nombre: string } | null> {
+): Promise<{ clienteId: string; nombre: string; email: string } | null> {
   const valor = textoEntrante.trim();
   const esEmail = valor.includes('@');
   const esDocumento = /^\d{6,15}$/.test(valor.replace(/\D/g, ''));
 
-  let query = supabase.from('users').select('id, nombre').eq('rol', 'Cliente');
+  let query = supabase.from('users').select('id, nombre, email').eq('rol', 'Cliente');
   if (esEmail) {
     query = query.ilike('email', valor);
   } else if (esDocumento) {
@@ -66,10 +120,10 @@ async function intentarIdentificar(
     numero_normalizado: numeroNormalizado,
   });
 
-  return { clienteId: data.id, nombre: data.nombre };
+  return { clienteId: data.id, nombre: data.nombre, email: data.email };
 }
 
-// ───── Categorías: resolver por nombre o crear una de seguimiento (presupuesto 0) ─────
+// ───── Categorías de presupuesto: resolver por nombre o crear una de seguimiento ─────
 
 async function resolverOCrearCategoria(clienteId: string, nombreCategoria: string): Promise<string> {
   const mes = currentMonthKey();
@@ -97,6 +151,14 @@ async function resolverOCrearCategoria(clienteId: string, nombreCategoria: strin
   return id;
 }
 
+function resolverCategoriaMeta(nombreLibre: string): string | null {
+  const normalizado = nombreLibre.trim().toLowerCase();
+  const match = CATEGORIAS_META_VALIDAS.find(
+    (c) => c.toLowerCase() === normalizado || c.toLowerCase().includes(normalizado) || normalizado.includes(c.toLowerCase()),
+  );
+  return match ?? null;
+}
+
 // ───── Tools disponibles para Claude ─────
 
 const TOOLS = [
@@ -121,6 +183,25 @@ const TOOLS = [
   {
     name: 'listar_metas',
     description: 'Devuelve las metas de ahorro activas del cliente, con lo ahorrado y lo que falta para cada una.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'crear_meta',
+    description: `Crea una meta de ahorro nueva para el cliente. La categoría tiene que ser una de estas exactamente: ${CATEGORIAS_META_VALIDAS.join(', ')}. Si el cliente dice algo que no calza con ninguna, preguntale cuál de esas opciones es la más parecida antes de llamar esta tool.`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        categoria: { type: 'string', description: `Una de: ${CATEGORIAS_META_VALIDAS.join(', ')}` },
+        subcategoria: { type: 'string', description: 'Opcional, más específico (ej: "iPhone 17" para categoría Celular)' },
+        montoObjetivo: { type: 'number', description: 'Monto total que quiere juntar, en COP' },
+        ahorroMensual: { type: 'number', description: 'Cuánto puede ahorrar por mes, en COP' },
+      },
+      required: ['categoria', 'montoObjetivo', 'ahorroMensual'],
+    },
+  },
+  {
+    name: 'resumen_financiero',
+    description: 'Devuelve un resumen completo de la situación financiera del cliente en Neggo: presupuesto del mes (por categoría) y metas de ahorro activas, todo junto. Usalo cuando el cliente pida un resumen general de sus finanzas.',
     input_schema: { type: 'object', properties: {} },
   },
   {
@@ -182,6 +263,46 @@ async function ejecutarTool(clienteId: string, toolName: string, input: Record<s
       return { metas: data ?? [] };
     }
 
+    case 'crear_meta': {
+      const categoriaResuelta = resolverCategoriaMeta(String(input.categoria ?? ''));
+      const montoObjetivo = Number(input.montoObjetivo);
+      const ahorroMensual = Number(input.ahorroMensual);
+      if (!categoriaResuelta) {
+        return { error: 'categoria_invalida', categorias_validas: CATEGORIAS_META_VALIDAS };
+      }
+      if (!montoObjetivo || montoObjetivo <= 0 || !ahorroMensual || ahorroMensual <= 0) {
+        return { error: 'montoObjetivo y ahorroMensual (positivos) son requeridos' };
+      }
+
+      const id = `META-WA-${Date.now()}`;
+      const { error } = await supabase.from('metas').insert({
+        id,
+        cliente_id: clienteId,
+        categoria: categoriaResuelta,
+        subcategoria: input.subcategoria ? String(input.subcategoria).trim() : null,
+        monto_objetivo: montoObjetivo,
+        monto_ahorrado: 0,
+        ahorro_mensual: ahorroMensual,
+        // Regla de negocio: las metas creadas por el bot activan el Sello IFC
+        // automáticamente (a diferencia del portal, donde el cliente lo activa a mano).
+        ifc_activo: true,
+      });
+      if (error) return { error: error.message };
+
+      return { categoria: categoriaResuelta, subcategoria: input.subcategoria ?? null, montoObjetivo, ahorroMensual, ifcActivo: true };
+    }
+
+    case 'resumen_financiero': {
+      const [{ data: categorias }, { data: metas }] = await Promise.all([
+        supabase.from('presupuesto_categorias').select('nombre, presupuesto, gastado').eq('cliente_id', clienteId).eq('mes', currentMonthKey()),
+        supabase.from('metas').select('categoria, subcategoria, monto_objetivo, monto_ahorrado').eq('cliente_id', clienteId).eq('status', 'activa'),
+      ]);
+      return {
+        presupuesto: (categorias ?? []).map((c) => ({ nombre: c.nombre, presupuesto: c.presupuesto, gastado: c.gastado, restante: c.presupuesto - c.gastado })),
+        metas: (metas ?? []).map((m) => ({ categoria: m.categoria, subcategoria: m.subcategoria, objetivo: m.monto_objetivo, ahorrado: m.monto_ahorrado })),
+      };
+    }
+
     case 'confirmar_recibo_pendiente': {
       const categoria = String(input.categoria ?? '').trim();
       if (!categoria) return { error: 'categoria es requerida' };
@@ -238,12 +359,14 @@ async function ejecutarTool(clienteId: string, toolName: string, input: Record<s
 const SYSTEM_PROMPT = `Sos el asistente financiero de Neggo por WhatsApp. Le hablás al cliente de vos (voseo colombiano), con calidez y cero tecnicismos — como un amigo que sabe de plata, no como un banco.
 
 Reglas estrictas:
-- Nunca inventes montos ni datos del presupuesto — todo lo que digas sobre plata real (gastos, presupuestos, metas) tiene que salir de una tool. Si no tenés la info, usá la tool correspondiente antes de responder.
+- Nunca inventes montos ni datos del presupuesto o de las metas — todo lo que digas sobre plata real tiene que salir de una tool. Si no tenés la info, usá la tool correspondiente antes de responder.
 - Nunca dés consejo de inversión personalizado ni garantices resultados financieros. Si te preguntan algo así, aclará que no sos asesor financiero certificado y sugerí hablarlo con uno si es una decisión grande.
-- Sé breve — esto es WhatsApp, no un ensayo. 2-4 líneas por respuesta como máximo, salvo que te pidan un detalle largo.
+- Sé breve — esto es WhatsApp, no un ensayo. 2-4 líneas por respuesta como máximo, salvo que te pidan un detalle largo (ej: resumen financiero completo).
 - Si el cliente menciona un gasto ("gasté 20 mil en mercado", "me tocó pagar 50000 de uber"), usá registrar_gasto.
 - Si pregunta cómo va su presupuesto o cuánto le queda, usá consultar_presupuesto.
 - Si pregunta por sus metas o ahorros, usá listar_metas.
+- Si quiere crear una meta nueva ("quiero ahorrar para un celular", "necesito juntar plata para un viaje"), preguntale el monto objetivo y cuánto puede ahorrar por mes si no te lo dio, y usá crear_meta. Contale que el Sello IFC quedó activado automáticamente.
+- Si pide un resumen general de sus finanzas, usá resumen_financiero.
 - Si el contexto indica que tiene un recibo pendiente de revisión y el cliente te confirma la categoría o dice algo como "sí, confirmalo" o "en mercado", usá confirmar_recibo_pendiente. Si dice que no es válido o que lo borres, usá descartar_recibo_pendiente.`;
 
 interface AnthropicMessage {
@@ -383,9 +506,10 @@ Deno.serve(async (req: Request) => {
     const tipo = msg.type as string;
     const textoEntrante = tipo === 'text' ? String((msg.text as { body?: string } | undefined)?.body ?? '') : '';
 
-    let clienteId = await resolverClientePorNumero(numeroNormalizado);
+    const identidad = await resolverIdentidad(numeroNormalizado);
 
-    if (!clienteId) {
+    // ── Paso 1: identificación (quién dice ser) ──
+    if (!identidad) {
       if (tipo !== 'text') {
         await enviarMensajeWhatsapp(from, 'Antes de mandarme fotos, contame tu correo o número de documento registrado en Neggo para identificarte 🙂');
         continue;
@@ -395,10 +519,35 @@ Deno.serve(async (req: Request) => {
         await enviarMensajeWhatsapp(from, 'No te reconozco todavía. Escribime tu correo o tu número de documento registrado en Neggo para identificarte.');
         continue;
       }
-      await enviarMensajeWhatsapp(from, `¡Listo, ${identificado.nombre.split(' ')[0]}! Ya te identifiqué. Contame en qué te ayudo con tus finanzas — podés escribirme o mandarme la foto de un recibo.`);
+      await enviarOtp(numeroNormalizado, identificado.email);
+      await enviarMensajeWhatsapp(
+        from,
+        `¡Hola, ${identificado.nombre.split(' ')[0]}! Te mandé un código de 6 dígitos a ${enmascararEmail(identificado.email)} — escribímelo acá para confirmar que sos vos.`,
+      );
       continue;
     }
 
+    const clienteId = identidad.cliente_id;
+
+    // ── Paso 2: autenticación (prueba de que es quien dice ser) ──
+    if (!sesionVigente(identidad)) {
+      if (tipo === 'text') {
+        const verificado = await intentarVerificarOtp(numeroNormalizado, identidad, textoEntrante);
+        if (verificado) {
+          await enviarMensajeWhatsapp(from, '¡Listo, ya quedaste autenticado! Contame en qué te ayudo con tus finanzas — podés escribirme o mandarme la foto de un recibo.');
+          continue;
+        }
+      }
+      // Código vencido, incorrecto, o la sesión expiró y llegó un mensaje nuevo: mandar uno nuevo.
+      const { data: userRow } = await supabase.from('users').select('email').eq('id', clienteId).maybeSingle();
+      if (userRow?.email) {
+        await enviarOtp(numeroNormalizado, userRow.email);
+        await enviarMensajeWhatsapp(from, `Por seguridad necesito que te autentiques de nuevo. Te mandé un código nuevo a ${enmascararEmail(userRow.email)} — escribímelo acá.`);
+      }
+      continue;
+    }
+
+    // ── Paso 3: sesión autenticada — procesar el mensaje normalmente ──
     if (tipo === 'text') {
       await supabase.from('whatsapp_mensajes').insert({
         id: crypto.randomUUID(),
