@@ -46,12 +46,18 @@ interface IdentidadRow {
   otp_verificado_at: string | null;
   otp_code: string | null;
   otp_expires_at: string | null;
+  accion_pendiente_tipo: 'canjear_puntos' | 'responder_oferta' | null;
+  accion_pendiente_payload: Record<string, unknown> | null;
+  accion_pendiente_codigo: string | null;
+  accion_pendiente_expira_at: string | null;
 }
 
 async function resolverIdentidad(numeroNormalizado: string): Promise<IdentidadRow | null> {
   const { data } = await supabase
     .from('whatsapp_identidades')
-    .select('cliente_id, otp_verificado_at, otp_code, otp_expires_at')
+    .select(
+      'cliente_id, otp_verificado_at, otp_code, otp_expires_at, accion_pendiente_tipo, accion_pendiente_payload, accion_pendiente_codigo, accion_pendiente_expira_at',
+    )
     .eq('numero_normalizado', numeroNormalizado)
     .maybeSingle();
   return data ?? null;
@@ -91,6 +97,102 @@ async function intentarVerificarOtp(numeroNormalizado: string, identidad: Identi
     .update({ otp_verificado_at: new Date().toISOString(), otp_code: null, otp_expires_at: null })
     .eq('numero_normalizado', numeroNormalizado);
   return true;
+}
+
+// ───── Step-up: segunda confirmación para acciones que mueven valor real ─────
+// (canjear puntos, aceptar/rechazar oferta). La sesión OTP de login prueba
+// quién es el cliente; esto prueba que ESTA acción puntual la autorizó él,
+// con un código nuevo mandado al correo — nunca se ejecuta solo porque
+// Claude interpretó una intención.
+
+const ACCION_CODIGO_VALIDO_MINUTOS = 5;
+
+async function crearAccionPendiente(
+  clienteId: string,
+  tipo: 'canjear_puntos' | 'responder_oferta',
+  payload: Record<string, unknown>,
+): Promise<boolean> {
+  const { data: userRow } = await supabase.from('users').select('email').eq('id', clienteId).maybeSingle();
+  if (!userRow?.email) return false;
+
+  const codigo = generarCodigoOtp();
+  const expira = new Date(Date.now() + ACCION_CODIGO_VALIDO_MINUTOS * 60000).toISOString();
+  await supabase
+    .from('whatsapp_identidades')
+    .update({
+      accion_pendiente_tipo: tipo,
+      accion_pendiente_payload: payload,
+      accion_pendiente_codigo: codigo,
+      accion_pendiente_expira_at: expira,
+    })
+    .eq('cliente_id', clienteId);
+  await enviarCodigoOtp(userRow.email, codigo);
+  return true;
+}
+
+async function limpiarAccionPendiente(clienteId: string): Promise<void> {
+  await supabase
+    .from('whatsapp_identidades')
+    .update({ accion_pendiente_tipo: null, accion_pendiente_payload: null, accion_pendiente_codigo: null, accion_pendiente_expira_at: null })
+    .eq('cliente_id', clienteId);
+}
+
+function accionPendienteVigente(identidad: IdentidadRow): boolean {
+  if (!identidad.accion_pendiente_tipo || !identidad.accion_pendiente_expira_at) return false;
+  return new Date(identidad.accion_pendiente_expira_at).getTime() > Date.now();
+}
+
+/** Ejecuta de verdad canjear_puntos — replica la RPC canjear_puntos (que depende de auth.uid(), inutilizable desde el service role) con el cliente_id ya verificado explícitamente. */
+async function ejecutarCanjePuntosReal(clienteId: string, comercioId: string, puntos: number): Promise<{ ok: boolean; error?: string }> {
+  const { data: saldo } = await supabase.rpc('saldo_puntos_cliente', { p_cliente_id: clienteId });
+  if (Number(saldo ?? 0) < puntos) return { ok: false, error: 'saldo_insuficiente' };
+
+  const movimientoId = crypto.randomUUID();
+  const { error } = await supabase.from('puntos_movimientos').insert({
+    id: movimientoId,
+    cliente_id: clienteId,
+    tipo: 'canjeado',
+    puntos: -puntos,
+    comercio_canje_id: comercioId,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  await supabase.rpc('_log_audit', {
+    p_event_type: 'puntos.canjeado',
+    p_user_id: clienteId,
+    p_organization_id: comercioId,
+    p_metadata: { puntos, movimientoId, origen: 'whatsapp-bot' },
+  });
+  return { ok: true };
+}
+
+/** Ejecuta de verdad responder_oferta — replica responder_oferta_comercio (misma limitación de auth.uid()) con el cliente_id ya verificado. */
+async function ejecutarRespuestaOfertaReal(
+  clienteId: string,
+  ofertaId: string,
+  accion: 'aceptar' | 'rechazar',
+  motivo: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const { data: oferta } = await supabase.from('ofertas_comercios').select('meta_id, estado').eq('id', ofertaId).maybeSingle();
+  if (!oferta) return { ok: false, error: 'oferta_no_existe' };
+  if (oferta.estado !== 'pendiente') return { ok: false, error: 'oferta_ya_respondida' };
+
+  const { data: meta } = await supabase.from('metas').select('cliente_id').eq('id', oferta.meta_id).maybeSingle();
+  if (!meta || meta.cliente_id !== clienteId) return { ok: false, error: 'no_autorizado' };
+
+  const nuevoEstado = accion === 'aceptar' ? 'aceptada' : 'rechazada';
+  const { error } = await supabase
+    .from('ofertas_comercios')
+    .update({ estado: nuevoEstado, respondida_at: new Date().toISOString(), motivo_rechazo: motivo })
+    .eq('id', ofertaId);
+  if (error) return { ok: false, error: error.message };
+
+  await supabase.rpc('_log_audit', {
+    p_event_type: 'oferta.respondida',
+    p_user_id: clienteId,
+    p_metadata: { ofertaId, estado: nuevoEstado, motivoRechazo: motivo, origen: 'whatsapp-bot' },
+  });
+  return { ok: true };
 }
 
 /** Primer contacto: el texto entrante debe ser un correo o un número de documento ya registrado. */
@@ -149,6 +251,18 @@ async function resolverOCrearCategoria(clienteId: string, nombreCategoria: strin
     icono: 'MoreHorizontal',
   });
   return id;
+}
+
+async function resolverComercioParaCanje(termino: string): Promise<{ id: string; nombre: string } | null> {
+  const { data } = await supabase
+    .from('organizations')
+    .select('id, name')
+    .in('type', ['comercio', 'constructora'])
+    .eq('status', 'approved')
+    .ilike('name', `%${termino.trim()}%`)
+    .limit(1)
+    .maybeSingle();
+  return data ? { id: data.id, nombre: data.name } : null;
 }
 
 function resolverCategoriaMeta(nombreLibre: string): string | null {
@@ -251,6 +365,32 @@ const TOOLS = [
     name: 'consultar_puntos',
     description: 'Devuelve el saldo de puntos Neggo del cliente y sus últimos movimientos (ganados, canjeados, vencidos). Usalo cuando pregunte cuántos puntos tiene o por su historial de puntos.',
     input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'preparar_canje_puntos',
+    description:
+      'Prepara un canje de puntos en un comercio (NO lo ejecuta todavía). Valida que el comercio exista y que el cliente tenga saldo suficiente, y manda un código de confirmación aparte al correo del cliente — el canje solo se concreta cuando responda con ese código. Usalo cuando el cliente quiera canjear puntos.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        comercio: { type: 'string', description: 'Nombre o parte del nombre del comercio donde quiere canjear' },
+        puntos: { type: 'number', description: 'Cantidad de puntos a canjear' },
+      },
+      required: ['comercio', 'puntos'],
+    },
+  },
+  {
+    name: 'preparar_respuesta_oferta',
+    description:
+      'Prepara aceptar o rechazar la oferta pendiente más reciente de un comercio (NO lo ejecuta todavía). Manda un código de confirmación aparte al correo del cliente — la respuesta solo se concreta cuando responda con ese código. Usalo cuando el cliente quiera aceptar o rechazar una oferta.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['aceptar', 'rechazar'], description: 'Qué quiere hacer con la oferta' },
+        motivo: { type: 'string', description: 'Opcional, solo si rechaza y da una razón' },
+      },
+      required: ['accion'],
+    },
   },
 ];
 
@@ -460,6 +600,54 @@ async function ejecutarTool(clienteId: string, toolName: string, input: Record<s
       return { saldo: Number(saldo ?? 0), ultimosMovimientos: movimientos ?? [] };
     }
 
+    case 'preparar_canje_puntos': {
+      const terminoComercio = String(input.comercio ?? '').trim();
+      const puntos = Number(input.puntos);
+      if (!terminoComercio || !puntos || puntos <= 0) return { error: 'comercio y puntos (positivo) son requeridos' };
+
+      const comercio = await resolverComercioParaCanje(terminoComercio);
+      if (!comercio) return { error: 'comercio_no_encontrado' };
+
+      const { data: saldo } = await supabase.rpc('saldo_puntos_cliente', { p_cliente_id: clienteId });
+      if (Number(saldo ?? 0) < puntos) return { error: 'saldo_insuficiente', saldoActual: Number(saldo ?? 0) };
+
+      const enviado = await crearAccionPendiente(clienteId, 'canjear_puntos', { comercioId: comercio.id, comercioNombre: comercio.nombre, puntos });
+      if (!enviado) return { error: 'no_se_pudo_enviar_codigo' };
+
+      return { ok: true, comercio: comercio.nombre, puntos, requiereCodigoConfirmacion: true };
+    }
+
+    case 'preparar_respuesta_oferta': {
+      const accion = String(input.accion ?? '').trim();
+      if (accion !== 'aceptar' && accion !== 'rechazar') return { error: 'accion debe ser aceptar o rechazar' };
+      const motivo = input.motivo ? String(input.motivo).trim() : null;
+
+      const { data: metasCliente } = await supabase.from('metas').select('id').eq('cliente_id', clienteId);
+      const metaIds = (metasCliente ?? []).map((m) => m.id);
+      if (metaIds.length === 0) return { error: 'no_hay_oferta_pendiente' };
+
+      const { data: oferta } = await supabase
+        .from('ofertas_comercios')
+        .select('id, comercio_nombre, beneficio')
+        .in('meta_id', metaIds)
+        .eq('estado', 'pendiente')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!oferta) return { error: 'no_hay_oferta_pendiente' };
+
+      const enviado = await crearAccionPendiente(clienteId, 'responder_oferta', {
+        ofertaId: oferta.id,
+        accion,
+        motivo,
+        comercioNombre: oferta.comercio_nombre,
+        beneficio: oferta.beneficio,
+      });
+      if (!enviado) return { error: 'no_se_pudo_enviar_codigo' };
+
+      return { ok: true, comercio: oferta.comercio_nombre, beneficio: oferta.beneficio, accion, requiereCodigoConfirmacion: true };
+    }
+
     default:
       return { error: `tool desconocida: ${toolName}` };
   }
@@ -483,7 +671,10 @@ Reglas estrictas:
 - Si pregunta por el estado de una solicitud o trámite, usá listar_solicitudes.
 - Si pregunta si tiene ofertas o beneficios de comercios, usá listar_ofertas.
 - Si pregunta por sus compras o facturas registradas, usá listar_facturas.
-- Si pregunta cuántos puntos tiene o por su historial de puntos, usá consultar_puntos.`;
+- Si pregunta cuántos puntos tiene o por su historial de puntos, usá consultar_puntos.
+- Si quiere canjear puntos en un comercio, usá preparar_canje_puntos — esto NO ejecuta el canje todavía, solo lo prepara y manda un código de confirmación al correo. Avisale claramente que le va a llegar un código nuevo (distinto al de login) y que tiene que responderlo para que el canje se concrete.
+- Si quiere aceptar o rechazar una oferta, usá preparar_respuesta_oferta — mismo criterio: no se ejecuta hasta que confirme con el código que le llega al correo.
+- Nunca digas que un canje o una respuesta a una oferta ya se concretó a menos que el resultado de la tool lo confirme explícitamente — esas dos acciones siempre pasan primero por el código de confirmación.`;
 
 interface AnthropicMessage {
   role: 'user' | 'assistant';
@@ -660,6 +851,44 @@ Deno.serve(async (req: Request) => {
         await enviarOtp(numeroNormalizado, userRow.email);
         await enviarMensajeWhatsapp(from, `Por seguridad necesito que te autentiques de nuevo. Te mandé un código nuevo a ${enmascararEmail(userRow.email)} — escribímelo acá.`);
       }
+      continue;
+    }
+
+    // ── Paso 2.5: confirmación de acción pendiente (canje de puntos / respuesta a oferta) ──
+    if (accionPendienteVigente(identidad)) {
+      const codigoIngresado = textoEntrante.trim();
+
+      if (/^(cancelar|no|olvidalo|olvídalo)$/i.test(codigoIngresado)) {
+        await limpiarAccionPendiente(clienteId);
+        await enviarMensajeWhatsapp(from, 'Listo, cancelé esa acción — no se hizo ningún cambio.');
+        continue;
+      }
+
+      if (tipo === 'text' && /^\d{6}$/.test(codigoIngresado) && codigoIngresado === identidad.accion_pendiente_codigo) {
+        const payload = identidad.accion_pendiente_payload ?? {};
+        let resultado: { ok: boolean; error?: string };
+        let mensajeExito: string;
+
+        if (identidad.accion_pendiente_tipo === 'canjear_puntos') {
+          resultado = await ejecutarCanjePuntosReal(clienteId, String(payload.comercioId), Number(payload.puntos));
+          mensajeExito = `¡Listo! Canjeaste ${payload.puntos} puntos en ${payload.comercioNombre}.`;
+        } else {
+          const accion = payload.accion as 'aceptar' | 'rechazar';
+          resultado = await ejecutarRespuestaOfertaReal(clienteId, String(payload.ofertaId), accion, (payload.motivo as string | null) ?? null);
+          mensajeExito = accion === 'aceptar'
+            ? `¡Listo! Aceptaste la oferta de ${payload.comercioNombre}.`
+            : `Listo, rechazaste la oferta de ${payload.comercioNombre}.`;
+        }
+
+        await limpiarAccionPendiente(clienteId);
+        const respuestaFinal = resultado.ok ? mensajeExito : `No pude completarlo (${resultado.error}). Intentá de nuevo.`;
+
+        await supabase.from('whatsapp_mensajes').insert({ id: crypto.randomUUID(), cliente_id: clienteId, direccion: 'saliente', tipo: 'text', texto: respuestaFinal });
+        await enviarMensajeWhatsapp(from, respuestaFinal);
+        continue;
+      }
+
+      await enviarMensajeWhatsapp(from, 'Tenés una confirmación pendiente — respondé con el código de 6 dígitos que te mandamos al correo, o escribí "cancelar".');
       continue;
     }
 

@@ -947,6 +947,10 @@ export type Database = {
       }
       whatsapp_identidades: {
         Row: {
+          accion_pendiente_codigo: string | null
+          accion_pendiente_expira_at: string | null
+          accion_pendiente_payload: Json | null
+          accion_pendiente_tipo: string | null
           cliente_id: string
           created_at: string
           id: string
@@ -957,6 +961,10 @@ export type Database = {
           verificado_at: string
         }
         Insert: {
+          accion_pendiente_codigo?: string | null
+          accion_pendiente_expira_at?: string | null
+          accion_pendiente_payload?: Json | null
+          accion_pendiente_tipo?: string | null
           cliente_id: string
           created_at?: string
           id: string
@@ -967,6 +975,10 @@ export type Database = {
           verificado_at?: string
         }
         Update: {
+          accion_pendiente_codigo?: string | null
+          accion_pendiente_expira_at?: string | null
+          accion_pendiente_payload?: Json | null
+          accion_pendiente_tipo?: string | null
           cliente_id?: string
           created_at?: string
           id?: string
