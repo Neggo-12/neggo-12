@@ -945,6 +945,83 @@ export type Database = {
           },
         ]
       }
+      whatsapp_identidades: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          numero_normalizado: string
+          verificado_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id: string
+          numero_normalizado: string
+          verificado_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          numero_normalizado?: string
+          verificado_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_identidades_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_mensajes: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          direccion: string
+          id: string
+          movimiento_ocr_id: string | null
+          texto: string | null
+          tipo: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          direccion: string
+          id: string
+          movimiento_ocr_id?: string | null
+          texto?: string | null
+          tipo?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          direccion?: string
+          id?: string
+          movimiento_ocr_id?: string | null
+          texto?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_mensajes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensajes_movimiento_ocr_id_fkey"
+            columns: ["movimiento_ocr_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos_ocr"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movimientos_ocr: {
         Row: {
           categoria_id: string | null
