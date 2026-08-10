@@ -1787,6 +1787,90 @@ export type Database = {
           },
         ]
       }
+      crm_ventas_leads: {
+        Row: {
+          id: string
+          fecha_alta: string
+          nombre_negocio: string
+          celular_whatsapp: string | null
+          pagina_web: string | null
+          categoria: string | null
+          tipo_perfil: string
+          cuenta_grande: boolean
+          canal_principal: string
+          contacto: string | null
+          ciudad_zona: string | null
+          gancho_personalizacion: string | null
+          mensaje_armado: string | null
+          estado_envio: string
+          etapa: string
+          respuesta_real: string | null
+          respuesta_sugerida: string | null
+          fecha_proxima_accion: string | null
+          proxima_accion: string | null
+          plan_elegido: string | null
+          valor_mensual_estimado: number | null
+          notas: string | null
+          origen: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          fecha_alta?: string
+          nombre_negocio: string
+          celular_whatsapp?: string | null
+          pagina_web?: string | null
+          categoria?: string | null
+          tipo_perfil: string
+          cuenta_grande?: boolean
+          canal_principal: string
+          contacto?: string | null
+          ciudad_zona?: string | null
+          gancho_personalizacion?: string | null
+          mensaje_armado?: string | null
+          estado_envio?: string
+          etapa?: string
+          respuesta_real?: string | null
+          respuesta_sugerida?: string | null
+          fecha_proxima_accion?: string | null
+          proxima_accion?: string | null
+          plan_elegido?: string | null
+          valor_mensual_estimado?: number | null
+          notas?: string | null
+          origen?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          fecha_alta?: string
+          nombre_negocio?: string
+          celular_whatsapp?: string | null
+          pagina_web?: string | null
+          categoria?: string | null
+          tipo_perfil?: string
+          cuenta_grande?: boolean
+          canal_principal?: string
+          contacto?: string | null
+          ciudad_zona?: string | null
+          gancho_personalizacion?: string | null
+          mensaje_armado?: string | null
+          estado_envio?: string
+          etapa?: string
+          respuesta_real?: string | null
+          respuesta_sugerida?: string | null
+          fecha_proxima_accion?: string | null
+          proxima_accion?: string | null
+          plan_elegido?: string | null
+          valor_mensual_estimado?: number | null
+          notas?: string | null
+          origen?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       comercios_mas_buscados: {
@@ -1971,6 +2055,40 @@ export type Database = {
       }
       canjear_puntos: {
         Args: { p_comercio_id: string; p_puntos: number }
+        Returns: string
+      }
+      crm_ventas_marcar_enviado: {
+        Args: { p_lead_id: string }
+        Returns: undefined
+      }
+      crm_ventas_registrar_respuesta: {
+        Args: { p_lead_id: string; p_respuesta: string }
+        Returns: undefined
+      }
+      crm_ventas_guardar_respuesta_sugerida: {
+        Args: { p_lead_id: string; p_texto: string }
+        Returns: undefined
+      }
+      crm_ventas_cambiar_etapa: {
+        Args: { p_lead_id: string; p_nueva_etapa: string; p_extra?: Json }
+        Returns: undefined
+      }
+      crm_ventas_crear_lead: {
+        Args: {
+          p_nombre_negocio: string
+          p_tipo_perfil: string
+          p_canal_principal: string
+          p_celular_whatsapp?: string | null
+          p_pagina_web?: string | null
+          p_categoria?: string | null
+          p_cuenta_grande?: boolean
+          p_contacto?: string | null
+          p_ciudad_zona?: string | null
+          p_gancho_personalizacion?: string | null
+          p_mensaje_armado?: string | null
+          p_notas?: string | null
+          p_origen?: string | null
+        }
         Returns: string
       }
     }

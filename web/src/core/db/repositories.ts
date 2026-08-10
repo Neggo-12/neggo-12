@@ -39,6 +39,7 @@ export type MeInteresaDestinatarioRow = Database['public']['Tables']['me_interes
 export type ClienteBancoProductoRow = Database['public']['Tables']['cliente_banco_productos']['Row'];
 export type AceptacionPoliticaRow = Database['public']['Tables']['aceptaciones_politica']['Row'];
 export type FalloAppRow = Database['public']['Tables']['fallos_app']['Row'];
+export type CrmVentasLeadRow = Database['public']['Tables']['crm_ventas_leads']['Row'];
 
 // ───── Helpers ─────
 
@@ -3606,4 +3607,235 @@ export async function fetchFallosApp(): Promise<{
 
   if (error) return { data: null, count24h: 0, error: errMessage(error) };
   return { data: data ?? [], count24h: count ?? 0, error: null };
+}
+
+// ───── CRM Ventas (Admin) ─────
+// docs/spec-crm-ventas-admin.md — leads de prospección de Growth & Adquisición
+// (LinkedIn/Instagram/Maps), trabajados a diario por Jhey desde el panel Admin,
+// con respuestas sugeridas escritas por el agente Ventas/Closer. Todas las
+// mutaciones pasan por funciones SECURITY DEFINER — nunca UPDATE directo desde
+// el cliente (no hay política `update` en la tabla, ver migración 20260810).
+
+/** Estado del envío inicial del mensaje de prospección (sección 4 del spec). */
+export type CrmVentasEstadoEnvio = 'Pendiente de envío' | 'Enviado';
+
+/** Las 7 etapas del pipeline de CRM Ventas (sección 4 del spec). */
+export type CrmVentasEtapa =
+  | 'Pendiente de envío'
+  | 'En seguimiento'
+  | 'Respondió'
+  | 'Agendado'
+  | 'Cerrado - ganado'
+  | 'Perdido'
+  | 'Descartado';
+
+/** Tipo de perfil prospectado — determina el guion/tono usado (sección 6 del spec). */
+export type CrmVentasTipoPerfil = 'Comercio directo' | 'Conector' | 'Banco-Constructora';
+
+/** Canal por el que se contactó al prospecto. */
+export type CrmVentasCanal = 'Instagram' | 'LinkedIn' | 'Facebook' | 'Web' | 'Email' | 'WhatsApp';
+
+/** Los 3 planes reales de Neggo (docs/marketing-neggo.md, sección 5.1) — únicos valores válidos al cerrar un trato. */
+export type CrmVentasPlanElegido = 'Solo Pauta' | 'Balanceado' | 'Solo Resultados';
+
+/** Display-friendly shape para un lead de CRM Ventas — camelCase 1:1 con crm_ventas_leads. */
+export interface CrmVentasLeadDisplay {
+  id: string;
+  fechaAlta: string;
+  nombreNegocio: string;
+  celularWhatsapp: string | null;
+  paginaWeb: string | null;
+  categoria: string | null;
+  tipoPerfil: CrmVentasTipoPerfil;
+  cuentaGrande: boolean;
+  canalPrincipal: CrmVentasCanal;
+  contacto: string | null;
+  ciudadZona: string | null;
+  ganchoPersonalizacion: string | null;
+  mensajeArmado: string | null;
+  estadoEnvio: CrmVentasEstadoEnvio;
+  etapa: CrmVentasEtapa;
+  respuestaReal: string | null;
+  respuestaSugerida: string | null;
+  fechaProximaAccion: string | null;
+  proximaAccion: string | null;
+  planElegido: CrmVentasPlanElegido | null;
+  valorMensualEstimado: number | null;
+  notas: string | null;
+  origen: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function mapCrmVentasLeadRow(row: CrmVentasLeadRow): CrmVentasLeadDisplay {
+  return {
+    id: row.id,
+    fechaAlta: row.fecha_alta,
+    nombreNegocio: row.nombre_negocio,
+    celularWhatsapp: row.celular_whatsapp,
+    paginaWeb: row.pagina_web,
+    categoria: row.categoria,
+    tipoPerfil: row.tipo_perfil as CrmVentasTipoPerfil,
+    cuentaGrande: row.cuenta_grande,
+    canalPrincipal: row.canal_principal as CrmVentasCanal,
+    contacto: row.contacto,
+    ciudadZona: row.ciudad_zona,
+    ganchoPersonalizacion: row.gancho_personalizacion,
+    mensajeArmado: row.mensaje_armado,
+    estadoEnvio: row.estado_envio as CrmVentasEstadoEnvio,
+    etapa: row.etapa as CrmVentasEtapa,
+    respuestaReal: row.respuesta_real,
+    respuestaSugerida: row.respuesta_sugerida,
+    fechaProximaAccion: row.fecha_proxima_accion,
+    proximaAccion: row.proxima_accion,
+    planElegido: row.plan_elegido as CrmVentasPlanElegido | null,
+    valorMensualEstimado: row.valor_mensual_estimado === null ? null : Number(row.valor_mensual_estimado),
+    notas: row.notas,
+    origen: row.origen,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/** Todos los leads de CRM Ventas — RLS restringe esta tabla a Admin (is_platform_admin()). */
+export async function fetchCrmVentasLeads(): Promise<{ data: CrmVentasLeadDisplay[] | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+
+  const { data, error } = await supabase
+    .from('crm_ventas_leads')
+    .select('*')
+    .order('fecha_alta', { ascending: false });
+
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: (data ?? []).map(mapCrmVentasLeadRow), error: null };
+}
+
+/**
+ * Marca un lead como enviado — RPC (crm_ventas_marcar_enviado): pasa
+ * estado_envio a 'Enviado' y etapa a 'En seguimiento'. Solo Jhey vía UI
+ * (sección 6 del spec: los agentes IA nunca marcan envío ni avanzan etapa).
+ */
+export async function crmVentasMarcarEnviado(leadId: string): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.rpc('crm_ventas_marcar_enviado', { p_lead_id: leadId });
+  if (error) return { error: errMessage(error) };
+  return { error: null };
+}
+
+/**
+ * Pega la respuesta real del negocio — RPC (crm_ventas_registrar_respuesta):
+ * guarda el texto literal, mueve la etapa a 'Respondió' y limpia la respuesta
+ * sugerida anterior (queda obsoleta frente a la respuesta real nueva).
+ */
+export async function crmVentasRegistrarRespuesta(
+  leadId: string,
+  respuesta: string,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.rpc('crm_ventas_registrar_respuesta', {
+    p_lead_id: leadId,
+    p_respuesta: respuesta,
+  });
+  if (error) return { error: errMessage(error) };
+  return { error: null };
+}
+
+/**
+ * Guarda la respuesta sugerida para un lead en etapa 'Respondió' — RPC
+ * (crm_ventas_guardar_respuesta_sugerida). Es la escritura principal del
+ * agente Ventas/Closer (sección 6 del spec), por eso la función SQL acepta
+ * también llamadas sin sesión de usuario real (MCP/tarea automatizada).
+ */
+export async function crmVentasGuardarRespuestaSugerida(
+  leadId: string,
+  texto: string,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const { error } = await supabase.rpc('crm_ventas_guardar_respuesta_sugerida', {
+    p_lead_id: leadId,
+    p_texto: texto,
+  });
+  if (error) return { error: errMessage(error) };
+  return { error: null };
+}
+
+/** Extra opcional al cambiar de etapa — requerido según la etapa destino (ver crm_ventas_cambiar_etapa en SQL). */
+export interface CrmVentasCambiarEtapaExtra {
+  fechaProximaAccion?: string | null;
+  proximaAccion?: string | null;
+  planElegido?: CrmVentasPlanElegido | null;
+  valorMensualEstimado?: number | null;
+  notas?: string | null;
+}
+
+/**
+ * Mueve un lead a una nueva etapa del pipeline — RPC (crm_ventas_cambiar_etapa).
+ * La función SQL exige fecha_proxima_accion para 'Agendado', y plan_elegido +
+ * valor_mensual_estimado (no-negativo) para 'Cerrado - ganado'. Solo Jhey vía UI.
+ */
+export async function crmVentasCambiarEtapa(
+  leadId: string,
+  nuevaEtapa: CrmVentasEtapa,
+  extra?: CrmVentasCambiarEtapaExtra,
+): Promise<{ error: string | null }> {
+  if (!supabase) return { error: NOT_CONFIGURED };
+  const payload: Json = {
+    ...(extra?.fechaProximaAccion !== undefined && { fecha_proxima_accion: extra.fechaProximaAccion }),
+    ...(extra?.proximaAccion !== undefined && { proxima_accion: extra.proximaAccion }),
+    ...(extra?.planElegido !== undefined && { plan_elegido: extra.planElegido }),
+    ...(extra?.valorMensualEstimado !== undefined && { valor_mensual_estimado: extra.valorMensualEstimado }),
+    ...(extra?.notas !== undefined && { notas: extra.notas }),
+  } as Json;
+  const { error } = await supabase.rpc('crm_ventas_cambiar_etapa', {
+    p_lead_id: leadId,
+    p_nueva_etapa: nuevaEtapa,
+    p_extra: payload,
+  });
+  if (error) return { error: errMessage(error) };
+  return { error: null };
+}
+
+/** Input para crear un lead nuevo — usado por el agente Growth & Adquisición. */
+export interface CrmVentasCrearLeadInput {
+  nombreNegocio: string;
+  tipoPerfil: CrmVentasTipoPerfil;
+  canalPrincipal: CrmVentasCanal;
+  celularWhatsapp?: string | null;
+  paginaWeb?: string | null;
+  categoria?: string | null;
+  cuentaGrande?: boolean;
+  contacto?: string | null;
+  ciudadZona?: string | null;
+  ganchoPersonalizacion?: string | null;
+  mensajeArmado?: string | null;
+  notas?: string | null;
+  origen?: string | null;
+}
+
+/**
+ * Crea un lead nuevo en el pipeline — RPC (crm_ventas_crear_lead), siempre en
+ * etapa 'Pendiente de envío'. Es la escritura principal del agente Growth &
+ * Adquisición (sección 6 del spec); devuelve el id generado (formato CRMV-...).
+ */
+export async function crmVentasCrearLead(
+  input: CrmVentasCrearLeadInput,
+): Promise<{ data: string | null; error: string | null }> {
+  if (!supabase) return { data: null, error: NOT_CONFIGURED };
+  const { data, error } = await supabase.rpc('crm_ventas_crear_lead', {
+    p_nombre_negocio: input.nombreNegocio,
+    p_tipo_perfil: input.tipoPerfil,
+    p_canal_principal: input.canalPrincipal,
+    p_celular_whatsapp: input.celularWhatsapp ?? null,
+    p_pagina_web: input.paginaWeb ?? null,
+    p_categoria: input.categoria ?? null,
+    p_cuenta_grande: input.cuentaGrande ?? false,
+    p_contacto: input.contacto ?? null,
+    p_ciudad_zona: input.ciudadZona ?? null,
+    p_gancho_personalizacion: input.ganchoPersonalizacion ?? null,
+    p_mensaje_armado: input.mensajeArmado ?? null,
+    p_notas: input.notas ?? null,
+    p_origen: input.origen ?? null,
+  });
+  if (error) return { data: null, error: errMessage(error) };
+  return { data: data as string, error: null };
 }
