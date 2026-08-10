@@ -10,6 +10,7 @@ import EstadisticasPanel from '@/features/admin/components/EstadisticasPanel';
 import TarifasComercioNegociadasPanel from '@/features/admin/components/TarifasComercioNegociadasPanel';
 import TarifasSelloNegociadasPanel from '@/features/admin/components/TarifasSelloNegociadasPanel';
 import SistemaPuntosPanel from '@/features/admin/components/SistemaPuntosPanel';
+import CRMVentasPanel from '@/features/admin/components/CRMVentasPanel';
 import { MFA_ENFORCEMENT_ENABLED } from '@/core/config/mfaConfig';
 import { cn, formatCOP } from '@/lib/utils';
 import {
@@ -45,6 +46,7 @@ import {
   Handshake,
   Coins,
   ScrollText,
+  Users2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Fragment, useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -82,6 +84,7 @@ const adminSections = [
   { key: 'bancos' as const, label: 'Bancos', icon: Building2 },
   { key: 'constructoras' as const, label: 'Constructoras', icon: Home },
   { key: 'comercios' as const, label: 'Comercios', icon: ShoppingBag },
+  { key: 'crm-ventas' as const, label: 'CRM Ventas', icon: Users2 },
   { key: 'clientes' as const, label: 'Clientes', icon: Users },
   { key: 'estadisticas' as const, label: 'Estadísticas', icon: TrendingUp },
   { key: 'analitica' as const, label: 'Analítica IFC', icon: BarChart3 },
@@ -286,6 +289,8 @@ export default function AdminDashboard() {
           )}
 
           {activeSection === 'comercios' && <ComerciosAdminPanel />}
+
+          {activeSection === 'crm-ventas' && <CRMVentasPanel />}
 
           {activeSection === 'clientes' && <ClientesPanel />}
 
