@@ -1806,6 +1806,8 @@ export type Database = {
           etapa: string
           respuesta_real: string | null
           respuesta_sugerida: string | null
+          fecha_envio: string | null
+          fecha_respuesta: string | null
           fecha_proxima_accion: string | null
           proxima_accion: string | null
           plan_elegido: string | null
@@ -1833,6 +1835,8 @@ export type Database = {
           etapa?: string
           respuesta_real?: string | null
           respuesta_sugerida?: string | null
+          fecha_envio?: string | null
+          fecha_respuesta?: string | null
           fecha_proxima_accion?: string | null
           proxima_accion?: string | null
           plan_elegido?: string | null
@@ -1860,6 +1864,8 @@ export type Database = {
           etapa?: string
           respuesta_real?: string | null
           respuesta_sugerida?: string | null
+          fecha_envio?: string | null
+          fecha_respuesta?: string | null
           fecha_proxima_accion?: string | null
           proxima_accion?: string | null
           plan_elegido?: string | null

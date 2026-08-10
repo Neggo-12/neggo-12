@@ -3657,6 +3657,10 @@ export interface CrmVentasLeadDisplay {
   etapa: CrmVentasEtapa;
   respuestaReal: string | null;
   respuestaSugerida: string | null;
+  /** Cuándo se marcó el mensaje como enviado (crm_ventas_marcar_enviado) — base para el seguimiento a 24-48h. */
+  fechaEnvio: string | null;
+  /** Cuándo se guardó la respuesta real del negocio (crm_ventas_registrar_respuesta). */
+  fechaRespuesta: string | null;
   fechaProximaAccion: string | null;
   proximaAccion: string | null;
   planElegido: CrmVentasPlanElegido | null;
@@ -3686,6 +3690,8 @@ function mapCrmVentasLeadRow(row: CrmVentasLeadRow): CrmVentasLeadDisplay {
     etapa: row.etapa as CrmVentasEtapa,
     respuestaReal: row.respuesta_real,
     respuestaSugerida: row.respuesta_sugerida,
+    fechaEnvio: row.fecha_envio,
+    fechaRespuesta: row.fecha_respuesta,
     fechaProximaAccion: row.fecha_proxima_accion,
     proximaAccion: row.proxima_accion,
     planElegido: row.plan_elegido as CrmVentasPlanElegido | null,
@@ -3697,14 +3703,19 @@ function mapCrmVentasLeadRow(row: CrmVentasLeadRow): CrmVentasLeadDisplay {
   };
 }
 
-/** Todos los leads de CRM Ventas — RLS restringe esta tabla a Admin (is_platform_admin()). */
+/**
+ * Todos los leads de CRM Ventas — RLS restringe esta tabla a Admin (is_platform_admin()).
+ * Orden por `updated_at desc`: el lead que Jhey acaba de gestionar (marcar enviado, guardar
+ * respuesta, mover etapa) sube al tope de la lista — pedido explícito tras la primera prueba
+ * real del panel, para no perder de vista en qué se está trabajando ahora mismo.
+ */
 export async function fetchCrmVentasLeads(): Promise<{ data: CrmVentasLeadDisplay[] | null; error: string | null }> {
   if (!supabase) return { data: null, error: NOT_CONFIGURED };
 
   const { data, error } = await supabase
     .from('crm_ventas_leads')
     .select('*')
-    .order('fecha_alta', { ascending: false });
+    .order('updated_at', { ascending: false });
 
   if (error) return { data: null, error: errMessage(error) };
   return { data: (data ?? []).map(mapCrmVentasLeadRow), error: null };

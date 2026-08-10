@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import {
   Phone, MessageCircle, Globe, Copy, Send, Sparkles, CalendarClock,
-  ClipboardCheck, ExternalLink, Building2, MapPin, ArrowRightCircle,
+  ClipboardCheck, ExternalLink, Building2, MapPin, ArrowRightCircle, Hash,
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,6 +33,12 @@ async function copyToClipboard(text: string, label: string) {
   } catch {
     toast.error('No se pudo copiar', { description: 'El navegador bloqueó el acceso al portapapeles.' });
   }
+}
+
+/** Fecha + hora exacta — a diferencia de fecha_alta/fecha_proxima_accion (solo día), fecha_envio
+ * y fecha_respuesta necesitan la hora para poder calcular el seguimiento a 24-48h. */
+function formatFechaHora(iso: string): string {
+  return format(new Date(iso), "d 'de' MMM, HH:mm", { locale: es });
 }
 
 interface ExpandedLeadVentaProps {
@@ -64,7 +72,16 @@ export default function ExpandedLeadVenta({ lead, onMarcarEnviado, onGuardarResp
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
       {/* Datos de contacto */}
       <div className="space-y-3">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Datos de Contacto</h4>
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Datos de Contacto</h4>
+          <button
+            onClick={() => copyToClipboard(lead.id, 'ID')}
+            className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-foreground"
+            title="Copiar ID — mismo identificador que en el documento original"
+          >
+            <Hash className="h-2.5 w-2.5" /> {lead.id}
+          </button>
+        </div>
 
         <div className="space-y-2 text-sm">
           <div className="rounded-lg bg-card/60 border border-border/30 p-2.5">
@@ -157,11 +174,14 @@ export default function ExpandedLeadVenta({ lead, onMarcarEnviado, onGuardarResp
           </div>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Envío</span>
           <Badge variant="outline" className={cn('text-[10px]', lead.estadoEnvio === 'Enviado' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-slate-500/30 bg-slate-500/10 text-slate-400')}>
             {lead.estadoEnvio}
           </Badge>
+          {lead.fechaEnvio && (
+            <span className="text-[10px] text-muted-foreground font-mono">{formatFechaHora(lead.fechaEnvio)}</span>
+          )}
           {lead.estadoEnvio === 'Pendiente de envío' && (
             <Button size="sm" className="h-7 gap-1 text-[11px] bg-blue-600 hover:bg-blue-500" onClick={onMarcarEnviado}>
               <Send className="h-3 w-3" /> Marcar enviado
@@ -170,7 +190,12 @@ export default function ExpandedLeadVenta({ lead, onMarcarEnviado, onGuardarResp
         </div>
 
         <div className="space-y-1.5">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Respuesta real del negocio</div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Respuesta real del negocio</span>
+            {lead.fechaRespuesta && (
+              <span className="text-[10px] text-muted-foreground font-mono">{formatFechaHora(lead.fechaRespuesta)}</span>
+            )}
+          </div>
           <Textarea
             value={respuestaDraft}
             onChange={(e) => setRespuestaDraft(e.target.value)}
@@ -274,6 +299,10 @@ export default function ExpandedLeadVenta({ lead, onMarcarEnviado, onGuardarResp
             <p className="text-[11px] text-muted-foreground leading-relaxed max-h-28 overflow-y-auto whitespace-pre-wrap">{lead.notas}</p>
           </div>
         )}
+
+        <div className="rounded-lg bg-card/40 border border-border/20 p-2 text-[10px] text-muted-foreground flex items-center gap-1">
+          <ArrowRightCircle className="h-3 w-3 shrink-0" /> Última gestión: <span className="font-mono text-foreground">{formatFechaHora(lead.updatedAt)}</span>
+        </div>
 
         <div className="flex justify-between text-[10px] text-muted-foreground pt-1">
           <span>Alta: {new Date(lead.fechaAlta).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}</span>

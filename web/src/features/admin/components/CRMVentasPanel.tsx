@@ -77,8 +77,19 @@ export default function CRMVentasPanel() {
     loadLeads();
   }, [loadLeads]);
 
+  /** Aplica un patch optimista a un lead, lo marca como recién tocado (`updatedAt` = ahora) y
+   * re-ordena para que suba al tope — mismo criterio que el `order('updated_at desc')` del
+   * fetch, para que el salto sea instantáneo y no haya que esperar el próximo reload. */
+  const applyLeadPatch = useCallback((id: string, patch: Partial<CrmVentasLeadDisplay>) => {
+    const now = new Date().toISOString();
+    setLeads((prev) => {
+      const next = prev.map((l) => (l.id === id ? { ...l, ...patch, updatedAt: now } : l));
+      return [...next].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0));
+    });
+  }, []);
+
   const handleMarcarEnviado = useCallback(async (id: string) => {
-    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, estadoEnvio: 'Enviado', etapa: 'En seguimiento' } : l)));
+    applyLeadPatch(id, { estadoEnvio: 'Enviado', etapa: 'En seguimiento', fechaEnvio: new Date().toISOString() });
     const { error: updateError } = await crmVentasMarcarEnviado(id);
     if (updateError) {
       toast.error('No se pudo marcar como enviado', { description: updateError });
@@ -86,10 +97,10 @@ export default function CRMVentasPanel() {
     } else {
       toast.success('Marcado como enviado', { description: 'El lead pasó a "En seguimiento".' });
     }
-  }, [loadLeads]);
+  }, [loadLeads, applyLeadPatch]);
 
   const handleGuardarRespuesta = useCallback(async (id: string, respuesta: string) => {
-    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, respuestaReal: respuesta, etapa: 'Respondió', respuestaSugerida: null } : l)));
+    applyLeadPatch(id, { respuestaReal: respuesta, etapa: 'Respondió', respuestaSugerida: null, fechaRespuesta: new Date().toISOString() });
     const { error: updateError } = await crmVentasRegistrarRespuesta(id, respuesta);
     if (updateError) {
       toast.error('No se pudo guardar la respuesta', { description: updateError });
@@ -97,18 +108,17 @@ export default function CRMVentasPanel() {
     } else {
       toast.success('Respuesta guardada', { description: 'El agente de Ventas generará la respuesta sugerida en su próxima corrida.' });
     }
-  }, [loadLeads]);
+  }, [loadLeads, applyLeadPatch]);
 
   const handleCambiarEtapa = useCallback(async (id: string, etapa: CrmVentasEtapa, extra?: CrmVentasCambiarEtapaExtra) => {
-    setLeads((prev) => prev.map((l) => (l.id === id ? {
-      ...l,
+    applyLeadPatch(id, {
       etapa,
       ...(extra?.fechaProximaAccion !== undefined && { fechaProximaAccion: extra.fechaProximaAccion }),
       ...(extra?.proximaAccion !== undefined && { proximaAccion: extra.proximaAccion }),
       ...(extra?.planElegido !== undefined && { planElegido: extra.planElegido }),
       ...(extra?.valorMensualEstimado !== undefined && { valorMensualEstimado: extra.valorMensualEstimado }),
       ...(extra?.notas !== undefined && { notas: extra.notas }),
-    } : l)));
+    });
     const { error: updateError } = await crmVentasCambiarEtapa(id, etapa, extra);
     if (updateError) {
       toast.error('No se pudo mover la etapa', { description: updateError });
@@ -116,7 +126,7 @@ export default function CRMVentasPanel() {
     } else {
       toast.success(`Etapa actualizada: ${ETAPA_VENTA_CONFIG[etapa].label}`);
     }
-  }, [loadLeads]);
+  }, [loadLeads, applyLeadPatch]);
 
   const canalScoped = useMemo(() => {
     if (canalTab === 'Prospectos') return leads.filter((l) => l.canalPrincipal !== 'Instagram' && l.canalPrincipal !== 'LinkedIn');
