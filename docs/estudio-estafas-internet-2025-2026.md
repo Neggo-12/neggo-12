@@ -102,3 +102,38 @@ Jhey compartió el relato en primera persona de alguien en LinkedIn: pagó su fa
 3. **Idea de producto real, no decidida (mayor alcance, requiere `neggo-architect` y a Jhey):** explorar si Neggo podría ofrecer algo tipo "verificación de destinatario" — confirmar si una llave Bre-B corresponde de verdad a un negocio/entidad verificada. Esto extendería el concepto de Sello de Confianza más allá del marketplace actual, pero depende de acceso a datos que Neggo no tiene hoy (un registro oficial de llaves legítimas) — no es algo que se pueda prometer ni construir unilateralmente sin esa pieza resuelta primero.
 
 **Precaución sobre el relato que compartiste:** es el testimonio personal de un tercero real, que nombra a Nequi directamente — no lo uses como pieza de contenido de Neggo tal cual (ni parafraseado de forma reconocible) sin su permiso explícito. El patrón en sí ya está confirmado por prensa independiente (fuentes de arriba), así que Neggo puede hablar del patrón citando esas fuentes sin necesidad de apoyarse en la historia de esa persona puntual.
+
+## 10. Caso JH Technology — suplantación de canal oficial de WhatsApp (agregado 10 ago, a pedido de Jhey)
+
+**Fuente:** Jhey compartió directamente el texto de una alerta pública que el propio negocio publicó en su cuenta de Instagram (@jh_technology): un grupo de terceros se está haciendo pasar por JH Technology usando distintos números de WhatsApp, pidiéndole transferencias bancarias a la gente y estafándola. El negocio salió a decirle a sus propios seguidores que su única línea oficial es un WhatsApp específico y su único perfil real es @jh_technology, para que nadie caiga.
+
+**Por qué es un caso valioso (más que los anteriores, en un sentido):** a diferencia de Bre-B (falla de un sistema de pagos) o el caso Acueducto (suplantación de una entidad estatal), acá la víctima de la suplantación es el propio NEGOCIO — un comercio real, con marca y seguidores propios, que tuvo que gastar credibilidad y esfuerzo en salir a aclarar que ellos no son los que están cobrando. Es el mismo dolor que le puede pasar a cualquier comercio afiliado a Neggo: no hace falta que hackeen nada, alcanza con que alguien abra WhatsApp y diga "somos [negocio real]".
+
+**Mecanismo:** suplantación de identidad de marca por canal no verificado — los estafadores no clonan la cuenta real de Instagram (@jh_technology sigue siendo de ellos), sino que abren números de WhatsApp nuevos y se presentan con el nombre del negocio, confiando en que el cliente no puede distinguir a simple vista cuál es el canal real. Es la misma familia de fraude que el phishing/smishing de la sección 2 (18% cada uno de los casos con pérdida reportada en Colombia), aplicada a nivel de un negocio individual en vez de una entidad grande.
+
+**Honestidad sobre si Neggo ya resuelve esto — depende:** el código anti-phishing y el Sello de Confianza de Neggo sí están diseñados exactamente para este problema (que el cliente pueda verificar que está hablando con el canal real de un negocio, antes de pagar) — pero solo protege a negocios que están afiliados y verificados en Neggo. JH Technology no es (todavía) un comercio de Neggo, así que hoy Neggo no los protege a ellos ni a sus clientes — sería deshonesto decir lo contrario. Lo que sí es cierto y verificable: si JH Technology (o cualquier negocio en esta misma situación) se afiliara a Neggo, sus clientes tendrían una forma real de verificar el canal oficial antes de transferir.
+
+**Dos formas de agregar valor, sin mezclarlas:**
+1. **Contenido (ver sección 11 de este documento):** usar el PATRÓN (suplantación de WhatsApp de un negocio real pidiendo transferencias) como evidencia de que esto le pasa a comercios reales de Medellín, no solo a bancos o entidades grandes — sin nombrar a JH Technology en la pieza publicada, por la misma razón que con el caso Bre-B: es su crisis, no la nuestra, y usarla con nombre propio sin pedir permiso se ve oportunista aunque la fuente sea pública.
+2. **Oportunidad real de prospección (Growth):** JH Technology es candidato natural para una propuesta de Neggo — literalmente están viviendo el problema que el Sello de Confianza/código anti-phishing resuelve, y ya lo comunicaron ellos mismos en público. Vale la pena que Growth prepare una propuesta personalizada (nunca enviada automáticamente, como siempre) que use exactamente esta situación real como gancho: "vimos que tuvieron que salir a alertar a sus seguidores sobre suplantación por WhatsApp — así es como Neggo ayuda a que eso no vuelva a pasar."
+
+## 11. Directiva de calidad de contenido (agregado 10 ago, a pedido de Jhey) — pieza de ejemplo
+
+Jhey señaló que el contenido reciente no está a la altura del estándar ya fijado el 4 ago (referencia: pieza I3, "profundidad narrativa obligatoria" en `plan-marketing-contenido-neggo-2026.md` sección 14). Esta es la directiva formal para Contenido & Copywriting, con una pieza de ejemplo construida usando el caso de la sección 10 como evidencia (generalizado, sin nombrar a JH Technology — ver razón en sección 10):
+
+> Hace poco un negocio real de Medellín tuvo que salir a decirle a sus propios seguidores: "ojo, nos están suplantando por WhatsApp para pedirles transferencias." No fue un banco. No fue una notificación falsa de una entidad grande. Fue una marca real, con clientes reales, gastando su propia credibilidad en avisar que ellos no eran quienes estaban cobrando.
+>
+> Así de fácil es hoy clonar la confianza de un negocio: no hace falta hackear nada, alcanza con abrir un número de WhatsApp nuevo y decir el nombre correcto.
+>
+> En Neggo, cada comercio afiliado tiene un código anti-phishing único: antes de pagar o transferir, el cliente puede verificar que está hablando con el canal real del negocio — no con alguien que se hizo pasar por él. No es una promesa después del fraude, es una verificación antes del pago.
+>
+> Si tenés un negocio, la pregunta no es si te va a pasar. Es si tus clientes van a tener cómo darse cuenta a tiempo.
+
+Por qué esta pieza cumple el estándar (para que Contenido la use como plantilla de calidad, no solo la copie):
+- Abre con contexto real y reconocible (un negocio real tuvo que hacer esto), no con la funcionalidad de Neggo.
+- Nombra el mecanismo del fraude en una frase entendible, sin tecnicismos.
+- Conecta con la funcionalidad real de Neggo (código anti-phishing) explicando qué GANA el cliente (verificar antes de pagar), no solo qué ES la función.
+- Cierra con una pregunta que interpela al lector, no con una orden de "regístrate ya".
+- No inventa ninguna cifra ni nombra a JH Technology sin su permiso.
+
+**Directiva:** toda pieza nueva de Contenido & Copywriting de acá en adelante se audita contra estos 5 puntos antes de publicarse — si le falta alguno, se reescribe, no se publica "porque ya estaba en el calendario".
