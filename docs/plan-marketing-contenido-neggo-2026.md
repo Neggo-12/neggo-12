@@ -245,6 +245,22 @@ Pieza armada en `docs/marca-assets/posts/i3-sello-confianza-instagram-v2.png` (f
 
 ---
 
+**I7 — Ganás puntos en un negocio, los usás en otro** (agregada 10 ago, cobertura de beneficios — formato: post educativo, fórmula miedo/problema real + solución concreta, sección 9 de `marketing-neggo.md`)
+
+> ¿Te ha pasado que acumulás puntos o millas en un negocio y después no sirven para nada más que ahí? 😩
+>
+> Es lo normal con la mayoría de programas de fidelidad — quedan encerrados en un solo lugar, y al final terminan sin usarse.
+>
+> Ojo: esto no es una promesa de "puntos ilimitados para siempre" — es explicarte cómo funciona hoy: ganás puntos según la tasa de cada aliado, y podés canjearlos en cualquier otro negocio verificado de Neggo, no solo donde compraste.
+>
+> Comprás en un aliado de Neggo, sumás puntos a tu saldo — y los usás donde quieras dentro del ecosistema.
+>
+> Empezá a sumar en tu próxima compra. Registrate gratis, link en bio.
+>
+> #NeggoMedellin #PuntosNeggo #Medellin #ComerciosVerificados
+
+---
+
 ### LinkedIn — adaptaciones de piezas de Instagram/Facebook (voz de Jhey, agregadas 4 ago a pedido de Jhey)
 
 Mismo criterio ya usado en el "L-extra" de I1 (fuera de la cadencia base de la sección 4, pensadas para sumar volumen sin romper el pool principal de L1-L5). Estilo "beneficio directo" en vez del gancho de sesgo psicológico de L1-L5 — explícitamente pedido por Jhey el 4 ago.
@@ -272,6 +288,39 @@ Mismo criterio ya usado en el "L-extra" de I1 (fuera de la cadencia base de la s
 > Ojo: esto no es una promesa de "hacete rico rápido" — es acortar el camino real hasta el comercio correcto, no magia.
 >
 > ¿Tenés alguna meta este año que sientas lejana? Contame cuál.
+
+---
+
+**L6 — Pagar por adelantado no es la única opción** (agregada 10 ago, cobertura de beneficios — dirigido a Comercios, mismo framework miedo real + solución de la sección 9 de `marketing-neggo.md`)
+
+> Muchos dueños de negocio dudan antes de invertir en un canal nuevo de clientes por la misma razón: pagar por adelantado sin saber si de verdad va a convertir.
+>
+> Es una duda válida — la mayoría de la pauta digital se cobra igual, haya venta o no.
+>
+> Ojo: esto no es "todo gratis hasta que vendas" — es que en Neggo el modelo de pago se adapta a cómo opera tu negocio, no al revés.
+>
+> Tu comercio elige cómo paga, según lo que te haga sentido hoy:
+> 1. Pagás solo por cada cliente real que te llega (vos cerrás la venta con tu propio proceso).
+> 2. Un valor más bajo por cliente, más una comisión — pero esa comisión solo aplica si el cliente efectivamente compra.
+> 3. No pagás nada por adelantado — solo si el cliente compra o toma tu servicio.
+>
+> Todo negociable caso por caso con vos, sin letra pequeña.
+>
+> ¿Cuál de los tres se ajusta mejor a cómo funciona tu negocio hoy? Contame.
+
+---
+
+**L7 — Gestionar tu propia pauta, sin ser experto en Meta/Google Ads** (agregada 10 ago, cobertura de beneficios — dirigido a comercios grandes/consolidados, ver `estrategia-adquisicion-clientes-neggo.md` sección 6.1)
+
+> Si ya tenés marca y seguidores, seguramente en algún momento pensaste en pautar directo en Meta o Google — y también en lo que cuesta hacerlo bien: entender el algoritmo, armar creativos que funcionen, no quemar presupuesto probando a ciegas.
+>
+> Ojo: esto todavía no está disponible — te cuento en qué estado real está, sin prometer una fecha.
+>
+> Estamos construyendo Neggo Ads: una herramienta para que los comercios aliados gestionen pauta en Meta y Google desde la misma plataforma, con IA ayudando a armar campañas y creativos. Hoy está en desarrollo activo, no lanzada todavía.
+>
+> Si te interesa quedar entre los primeros en probarlo cuando esté listo, avisame y te agrego a la lista de espera.
+>
+> ¿Ya pauteás hoy por tu cuenta, o es algo que tenés pendiente?
 
 ---
 
@@ -318,7 +367,7 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | L4 — Riesgo cero, en serio | LinkedIn | 3 | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 | L5 — Por qué "referí a un amigo" funciona | LinkedIn | 3 | Pendiente — **bloqueado hasta que Jhey defina el incentivo de referido (sección 8)** |
 | I4 — Primeros 50 comercios, Sello gratis | Instagram/Facebook | 3 | Texto y pieza gráfica (`docs/marca-assets/posts/post-i4-primeros-50-instagram.png` 1080×1350, `...-facebook.png` 1200×630) preparados y enviados a Jhey el 4 ago, pendiente de que lo publique |
-| I5 — No todo lo que dice ser tu banco, es tu banco | Instagram/Facebook | 3 | Texto ya escrito (sección 5), pendiente de que la automatización lo arme en el compositor |
+| I5 — No todo lo que dice ser tu banco, es tu banco | Instagram/Facebook | 3 | Texto preparado y enviado a Jhey el 7 ago, pendiente de que lo publique |
 | I6 — Tu meta no está tan lejos como creés | Instagram/Facebook | 3 (nueva) | Texto y pieza gráfica real (`docs/marca-assets/posts/i6-meta-instagram-1080x1350.png`, `...-facebook-1200x630.png`) preparados y enviados a Jhey el 4 ago |
 | O1 — Bases quemadas | LinkedIn | Serie origen | Publicado por Jhey el 30 jul |
 | O2 — "¿Vos sí sos del banco?" | LinkedIn | Serie origen | Publicado por Jhey el 31 jul |
@@ -326,6 +375,9 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | L-extra — ¿Buscás algo en Medellín? (adaptación de I1 a voz LinkedIn) | LinkedIn | Fuera de cadencia, a pedido de Jhey | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 | L-extra 2 — Verificá antes de confiar (adaptación de I3 a voz LinkedIn) | LinkedIn | Fuera de cadencia, agregada 4 ago | Armado en el cuadro de LinkedIn el 6 ago, pendiente de que Jhey le dé Publicar |
 | L-extra 3 — Tu meta más cerca de lo que pensás (adaptación de I6 a voz LinkedIn) | LinkedIn | Fuera de cadencia, agregada 4 ago | Texto (sección 5) y pieza gráfica (`docs/marca-assets/posts/i6-meta-linkedin-1200x627.png`) preparados y enviados a Jhey el 4 ago, pendiente de que lo arme en el compositor |
+| I7 — Ganás puntos en un negocio, los usás en otro | Instagram/Facebook | Cobertura de beneficios, agregada 10 ago | Texto ya escrito, pendiente de que la automatización lo arme en el compositor |
+| L6 — Pagar por adelantado no es la única opción | LinkedIn | Cobertura de beneficios, agregada 10 ago | Texto ya escrito, pendiente de que la automatización lo arme en el compositor |
+| L7 — Gestionar tu propia pauta, sin ser experto en Meta/Google Ads | LinkedIn | Cobertura de beneficios, agregada 10 ago | Texto ya escrito, pendiente de que la automatización lo arme en el compositor |
 
 La serie O (origen) va después de L3-L5 en la cola por defecto — se agregó al final de la tabla a propósito para no desordenar lo que ya estaba en curso. Si Jhey quiere adelantarla, moverla arriba de L3 en esta tabla.
 
