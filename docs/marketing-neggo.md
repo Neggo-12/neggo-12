@@ -40,19 +40,19 @@ Ya no son promesas — son funcionalidades reales, probadas: CRM con pipeline po
 
 **Corrección 4 ago:** "tarifas negociables por banco" describía solo el mecanismo de Bancos — los Comercios tienen su propio sistema de tarifas, distinto y ya construido (verificado en la base de datos real, tabla `planes_comercio`, 4 ago). No mezclar ambos en contenido dirigido a comercios.
 
-### 5.1 Cómo pagan los Comercios — lógica de los 3 planes (corregido 4 ago, a pedido de Jhey)
+### 5.1 Cómo pagan los Comercios — lógica y valores de los 3 planes (actualizado 10 ago, valores confirmados por Jhey)
 
-Tres planes (`planes_comercio`), todos negociables caso por caso vía `tarifas_comercio_negociadas`. **La lógica correcta del negocio** (no usar las cifras que había en la tabla `planes_comercio` de la base de datos hasta el 4 ago — Jhey las revisó y no reflejaban el modelo real; están pendientes de que Ingeniería las corrija en la BD, ver nota abajo):
+Tres planes (`planes_comercio`), negociables caso por caso vía `tarifas_comercio_negociadas`. **Valores piloto confirmados por Jhey el 10 ago — usar estos en toda prospección y respuesta de ventas, para cualquier comercio:**
 
-| Plan | Cómo paga el comercio |
-|---|---|
-| Solo Pauta | Paga por cada lead que Neggo le envía (tarifa negociable, abierta — nunca fijar un número sin confirmarlo con Jhey). El cierre de la venta lo hace el comercio con su propio proceso comercial. |
-| Balanceado | Paga un valor de lead más bajo que Solo Pauta, más una comisión — pero la comisión solo aplica si ese cliente efectivamente toma el servicio/compra. |
-| Solo Resultados | No paga nada por adelantado. Paga solo si un cliente compra o toma su servicio a través de Neggo. |
+| Plan | Cómo paga el comercio | Valor piloto (10 ago) |
+|---|---|---|
+| Solo Pauta | Paga por cada lead que Neggo le envía, sin comisión. El cierre de la venta lo hace el comercio con su propio proceso comercial. | $12.000 por lead, 0% comisión |
+| Balanceado | Paga un valor de lead más bajo que Solo Pauta, más una comisión — pero la comisión solo aplica si ese cliente efectivamente toma el servicio/compra. | $6.000 por lead + 2,25% comisión (solo si compra) |
+| Solo Resultados | No paga nada por adelantado. Paga solo si un cliente compra o toma su servicio a través de Neggo. | $0 por adelantado + 4,1% comisión (solo si compra) |
 
-**Pendiente real (flag para Ingeniería/Arquitectura, no lo resuelve Marketing):** al verificar `planes_comercio` en la base de datos el 4 ago, los valores cargados (`solo_pauta`: cpl 3.000/1%, `balanceado`: cpl 5.000/5%, `solo_resultados`: cpl 0/3%) no siguen la lógica de arriba — ej. Balanceado tenía el cpl más alto de los tres, cuando debería ser más bajo que Solo Pauta. No usar esas cifras en ningún contenido hasta que se reconcilien con `neggo-architect`/`neggo-engineer`. Mientras tanto, todo contenido dirigido a comercios describe la LÓGICA de cada plan (tabla de arriba), nunca un número fijo de COP o %.
+**Histórico (no usar):** al verificar `planes_comercio` en la base de datos el 4 ago, los valores cargados entonces (`solo_pauta`: cpl 3.000/1%, `balanceado`: cpl 5.000/5%, `solo_resultados`: cpl 0/3%) no seguían la lógica de la tabla — Balanceado tenía el cpl más alto de los tres. Jhey reemplazó esos valores el 10 ago por los de la tabla de arriba, que sí son consistentes (el CPL baja mientras la comisión sube, plan por plan). **Pendiente real (flag para Ingeniería/Arquitectura, no lo resuelve Marketing):** estos valores piloto se están usando ya en conversaciones reales de ventas pero todavía no están reconciliados en la tabla `planes_comercio` de la base de datos — coordinar con `neggo-architect`/`neggo-engineer` para actualizarla y que ambas fuentes coincidan.
 
-Aparte de esto, **Sello de Confianza** es una suscripción mensual recurrente aparte del plan (tabla `tarifas_sello_negociadas` + franjas automáticas por ingreso mensual declarado): <$300.000 → $5.000/mes; hasta $10.000.000 → $20.000/mes; hasta $20.000.000 → $28.000/mes; más de $20.000.000 → $40.000/mes. Los primeros 50 comercios lo tienen gratis (sección 4). Esta cifra sí está verificada y no tiene la inconsistencia de los planes.
+Aparte de esto, **Sello de Confianza** es una suscripción mensual recurrente aparte del plan. **Valor piloto confirmado por Jhey el 10 ago: $20.000/mes flat, para todos los comercios por ahora** (reemplaza temporalmente las franjas por ingreso declarado que había en `tarifas_sello_negociadas`: <$300.000 → $5.000/mes; hasta $10.000.000 → $20.000/mes; hasta $20.000.000 → $28.000/mes; más de $20.000.000 → $40.000/mes — esas franjas siguen en la BD, pero mientras Jhey no diga lo contrario, cotizar $20.000/mes plano en toda conversación de ventas). Los primeros 50 comercios lo tienen gratis (sección 4). **Pendiente real:** confirmar con Jhey si este valor plano reemplaza las franjas de forma permanente en la BD o es solo el valor a cotizar durante el lanzamiento.
 
 ### 5.2 Cómo le llega la demanda a un comercio (para no describirlo mal)
 
