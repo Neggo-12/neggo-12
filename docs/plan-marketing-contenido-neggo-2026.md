@@ -375,7 +375,7 @@ No hay benchmark numérico todavía (sin historial de contenido previo) — la p
 | L-extra — ¿Buscás algo en Medellín? (adaptación de I1 a voz LinkedIn) | LinkedIn | Fuera de cadencia, a pedido de Jhey | Armado en el cuadro de LinkedIn el 28 jul, pendiente de que Jhey le dé Publicar |
 | L-extra 2 — Verificá antes de confiar (adaptación de I3 a voz LinkedIn) | LinkedIn | Fuera de cadencia, agregada 4 ago | Armado en el cuadro de LinkedIn el 6 ago, pendiente de que Jhey le dé Publicar |
 | L-extra 3 — Tu meta más cerca de lo que pensás (adaptación de I6 a voz LinkedIn) | LinkedIn | Fuera de cadencia, agregada 4 ago | Texto (sección 5) y pieza gráfica (`docs/marca-assets/posts/i6-meta-linkedin-1200x627.png`) preparados y enviados a Jhey el 4 ago, pendiente de que lo arme en el compositor |
-| I7 — Ganás puntos en un negocio, los usás en otro | Instagram/Facebook | Cobertura de beneficios, agregada 10 ago | Texto ya escrito, pendiente de que la automatización lo arme en el compositor |
+| I7 — Ganás puntos en un negocio, los usás en otro | Instagram/Facebook | Cobertura de beneficios, agregada 10 ago | Texto preparado y enviado a Jhey el 11 ago, pendiente de que lo publique |
 | L6 — Pagar por adelantado no es la única opción | LinkedIn | Cobertura de beneficios, agregada 10 ago | Texto ya escrito, pendiente de que la automatización lo arme en el compositor |
 | L7 — Gestionar tu propia pauta, sin ser experto en Meta/Google Ads | LinkedIn | Cobertura de beneficios, agregada 10 ago | Texto ya escrito, pendiente de que la automatización lo arme en el compositor |
 
